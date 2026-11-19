@@ -476,9 +476,9 @@
               <span id="active-agent-mode" class="text-[11px] text-emerald-400 font-mono font-medium">[BUILD MODE · 22 tools]</span>
             </div>
             <div class="pt-0.5">
-              <button onclick="triggerToast('📁 Emplacement workspace : /home/thomas/data/AI-workspace/TokenWatcherWidget')" class="text-[11px] font-mono text-slate-400 hover:text-cyan-300 transition flex items-center gap-1.5">
+              <button id="workspace-dir-btn" onclick="triggerToast('📁 Workspace : ' + (document.getElementById('workspace-dir-text')?.textContent || ''))" class="text-[11px] font-mono text-slate-400 hover:text-cyan-300 transition flex items-center gap-1.5">
                 <i class="fa-regular fa-folder-open text-cyan-400"></i>
-                <span>/home/thomas/data/AI-workspace/TokenWatcherWidget/tokenwatcher-topbar</span>
+                <span id="workspace-dir-text">/home/thomas/data/AI-workspace/TokenWatcherWidget/Widget</span>
                 <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60"></i>
               </button>
             </div>
@@ -560,7 +560,7 @@
               <i class="fa-solid fa-forward-fast text-blue-400 text-[10px]"></i>
             </div>
             <div class="text-base font-bold font-mono text-white tabular-nums" id="speed-pp">1 420 <span class="text-xs text-slate-400 font-normal">t/s</span></div>
-            <div class="text-[10px] text-slate-500 font-mono">Batch 512 / uBatch 128</div>
+            <div id="speed-pp-sub" class="text-[10px] text-slate-500 font-mono">Batch 512 / uBatch 128</div>
           </div>
           <div class="bg-black/35 p-2.5 rounded-xl border border-white/5 space-y-1">
             <div class="text-[10px] text-slate-400 uppercase font-mono flex items-center justify-between">
@@ -568,7 +568,7 @@
               <i class="fa-regular fa-clock text-cyan-400 text-[10px]"></i>
             </div>
             <div class="text-base font-bold font-mono text-cyan-300 tabular-nums" id="speed-ttft">0.18 <span class="text-xs text-slate-400 font-normal">s</span></div>
-            <div class="text-[10px] text-emerald-400 font-mono">--cache-reuse 256 actif</div>
+            <div id="speed-ttft-sub" class="text-[10px] text-emerald-400 font-mono">--cache-reuse 256 actif</div>
           </div>
           <div class="bg-black/35 p-2.5 rounded-xl border border-white/5 space-y-1 sm:col-span-2">
             <div class="text-[10px] text-slate-400 uppercase font-mono flex items-center justify-between">
@@ -869,7 +869,7 @@
               <p class="text-[11px] text-slate-400 font-mono" id="hw-silicon-subtitle">Ryzen AI Max+ 395 · Radeon 8060S gfx1151 · sondes sysfs/hwmon</p>
             </div>
           </div>
-          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+          <span id="hw-offload-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
             Offload GPU: 100%
           </span>
         </div>
@@ -887,7 +887,7 @@
             <div class="space-y-0.5 font-mono">
               <div class="text-[10px] uppercase text-slate-400"><span data-i18n="hardware.memory.vram_dedicated">VRAM Dédiée</span> [■■■■□]</div>
               <div class="text-xs font-bold text-white tabular-nums" id="vram-val">13.5 / 16.0 <span class="text-[10px] text-slate-400 font-normal">Go</span></div>
-              <div class="text-[10px] text-emerald-400"><span data-i18n="hardware.memory.free">Libre</span>: 2.5 Go</div>
+              <div class="text-[10px] text-emerald-400"><span data-i18n="hardware.memory.free">Libre</span>: <span id="vram-free-val">2.5 Go</span></div>
             </div>
           </div>
 
@@ -902,7 +902,7 @@
             <div class="space-y-0.5 font-mono">
               <div class="text-[10px] uppercase text-slate-400"><span data-i18n="hardware.memory.gtt_uma">GTT UMA</span> [■□□□□]</div>
               <div class="text-xs font-bold text-white tabular-nums" id="gtt-val">26.7 / 112.0 <span class="text-[10px] text-slate-400 font-normal">Go</span></div>
-              <div class="text-[10px] text-purple-300"><span data-i18n="hardware.memory.free">Libre</span>: 85.3 Go</div>
+              <div class="text-[10px] text-purple-300"><span data-i18n="hardware.memory.free">Libre</span>: <span id="gtt-free-val">85.3 Go</span></div>
             </div>
           </div>
         </div>
@@ -920,7 +920,7 @@
                 <span class="text-[11px] text-slate-400 tabular-nums">(<span id="hw-gpu-clock">2 450</span> MHz)</span>
               </div>
               <div class="text-slate-400 text-[11px]">
-                CPU Zen5: <strong class="text-slate-200 tabular-nums">12%</strong>
+                CPU Zen5: <strong id="hw-cpu-busy" class="text-slate-200 tabular-nums">12%</strong>
               </div>
             </div>
 
@@ -929,7 +929,7 @@
               <div class="flex items-center space-x-2">
                 <span class="text-slate-400" data-i18n="hardware.gpu_edge">GPU T* Edge</span><span>:</span>
                 <span class="text-amber-400 font-bold tabular-nums text-sm" id="hw-temp-edge">68°C</span>
-                <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">[WARN]</span>
+                <span id="hw-temp-badge" class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">[WARN]</span>
                 <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-200 text-[10px] border border-amber-500/20 tabular-nums" id="hw-vector-temp">
                   [44° → 61° → 68°C ↗ Pic 74°C]
                 </span>
@@ -949,7 +949,7 @@
                 </span>
               </div>
               <div class="text-slate-400 text-[11px]">
-                <span data-i18n="hardware.power.efficiency">Efficacité</span>: <strong class="text-emerald-400 tabular-nums">1.53 tok/J</strong>
+                <span data-i18n="hardware.power.efficiency">Efficacité</span>: <strong id="hw-efficiency" class="text-emerald-400 tabular-nums">1.53 tok/J</strong>
               </div>
             </div>
 
@@ -960,7 +960,7 @@
                 <span class="tabular-nums font-semibold" id="hw-battery">[■■■■□] 74% (66 Wh · -52 W)</span>
               </div>
               <div class="text-[11px] text-slate-300">
-                <span data-i18n="hardware.battery.ai_runtime">Autonomie IA</span>: <strong class="text-amber-300 tabular-nums">1h 18m</strong> <span class="text-slate-500">(Idle: 5h 40m)</span>
+                <span data-i18n="hardware.battery.ai_runtime">Autonomie IA</span>: <strong id="hw-ai-runtime" class="text-amber-300 tabular-nums">1h 18m</strong> <span id="hw-idle-runtime" class="text-slate-500">(Idle: 5h 40m)</span>
               </div>
             </div>
           </div>
@@ -1015,7 +1015,7 @@
           </div>
           <div class="flex justify-between text-[10px] font-mono text-slate-400">
             <span><span data-i18n="cloud.metrics.headroom">Headroom libre</span>: <strong class="text-emerald-400 tabular-nums" id="cloud-tpm-free">580k tok/min</strong></span>
-            <span class="text-slate-500"><span data-i18n="cloud.limits.tier1_ceiling">Plafond Tier 1</span>: 2.0M</span>
+            <span class="text-slate-500"><span data-i18n="cloud.limits.tier1_ceiling">Plafond Tier 1</span>: <span id="cloud-tpm-ceiling">2.0M</span></span>
           </div>
         </div>
 
@@ -1026,20 +1026,20 @@
           </div>
           <div class="text-[11px] font-mono text-slate-400 flex justify-between pt-0.5">
             <span data-i18n="cloud.metrics.rpd_quota">Quota Journalier (RPD)</span>
-            <span class="text-white font-mono font-bold tabular-nums">482 / 10 000 req/j</span>
+            <span id="cloud-rpd-val" class="text-white font-mono font-bold tabular-nums">482 / 10 000 req/j</span>
           </div>
           <div class="text-[10px] text-slate-500 pt-0.5 font-mono">
-            Moy/Req: <strong class="text-slate-300 tabular-nums">58.0k tok</strong> (Historique + 22 tools)
+            Moy/Req: <strong id="cloud-avg-req" class="text-slate-300 tabular-nums">58.0k tok</strong> (Historique + tools)
           </div>
         </div>
 
         <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
           <div class="flex items-center justify-between text-xs font-mono">
             <span class="text-slate-400" data-i18n="cloud.cache_hit_label">Cache Cloud Hit</span>
-            <span class="text-cyan-400 font-bold tabular-nums">60% (110k tok)</span>
+            <span id="cloud-cache-hit-val" class="text-cyan-400 font-bold tabular-nums">60% (110k tok)</span>
           </div>
           <div class="text-[11px] font-mono text-slate-300">
-            <span data-i18n="cloud.metrics.total_tokens">Cumul Cloud</span>: <span class="text-white tabular-nums">IN: 184.0k · OUT: 6.4k · RSN: 2.1k</span>
+            <span data-i18n="cloud.metrics.total_tokens">Cumul Cloud</span>: <span id="cloud-cumul-val" class="text-white tabular-nums">IN: 184.0k · OUT: 6.4k · RSN: 2.1k</span>
           </div>
           <div class="text-[10px] text-emerald-400 font-mono">
             Source: usageMetadata.cachedContentTokenCount · Switch Cloud ⇄ Local 100%
@@ -1370,6 +1370,11 @@
     let currentLang = 'fr';
     let simulationRunning = true;
     let activeTopology = 1;
+    let ipcLiveConnected = false;
+    let demoOverrideUntil = 0;
+    let liveTimeWindows = null;
+    let lastIpcPayload = null;
+    let activeVllmRequests = ALL_VLLM_REQUESTS.slice();
 
     // State télémétrique
     const state = {
@@ -1383,6 +1388,7 @@
       cloudTpm: 1420000,
       cloudTpmMax: 2000000,
       cloudRpm: 18,
+      cloudRpmMax: 1000,
       edgeTemp: 68,
       socTemp: 72,
       powerWatts: 38,
@@ -1390,6 +1396,8 @@
       timeframe: 'SESSION',
       historyTemps: [44, 48, 52, 59, 61, 65, 68, 68],
       historyWatts: [12, 18, 28, 48, 45, 42, 38, 38],
+      tempVectorText: '[44° → 61° → 68°C ↗ Pic 74°C]',
+      powerVectorText: '[12W → 48W → 38W ↘ Moy 31W]',
     };
 
     const timeframeMultipliers = {
@@ -1399,6 +1407,23 @@
       '7J': 28.5,
       'TOTAL': 112.0
     };
+
+    async function loadExternalI18n() {
+      try {
+        const resp = await fetch(`../config/i18n_labels.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!resp.ok && resp.status !== 0) return;
+        const loaded = await resp.json();
+        if (loaded && typeof loaded === 'object') {
+          if (loaded.fr && typeof loaded.fr === 'object') Object.assign(DEFAULT_I18N.fr, loaded.fr);
+          if (loaded.en && typeof loaded.en === 'object') Object.assign(DEFAULT_I18N.en, loaded.en);
+          const pill = document.getElementById('header-i18n-saved-pill');
+          if (pill) pill.textContent = 'I18N JSON Synced';
+          applyLanguage();
+        }
+      } catch (_) {
+        /* Fallback synchrone sur DEFAULT_I18N */
+      }
+    }
 
     // 3. FONCTIONS I18N ROBUSTES (SANS RÉCURSION INFINIE)
     function getRawString(key) {
@@ -1483,29 +1508,38 @@
 
       if (!listEl) return;
 
-      const currentRequests = ALL_VLLM_REQUESTS.slice(0, activeVllmReqLimit);
+      const currentRequests = ipcLiveConnected && demoOverrideUntil < Date.now()
+        ? activeVllmRequests
+        : ALL_VLLM_REQUESTS.slice(0, activeVllmReqLimit);
       const totalCount = currentRequests.length;
       const visibleRequests = (totalCount > 3 && !showAllVllmRequests)
         ? currentRequests.slice(0, 3)
         : currentRequests;
 
       if (batchPillEl) {
-        batchPillEl.textContent = t('engines.batch_pill', { req: totalCount, wait: 0 });
+        const waitCount = (ipcLiveConnected && lastIpcPayload?.inference_engines?.rocm?.waiting_reqs) || 0;
+        batchPillEl.textContent = t('engines.batch_pill', { req: totalCount, wait: waitCount });
       }
       if (demoBtnEl) {
-        demoBtnEl.textContent = `Sim: ${totalCount} req`;
+        demoBtnEl.textContent = ipcLiveConnected && demoOverrideUntil < Date.now()
+          ? `Live: ${totalCount} req`
+          : `Sim: ${totalCount} req`;
       }
 
-      listEl.innerHTML = visibleRequests.map(req => `
-        <div class="flex flex-wrap items-center justify-between gap-1.5 bg-[#0D111A] border border-[#1A2234] px-2 py-1 rounded">
-          <div class="flex items-center gap-1.5 min-w-0">
-            <span class="px-1 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-slate-300 font-semibold text-[9px]">${req.id}</span>
-            <span class="text-slate-200 font-semibold">${req.user}</span>
-            <span class="text-[#94A3B8] truncate">${req.prompt}</span>
+      if (totalCount === 0) {
+        listEl.innerHTML = `<div class="text-[10px] text-slate-500 bg-[#0D111A] border border-[#1A2234] px-2.5 py-1.5 rounded">Aucune requête active sur vLLM</div>`;
+      } else {
+        listEl.innerHTML = visibleRequests.map(req => `
+          <div class="flex flex-wrap items-center justify-between gap-1.5 bg-[#0D111A] border border-[#1A2234] px-2 py-1 rounded">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="px-1 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-slate-300 font-semibold text-[9px]">${req.id}</span>
+              <span class="text-slate-200 font-semibold">${req.user}</span>
+              <span class="text-[#94A3B8] truncate">${req.prompt}</span>
+            </div>
+            <div class="text-[#94A3B8] shrink-0 tabular-nums">In: ${req.in_tok || req.inTok || '--'} · Out: ${req.out_tok || req.outTok || '--'} · <span class="text-slate-200 font-semibold">${req.speed || '--'}</span></div>
           </div>
-          <div class="text-[#94A3B8] shrink-0 tabular-nums">In: ${req.inTok} · Out: ${req.outTok} · <span class="text-slate-200 font-semibold">${req.speed}</span></div>
-        </div>
-      `).join('');
+        `).join('');
+      }
 
       if (moreWrapperEl && moreBtnEl) {
         if (totalCount > 3) {
@@ -1648,23 +1682,23 @@
       }
     }
 
-    function updateApuDonutAndCards() {
-      const totalApu = 128.0;
-      const vGb = 18.4;
-      const rGb = 22.0;
-      const osGb = 11.5;
-      const totalAi = +(vGb + rGb).toFixed(1);
-      const freeGb = +(totalApu - totalAi - osGb).toFixed(1);
+    function updateApuDonutAndCards(apuData = null, enginesData = null) {
+      const totalApu = apuData?.total_gb || 128.0;
+      const vGb = apuData ? Number(apuData.vulkan_gb ?? 0) : 18.4;
+      const rGb = apuData ? Number(apuData.rocm_gb ?? 0) : 22.0;
+      const osGb = apuData ? Number(apuData.os_gb ?? 0) : 11.5;
+      const totalAi = apuData?.total_ai_gb !== undefined ? Number(apuData.total_ai_gb) : +(vGb + rGb).toFixed(1);
+      const freeGb = apuData?.free_gb !== undefined ? Number(apuData.free_gb) : +Math.max(0, totalApu - totalAi - osGb).toFixed(1);
 
-      const vPct = +((vGb / totalApu) * 100).toFixed(1);
-      const rPct = +((rGb / totalApu) * 100).toFixed(1);
-      const osPct = Math.round((osGb / totalApu) * 100);
-      const freePct = +((freeGb / totalApu) * 100).toFixed(1);
-      const aiPct = +((totalAi / totalApu) * 100).toFixed(1);
+      const vPct = apuData?.vulkan_pct !== undefined ? Number(apuData.vulkan_pct) : +((vGb / totalApu) * 100).toFixed(1);
+      const rPct = apuData?.rocm_pct !== undefined ? Number(apuData.rocm_pct) : +((rGb / totalApu) * 100).toFixed(1);
+      const osPct = apuData?.os_pct !== undefined ? Math.round(Number(apuData.os_pct)) : Math.round((osGb / totalApu) * 100);
+      const freePct = apuData?.free_pct !== undefined ? Number(apuData.free_pct) : +((freeGb / totalApu) * 100).toFixed(1);
+      const aiPct = apuData?.total_ai_pct !== undefined ? Number(apuData.total_ai_pct) : +((totalAi / totalApu) * 100).toFixed(1);
 
       const lenV = (vPct / 100) * DONUT_C;
       const lenR = (rPct / 100) * DONUT_C;
-      const lenOs = ((osGb / totalApu)) * DONUT_C;
+      const lenOs = ((osGb / Math.max(1, totalApu))) * DONUT_C;
 
       const segV = document.getElementById('donut-vulkan');
       const segR = document.getElementById('donut-rocm');
@@ -1705,29 +1739,87 @@
       const legFreePct = document.getElementById('leg-free-pct');
       if (legFreePct) legFreePct.textContent = `(${freePct}%)`;
 
+      if (apuData) {
+        const hdrGen = document.getElementById('hdr-gen');
+        if (hdrGen) {
+          const genTok = Number(apuData.local_generated_tokens || 0);
+          hdrGen.textContent = genTok >= 1000 ? `${(genTok / 1000).toFixed(1)}k` : `${genTok}`;
+        }
+        const hdrServ = document.getElementById('hdr-serv');
+        if (hdrServ) {
+          const servTok = Number(apuData.local_served_tokens || 0);
+          hdrServ.textContent = servTok >= 1_000_000
+            ? `${(servTok / 1_000_000).toFixed(2)}M`
+            : `${(servTok / 1000).toFixed(1)}k`;
+        }
+      }
+
       // Anneaux & 10 carrés
       const ringV = document.getElementById('ring-vulkan');
       if (ringV) {
         const lenRingV = (vPct / 100) * RING_C;
         ringV.setAttribute('stroke-dasharray', `${lenRingV.toFixed(2)} ${RING_C.toFixed(2)}`);
       }
+      const ringVPctEl = document.getElementById('ring-vulkan-pct');
+      if (ringVPctEl) ringVPctEl.textContent = `${vPct}%`;
+      const vMemGbEl = document.getElementById('vulkan-mem-gb');
+      if (vMemGbEl) vMemGbEl.textContent = `${vGb.toFixed(1)} Go`;
+
       const ringR = document.getElementById('ring-rocm');
       if (ringR) {
         const lenRingR = (rPct / 100) * RING_C;
         ringR.setAttribute('stroke-dasharray', `${lenRingR.toFixed(2)} ${RING_C.toFixed(2)}`);
       }
+      const ringRPctEl = document.getElementById('ring-rocm-pct');
+      if (ringRPctEl) ringRPctEl.textContent = `${rPct}%`;
+      const rMemGbEl = document.getElementById('rocm-mem-gb');
+      if (rMemGbEl) rMemGbEl.textContent = `${rGb.toFixed(1)} Go`;
 
-      const kvPct = Math.round((state.ctxUsed / state.ctxMax) * 100);
+      const vEng = enginesData?.vulkan;
+      const vKvUsed = vEng ? Number(vEng.kv_used_tokens || 0) : state.ctxUsed;
+      const vKvMax = vEng ? Number(vEng.kv_max_tokens || 65536) : state.ctxMax;
+      const kvPct = vEng && vEng.kv_pct !== undefined
+        ? Number(vEng.kv_pct)
+        : Math.round((vKvUsed / Math.max(1, vKvMax)) * 100);
+
       render10Squares('vulkan-squares-10', kvPct, 'filled-cyan');
       const vKvTokEl = document.getElementById('vulkan-kv-tokens');
-      if (vKvTokEl) vKvTokEl.textContent = `${(state.ctxUsed / 1000).toFixed(1)}k / 65.5k`;
+      if (vKvTokEl) vKvTokEl.textContent = `${(vKvUsed / 1000).toFixed(1)}k / ${(vKvMax / 1000).toFixed(1)}k`;
       const vKvPctEl = document.getElementById('vulkan-kv-pct');
       if (vKvPctEl) vKvPctEl.textContent = `(${kvPct}%)`;
 
       const vSpeedEl = document.getElementById('vulkan-speed');
-      if (vSpeedEl) vSpeedEl.textContent = `${state.tgSpeed.toFixed(1)} t/s`;
+      const vSpeed = vEng ? Number(vEng.speed_tps || 0) : state.tgSpeed;
+      if (vSpeedEl) vSpeedEl.textContent = `${vSpeed.toFixed(1)} t/s`;
 
-      render10Squares('rocm-squares-10', 42, 'filled-rose');
+      if (vEng) {
+        const vKvGb = document.getElementById('vulkan-kv-gb');
+        if (vKvGb) vKvGb.textContent = `KV: ${Number(vEng.kv_alloc_gb || 0).toFixed(2)} Go`;
+        const vSlotLbl = document.getElementById('vulkan-slot-label');
+        if (vSlotLbl) vSlotLbl.textContent = vEng.status_label || 'SLOT 0 · IDLE';
+      }
+
+      const rEng = enginesData?.rocm;
+      const rPagedPct = rEng ? Number(rEng.paged_cache_pct || 0) : 42;
+      render10Squares('rocm-squares-10', rPagedPct, 'filled-rose');
+      if (rEng) {
+        const rActEl = document.getElementById('rocm-active-val');
+        if (rActEl) rActEl.textContent = `${Number(rEng.gtt_active_gb || 0).toFixed(1)}G`;
+        const rSpdEl = document.getElementById('rocm-speed');
+        if (rSpdEl) rSpdEl.textContent = `${Number(rEng.speed_tps || 0).toFixed(1)} t/s`;
+        const rPagedTot = document.getElementById('rocm-paged-used-total');
+        if (rPagedTot) rPagedTot.textContent = `${Number(rEng.gtt_active_gb || 0).toFixed(1)} Go / ${Number(rEng.gtt_pool_gb || 0).toFixed(1)} Go`;
+        const rPagedPctEl = document.getElementById('rocm-paged-pct');
+        if (rPagedPctEl) rPagedPctEl.textContent = `(${rPagedPct}%)`;
+        const drawerMetaEl = document.getElementById('vllm-drawer-meta-label');
+        if (drawerMetaEl) {
+          drawerMetaEl.textContent = t('engines.vllm_inspector_meta', {
+            hit: rEng.prefix_cache_hit_pct ?? 0,
+            pre: rEng.preemptions ?? 0,
+            ttft: Number(rEng.avg_ttft_sec ?? 0).toFixed(2),
+          });
+        }
+      }
     }
 
     function toggleBatchDrawer() {
@@ -1808,7 +1900,8 @@
       container.innerHTML = html;
     }
 
-    function setTopology(topoNum) {
+    function setTopology(topoNum, opts = {}) {
+      const silent = Boolean(opts && opts.silent);
       activeTopology = topoNum;
       document.querySelectorAll('.topo-btn').forEach(btn => {
         btn.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/40', 'font-semibold');
@@ -1832,47 +1925,57 @@
         chainTextEl.textContent = chain;
         pillChainEl.textContent = chain;
         heroBadge.innerHTML = `<i class="fa-solid fa-microchip text-[9px]"></i> VULKAN LOCAL (:${servicePorts.vulkan})`;
-        heroModel.textContent = 'Qwen3-Coder-30B-A3B-Instruct-GGUF';
-        heroQuant.textContent = '(Q4_K_M · 65 536 ctx · MoE 3B active)';
-        heroTask.textContent = 'SOW-01 GPU Telemetry ──► Étape 3/5 : code_patch_file';
-        state.tgSpeed = 58.4;
-        state.ppSpeed = 1420;
+        if (!silent) {
+          heroModel.textContent = 'Qwen3-Coder-30B-A3B-Instruct-GGUF';
+          heroQuant.textContent = '(Q4_K_M · 65 536 ctx · MoE 3B active)';
+          heroTask.textContent = 'SOW-01 GPU Telemetry ──► Étape 3/5 : code_patch_file';
+          state.tgSpeed = 58.4;
+          state.ppSpeed = 1420;
+        }
       } else if (topoNum === 2) {
         const chain = `OPENCODE CLI (DIRECT) ──► PROXY :${servicePorts.proxy} ──► LEMONADE VULKAN :${servicePorts.vulkan}`;
         chainTextEl.textContent = chain;
         pillChainEl.textContent = chain;
         heroBadge.innerHTML = `<i class="fa-solid fa-code text-[9px]"></i> OPENCODE LOCAL (:${servicePorts.vulkan})`;
-        heroModel.textContent = 'Qwen3-Coder-30B-A3B-Instruct-GGUF';
-        heroQuant.textContent = '(Q4_K_M · 65 536 ctx · Hermes en veille)';
-        heroTask.textContent = 'Session interactive TUI : Refactoring extension.js & stylesheet.css';
-        state.tgSpeed = 61.2;
-        state.ppSpeed = 1480;
+        if (!silent) {
+          heroModel.textContent = 'Qwen3-Coder-30B-A3B-Instruct-GGUF';
+          heroQuant.textContent = '(Q4_K_M · 65 536 ctx · Hermes en veille)';
+          heroTask.textContent = 'Session interactive TUI : Refactoring extension.js & stylesheet.css';
+          state.tgSpeed = 61.2;
+          state.ppSpeed = 1480;
+        }
       } else if (topoNum === 3) {
         const chain = `OPENWEBUI :${servicePorts.webui} ──► vLLM ENGINE ROCm 7.x :${servicePorts.vllm}`;
         chainTextEl.textContent = chain;
         pillChainEl.textContent = chain;
         heroBadge.innerHTML = `<i class="fa-solid fa-layer-group text-[9px]"></i> ROCm 7.x vLLM (:${servicePorts.vllm})`;
-        heroModel.textContent = 'Qwen2.5-14B-Instruct-AWQ';
-        heroQuant.textContent = '(AWQ 4-bit · PagedAttention · Continuous Batching)';
-        heroTask.textContent = 'Workspace "Dev Studio" · 5 requêtes concurrentes servies en parallèle';
-        state.tgSpeed = 142.0;
-        state.ppSpeed = 2850;
+        if (!silent) {
+          heroModel.textContent = 'Qwen2.5-14B-Instruct-AWQ';
+          heroQuant.textContent = '(AWQ 4-bit · PagedAttention · Continuous Batching)';
+          heroTask.textContent = 'Workspace "Dev Studio" · 5 requêtes concurrentes servies en parallèle';
+          state.tgSpeed = 142.0;
+          state.ppSpeed = 2850;
+        }
       } else if (topoNum === 4) {
         const chain = `HERMES CLI ──► ${runtimeConfig.provider_name.toUpperCase()} ${runtimeConfig.provider_tier.toUpperCase()} (${runtimeConfig.model_name})`;
         chainTextEl.textContent = chain;
         pillChainEl.textContent = chain;
         heroBadge.innerHTML = `<i class="fa-solid fa-cloud text-[9px]"></i> CLOUD FRONTIER (${runtimeConfig.provider_tier.toUpperCase()})`;
-        heroModel.textContent = `${runtimeConfig.model_name} (Cloud API)`;
-        heroQuant.textContent = '(Contexte >1M · Context Caching 60% Hit · Zéro perte de contexte)';
-        heroTask.textContent = 'Cadrage Architecture Multi-Backends & Génération SOW-02';
-        state.tgSpeed = 84.5;
-        state.ppSpeed = 3200;
+        if (!silent) {
+          heroModel.textContent = `${runtimeConfig.model_name} (Cloud API)`;
+          heroQuant.textContent = '(Contexte >1M · Context Caching 60% Hit · Zéro perte de contexte)';
+          heroTask.textContent = 'Cadrage Architecture Multi-Backends & Génération SOW-02';
+          state.tgSpeed = 84.5;
+          state.ppSpeed = 3200;
+        }
       }
 
       updateDynamicLabels();
       renderPipelineChain();
-      updateUI();
-      triggerToast(`Topologie #${topoNum} active`);
+      if (!silent) {
+        updateUI();
+        triggerToast(`Topologie #${topoNum} active`);
+      }
     }
 
     function cycleNextTopology() {
@@ -1952,30 +2055,33 @@
 
     // 6. SIMULATIONS ET TESTBENCH
     function simulateCodePatchStream() {
+      demoOverrideUntil = Date.now() + 8000;
       setTopology(1);
-      state.ctxUsed = Math.min(64000, state.ctxUsed + 2400);
+      state.ctxUsed = Math.min(state.ctxMax - 500, state.ctxUsed + 2400);
       state.tokensTotal += 2400;
       state.tgSpeed = 62.8;
       state.gpuBusy = 98;
       state.powerWatts = 46;
       updateUI();
-      triggerToast('⚡ Streaming code_patch_file via Proxy :13306 (include_usage: true)');
+      triggerToast('⚡ Mode Testbench (8s) : code_patch_file via Proxy :' + servicePorts.proxy);
     }
 
     function simulateCloudBurst429() {
-      state.cloudTpm = 1780000;
+      demoOverrideUntil = Date.now() + 8000;
+      state.cloudTpm = Math.round(state.cloudTpmMax * 0.89);
       state.cloudRpm = 42;
       updateUI();
       const cloudSec = document.getElementById('section-cloud');
       cloudSec.classList.add('alert-critical-glow');
       setTimeout(() => cloudSec.classList.remove('alert-critical-glow'), 3500);
-      triggerToast('⚠️ ALERTE OUT OF QUOTA CRITIQUE : 1.78M / 2.00M TPM (89%) sur 60s !');
+      triggerToast('⚠️ ALERTE OUT OF QUOTA CRITIQUE (Testbench 8s) : 89% TPM sur 60s !');
     }
 
     function compressCloudContext() {
-      state.cloudTpm = 920000;
+      demoOverrideUntil = Date.now() + 5000;
+      state.cloudTpm = Math.round(state.cloudTpmMax * 0.46);
       updateUI();
-      triggerToast('☁️ /compress exécuté : TPM redescendu à 0.92M / 2.00M (46% [OK])');
+      triggerToast('☁️ /compress simulé : TPM redescendu à 46% [OK]');
     }
 
     // Courbe Sparkline Canvas
@@ -2024,10 +2130,221 @@
       ctx.fill();
     }
 
+    function formatCompactTokens(val) {
+      const n = Number(val || 0);
+      if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+      if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+      return `${n}`;
+    }
+
+    // Hydratation complète depuis le payload IPC JSON V4.0.2 (/tmp/tokenwatcher_state.json)
+    function applyIpcPayload(data) {
+      if (!data || typeof data !== 'object') return;
+      lastIpcPayload = data;
+
+      if (data.service_ports) {
+        const sp = data.service_ports;
+        servicePorts.proxy = Number(sp.proxy || servicePorts.proxy);
+        servicePorts.vulkan = Number(sp.vulkan || servicePorts.vulkan);
+        servicePorts.vllm = Number(sp.vllm || servicePorts.vllm);
+        servicePorts.webui = Number(sp.webui || servicePorts.webui);
+        servicePorts.lemonadeAdmin = Number(sp.lemonade_admin || servicePorts.lemonadeAdmin);
+        const portInputs = {
+          'input-port-proxy': servicePorts.proxy,
+          'input-port-vulkan': servicePorts.vulkan,
+          'input-port-vllm': servicePorts.vllm,
+          'input-port-webui': servicePorts.webui,
+          'input-port-lemonade-admin': servicePorts.lemonadeAdmin,
+        };
+        for (const [id, val] of Object.entries(portInputs)) {
+          const inp = document.getElementById(id);
+          if (inp && document.activeElement !== inp) inp.value = val;
+        }
+      }
+
+      if (data.runtime_config) {
+        const rc = data.runtime_config;
+        runtimeConfig.cpu_model = rc.cpu_model || runtimeConfig.cpu_model;
+        runtimeConfig.gpu_model = rc.gpu_model || runtimeConfig.gpu_model;
+        runtimeConfig.gfx_arch = rc.gfx_arch || runtimeConfig.gfx_arch;
+        runtimeConfig.backend = rc.backend || runtimeConfig.backend;
+        runtimeConfig.runtime = rc.runtime || runtimeConfig.runtime;
+        runtimeConfig.port = Number(rc.port || runtimeConfig.port);
+        runtimeConfig.provider_name = rc.provider_name || runtimeConfig.provider_name;
+        runtimeConfig.provider_tier = rc.provider_tier || runtimeConfig.provider_tier;
+        runtimeConfig.model_name = rc.model_name || runtimeConfig.model_name;
+      }
+
+      if (data.inference_engines?.vulkan) {
+        const vk = data.inference_engines.vulkan;
+        runtimeConfig.engines.vulkan.modelName = vk.model || runtimeConfig.engines.vulkan.modelName;
+        runtimeConfig.engines.vulkan.ctxLabel = vk.ctx_label || runtimeConfig.engines.vulkan.ctxLabel;
+        if (Array.isArray(vk.flags) && vk.flags.length) runtimeConfig.engines.vulkan.flags = vk.flags;
+      }
+      if (data.inference_engines?.rocm) {
+        const rcEng = data.inference_engines.rocm;
+        runtimeConfig.engines.rocm.modelName = rcEng.model || runtimeConfig.engines.rocm.modelName;
+        if (Array.isArray(rcEng.flags) && rcEng.flags.length) runtimeConfig.engines.rocm.flags = rcEng.flags;
+        activeVllmRequests = Array.isArray(rcEng.vllm_requests) ? rcEng.vllm_requests : [];
+      }
+
+      if (data.time_windows && typeof data.time_windows === 'object') {
+        liveTimeWindows = data.time_windows;
+      }
+
+      if (data.session_hero) {
+        const sh = data.session_hero;
+        state.tokensTotal = Number(sh.tokens_total_session ?? state.tokensTotal);
+        state.tgSpeed = Number(sh.speed_tg_tps ?? 0);
+        state.ppSpeed = Number(sh.speed_pp_tps ?? 0);
+        state.ttft = Number(sh.ttft_sec ?? 0);
+
+        const mTitle = document.getElementById('active-model-title');
+        if (mTitle && sh.active_model_title) mTitle.textContent = sh.active_model_title;
+        const mQuant = document.getElementById('active-model-quant');
+        if (mQuant && sh.active_model_quant) mQuant.textContent = sh.active_model_quant;
+        const tTitle = document.getElementById('active-task-title');
+        if (tTitle && sh.active_task_title) tTitle.textContent = sh.active_task_title;
+        const aMode = document.getElementById('active-agent-mode');
+        if (aMode && sh.agent_mode) aMode.textContent = sh.agent_mode;
+        const wsTxt = document.getElementById('workspace-dir-text');
+        if (wsTxt && sh.workspace_dir) wsTxt.textContent = sh.workspace_dir;
+        const pillModel = document.getElementById('pill-model-name');
+        if (pillModel && sh.active_model_title) pillModel.textContent = sh.active_model_title;
+
+        const badgesEl = document.getElementById('hero-tuning-badges');
+        if (badgesEl && Array.isArray(sh.tuning_flags) && sh.tuning_flags.length) {
+          badgesEl.innerHTML = sh.tuning_flags
+            .map(f => `<span class="px-2 py-0.5 rounded bg-white/5 text-[11px] font-mono text-slate-300 border border-white/10">${f}</span>`)
+            .join('');
+        }
+      }
+
+      if (data.context_dna) {
+        const cd = data.context_dna;
+        state.ctxUsed = Number(cd.ctx_used ?? 0);
+        state.ctxMax = Number(cd.ctx_max || 65536);
+        state.kvHitPct = Number(cd.kv_hit_pct ?? 0);
+
+        const kvEl = document.getElementById('val-kv-hit');
+        if (kvEl) kvEl.textContent = `${formatCompactTokens(cd.kv_cached_tokens)} (${Math.round(state.kvHitPct)}% Hit)`;
+        const inEl = document.getElementById('val-in');
+        if (inEl) inEl.textContent = `+${formatCompactTokens(cd.prompt_in_delta)} (Tot: ${formatCompactTokens(cd.prompt_in_total)})`;
+        const outEl = document.getElementById('val-out');
+        if (outEl) outEl.textContent = formatCompactTokens(cd.completion_out_tokens);
+        const rsnEl = document.getElementById('val-rsn');
+        if (rsnEl) rsnEl.textContent = `${formatCompactTokens(cd.reasoning_tokens)} tok (${cd.reasoning_ratio_pct ?? 0}%)`;
+
+        const pillKv = document.getElementById('pill-kv');
+        if (pillKv) pillKv.textContent = `(${Math.round(state.kvHitPct)}% KV)`;
+
+        const loopEl = document.getElementById('loop-risk-label');
+        if (loopEl) {
+          loopEl.textContent = cd.loop_detector_status === 'WARN'
+            ? '[WARN · RSN élevé]'
+            : t('session.thought_detector_state');
+        }
+      }
+
+      if (data.hardware_amd) {
+        const hw = data.hardware_amd;
+        state.edgeTemp = Number(hw.gpu_edge_temp_c ?? 0);
+        state.socTemp = Number(hw.soc_tctl_temp_c ?? 0);
+        state.powerWatts = Number(hw.gfx_power_w ?? 0);
+        state.gpuBusy = Number(hw.gpu_busy_pct ?? 0);
+        if (Array.isArray(hw.history_temps_c) && hw.history_temps_c.length) state.historyTemps = hw.history_temps_c;
+        if (Array.isArray(hw.history_watts) && hw.history_watts.length) state.historyWatts = hw.history_watts;
+        if (hw.temp_vector_3pt) state.tempVectorText = hw.temp_vector_3pt;
+        if (hw.power_vector_3pt) state.powerVectorText = hw.power_vector_3pt;
+
+        const offloadEl = document.getElementById('hw-offload-badge');
+        if (offloadEl) offloadEl.textContent = `Offload GPU: ${hw.offload_gpu_pct ?? 100}%`;
+
+        const vPct = Number(hw.vram_pct ?? 0);
+        const vramPctEl = document.getElementById('vram-pct');
+        if (vramPctEl) vramPctEl.textContent = `${vPct}%`;
+        const vramCircle = document.getElementById('gauge-vram-circle');
+        if (vramCircle) vramCircle.setAttribute('stroke-dashoffset', (125.6 * (1 - vPct / 100)).toFixed(1));
+        const vramValEl = document.getElementById('vram-val');
+        if (vramValEl) vramValEl.innerHTML = `${Number(hw.vram_used_gb ?? 0).toFixed(1)} / ${Number(hw.vram_total_gb ?? 0).toFixed(1)} <span class="text-[10px] text-slate-400 font-normal">Go</span>`;
+        const vramFreeEl = document.getElementById('vram-free-val');
+        if (vramFreeEl) vramFreeEl.textContent = `${Number(hw.vram_free_gb ?? 0).toFixed(1)} Go`;
+
+        const gPct = Number(hw.gtt_pct ?? 0);
+        const gttPctEl = document.getElementById('gtt-pct');
+        if (gttPctEl) gttPctEl.textContent = `${gPct}%`;
+        const gttCircle = document.getElementById('gauge-gtt-circle');
+        if (gttCircle) gttCircle.setAttribute('stroke-dashoffset', (125.6 * (1 - gPct / 100)).toFixed(1));
+        const gttValEl = document.getElementById('gtt-val');
+        if (gttValEl) gttValEl.innerHTML = `${Number(hw.gtt_used_gb ?? 0).toFixed(1)} / ${Number(hw.gtt_total_gb ?? 0).toFixed(1)} <span class="text-[10px] text-slate-400 font-normal">Go</span>`;
+        const gttFreeEl = document.getElementById('gtt-free-val');
+        if (gttFreeEl) gttFreeEl.textContent = `${Number(hw.gtt_free_gb ?? 0).toFixed(1)} Go`;
+
+        const clkEl = document.getElementById('hw-gpu-clock');
+        if (clkEl) clkEl.textContent = Number(hw.gpu_clock_mhz ?? 0).toLocaleString('fr-FR');
+        const cpuEl = document.getElementById('hw-cpu-busy');
+        if (cpuEl) cpuEl.textContent = `${hw.cpu_busy_pct ?? 0}%`;
+
+        const tBadge = document.getElementById('hw-temp-badge');
+        if (tBadge) {
+          const st = hw.gpu_temp_status || 'OK';
+          tBadge.textContent = `[${st}]`;
+          tBadge.className = st === 'CRIT'
+            ? 'px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 text-[10px] font-bold'
+            : (st === 'WARN'
+              ? 'px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold'
+              : 'px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold');
+        }
+
+        const effEl = document.getElementById('hw-efficiency');
+        if (effEl) effEl.textContent = `${Number(hw.efficiency_tok_per_j ?? 0).toFixed(2)} tok/J`;
+
+        const batEl = document.getElementById('hw-battery');
+        if (batEl) {
+          const bp = Number(hw.battery_pct ?? 100);
+          const blocks = Math.max(0, Math.min(5, Math.round(bp / 20)));
+          const bar = '■'.repeat(blocks) + '□'.repeat(5 - blocks);
+          const dis = Number(hw.battery_discharge_w ?? 0);
+          const pStr = dis === 0 ? 'AC' : `${dis} W`;
+          batEl.textContent = `[${bar}] ${bp}% (${hw.battery_wh ?? 0} Wh · ${pStr})`;
+        }
+        const aiRtEl = document.getElementById('hw-ai-runtime');
+        if (aiRtEl) aiRtEl.textContent = hw.ai_runtime_remaining || 'AC';
+        const idleRtEl = document.getElementById('hw-idle-runtime');
+        if (idleRtEl) idleRtEl.textContent = `(Idle: ${hw.idle_runtime_remaining || 'AC'})`;
+      }
+
+      if (data.cloud_quotas) {
+        const cq = data.cloud_quotas;
+        state.cloudTpm = Number(cq.tpm_sliding_60s ?? 0);
+        state.cloudTpmMax = Number(cq.tpm_ceiling || 2000000);
+        state.cloudRpm = Number(cq.rpm_current ?? 0);
+        state.cloudRpmMax = Number(cq.rpm_ceiling || 1000);
+
+        const ceilEl = document.getElementById('cloud-tpm-ceiling');
+        if (ceilEl) ceilEl.textContent = `${(state.cloudTpmMax / 1_000_000).toFixed(1)}M`;
+        const rpdEl = document.getElementById('cloud-rpd-val');
+        if (rpdEl) rpdEl.textContent = `${Number(cq.rpd_current ?? 0).toLocaleString('fr-FR')} / ${Number(cq.rpd_ceiling ?? 10000).toLocaleString('fr-FR')} req/j`;
+        const chEl = document.getElementById('cloud-cache-hit-val');
+        if (chEl) chEl.textContent = `${cq.cache_hit_pct ?? 0}% (${formatCompactTokens(cq.cached_tokens)} tok)`;
+        const cumEl = document.getElementById('cloud-cumul-val');
+        if (cumEl) cumEl.textContent = `IN: ${formatCompactTokens(cq.total_in_tokens)} · OUT: ${formatCompactTokens(cq.total_out_tokens)} · RSN: ${formatCompactTokens(cq.total_rsn_tokens)}`;
+      }
+
+      setTopology(Number(data.active_topology || 1), { silent: true });
+      renderEndpointsConfig();
+      updateUI();
+    }
+
     // Mise à jour de l'UI
     function updateUI() {
-      const mult = timeframeMultipliers[state.timeframe] || 1;
-      const displayedMillions = ((state.tokensTotal * mult) / 1000000).toFixed(2);
+      const liveWinVal = (ipcLiveConnected && liveTimeWindows && liveTimeWindows[state.timeframe] !== undefined)
+        ? Number(liveTimeWindows[state.timeframe])
+        : null;
+      const effectiveTokens = liveWinVal !== null
+        ? liveWinVal
+        : state.tokensTotal * (timeframeMultipliers[state.timeframe] || 1);
+      const displayedMillions = (effectiveTokens / 1000000).toFixed(2);
       document.getElementById('session-tokens-display').textContent = displayedMillions;
       document.getElementById('tf-label-volume').textContent = `Volume (${state.timeframe})`;
 
@@ -2037,13 +2354,14 @@
       document.getElementById('speed-pp').innerHTML = Math.round(state.ppSpeed) + ' <span class="text-xs text-slate-400 font-normal">t/s</span>';
       document.getElementById('speed-ttft').innerHTML = state.ttft.toFixed(2) + ' <span class="text-xs text-slate-400 font-normal">s</span>';
 
-      // Context DNA avec la jauge à 10 carrés (même design que le bloc Inference)
-      const ctxPct = Math.round((state.ctxUsed / state.ctxMax) * 100);
-      document.getElementById('ctx-used-val').textContent = `${(state.ctxUsed / 1000).toFixed(1)}k / 65.5k`;
+      // Context DNA avec la jauge à 10 carrés
+      const ctxMaxSafe = Math.max(1, state.ctxMax);
+      const ctxPct = Math.min(100, Math.round((state.ctxUsed / ctxMaxSafe) * 100));
+      document.getElementById('ctx-used-val').textContent = `${(state.ctxUsed / 1000).toFixed(1)}k / ${(ctxMaxSafe / 1000).toFixed(1)}k`;
       document.getElementById('ctx-percent-val').textContent = `(${ctxPct}%)`;
-      const freeTokens = Math.max(0, state.ctxMax - state.ctxUsed);
+      const freeTokens = Math.max(0, ctxMaxSafe - state.ctxUsed);
       document.getElementById('ctx-free-val').textContent = (freeTokens / 1000).toFixed(1) + 'k tok';
-      renderContextDnaSquares(state.ctxUsed, state.ctxMax);
+      renderContextDnaSquares(state.ctxUsed, ctxMaxSafe);
 
       // Sondes Silicium
       document.getElementById('hw-temp-edge').textContent = Math.round(state.edgeTemp) + '°C';
@@ -2052,22 +2370,34 @@
       document.getElementById('hw-power-watts').textContent = Math.round(state.powerWatts) + ' W';
       document.getElementById('hw-gpu-busy').textContent = Math.round(state.gpuBusy) + '%';
 
-      const tStart = state.historyTemps[0];
-      const tMid = state.historyTemps[Math.floor(state.historyTemps.length / 2)];
-      const tNow = Math.round(state.edgeTemp);
-      const tArrow = (tNow - tMid > 1.5) ? '↗' : (tNow - tMid < -1.5 ? '↘' : '→');
-      document.getElementById('hw-vector-temp').textContent = `[${tStart}° → ${tMid}° → ${tNow}°C ${tArrow} Pic 74°C]`;
+      if (ipcLiveConnected && demoOverrideUntil < Date.now() && state.tempVectorText) {
+        document.getElementById('hw-vector-temp').textContent = state.tempVectorText;
+      } else {
+        const tStart = state.historyTemps[0];
+        const tMid = state.historyTemps[Math.floor(state.historyTemps.length / 2)];
+        const tNow = Math.round(state.edgeTemp);
+        const tArrow = (tNow - tMid > 1.5) ? '↗' : (tNow - tMid < -1.5 ? '↘' : '→');
+        const tPeak = Math.max(...state.historyTemps, tNow);
+        document.getElementById('hw-vector-temp').textContent = `[${tStart}° → ${tMid}° → ${tNow}°C ${tArrow} Pic ${tPeak}°C]`;
+      }
 
-      const wStart = state.historyWatts[0];
-      const wMid = state.historyWatts[Math.floor(state.historyWatts.length / 2)];
-      const wNow = Math.round(state.powerWatts);
-      const wArrow = (wNow - wMid > 2) ? '↗' : (wNow - wMid < -2 ? '↘' : '→');
-      document.getElementById('hw-vector-power').textContent = `[${wStart}W → ${wMid}W → ${wNow}W ${wArrow} Moy 31W]`;
+      if (ipcLiveConnected && demoOverrideUntil < Date.now() && state.powerVectorText) {
+        document.getElementById('hw-vector-power').textContent = state.powerVectorText;
+      } else {
+        const wStart = state.historyWatts[0];
+        const wMid = state.historyWatts[Math.floor(state.historyWatts.length / 2)];
+        const wNow = Math.round(state.powerWatts);
+        const wArrow = (wNow - wMid > 2) ? '↗' : (wNow - wMid < -2 ? '↘' : '→');
+        const wAvg = Math.round(state.historyWatts.reduce((a, b) => a + b, 0) / Math.max(1, state.historyWatts.length));
+        document.getElementById('hw-vector-power').textContent = `[${wStart}W → ${wMid}W → ${wNow}W ${wArrow} Moy ${wAvg}W]`;
+      }
 
-      // Quotas Cloud : Jauge à 10 carrés sur TPM Glissant + Badge "WARN : RISQUE OUT OF QUOTA"
+      // Quotas Cloud : Jauge à 10 carrés sur TPM Glissant + Badge
+      const tpmMaxSafe = Math.max(1, state.cloudTpmMax);
       const tpmMillions = (state.cloudTpm / 1000000).toFixed(2);
-      const tpmPct = Math.min(100, Math.round((state.cloudTpm / state.cloudTpmMax) * 100));
-      document.getElementById('cloud-tpm-text').textContent = `${tpmMillions}M / 2.00M`;
+      const tpmMaxMillions = (tpmMaxSafe / 1000000).toFixed(2);
+      const tpmPct = Math.min(100, Math.round((state.cloudTpm / tpmMaxSafe) * 100));
+      document.getElementById('cloud-tpm-text').textContent = `${tpmMillions}M / ${tpmMaxMillions}M`;
       const tpmPctEl = document.getElementById('cloud-tpm-pct');
       if (tpmPctEl) {
         tpmPctEl.textContent = `(${tpmPct}%)`;
@@ -2079,9 +2409,9 @@
       const tpmSqColor = tpmPct >= 85 ? 'filled-rose' : (tpmPct >= 70 ? 'filled-amber' : 'filled-emerald');
       render10Squares('cloud-tpm-squares-10', tpmPct, tpmSqColor);
 
-      const tpmFreeK = Math.max(0, Math.round((state.cloudTpmMax - state.cloudTpm) / 1000));
+      const tpmFreeK = Math.max(0, Math.round((tpmMaxSafe - state.cloudTpm) / 1000));
       document.getElementById('cloud-tpm-free').textContent = tpmFreeK + 'k tok/min';
-      document.getElementById('cloud-rpm-val').textContent = `${state.cloudRpm} / 1 000 req/min`;
+      document.getElementById('cloud-rpm-val').textContent = `${state.cloudRpm} / ${state.cloudRpmMax.toLocaleString('fr-FR')} req/min`;
 
       const badge429 = document.getElementById('alert-429-badge');
       const text429 = document.getElementById('alert-429-text');
@@ -2096,16 +2426,17 @@
         text429.textContent = t('cloud.alert_ok_text', { pct: tpmPct });
       }
 
-      const hdrServEl = document.getElementById('hdr-serv');
-      if (hdrServEl) hdrServEl.textContent = `${displayedMillions}M`;
-      updateApuDonutAndCards();
+      if (!ipcLiveConnected || demoOverrideUntil >= Date.now()) {
+        const hdrServEl = document.getElementById('hdr-serv');
+        if (hdrServEl) hdrServEl.textContent = `${displayedMillions}M`;
+        updateApuDonutAndCards();
+      } else {
+        updateApuDonutAndCards(lastIpcPayload?.apu_pool_128g || null, lastIpcPayload?.inference_engines || null);
+      }
       drawSparkline();
     }
 
-    // Polling 1.0s
-    setInterval(() => {
-      if (!simulationRunning) return;
-
+    function stepFallbackSimulation() {
       state.tokensTotal += Math.floor(Math.random() * 45) + 25;
       state.ctxUsed += Math.floor(Math.random() * 10) + 2;
       if (state.ctxUsed > 64500) state.ctxUsed = 54200;
@@ -2123,7 +2454,31 @@
       state.historyWatts.push(Math.round(state.powerWatts));
 
       updateUI();
-    }, 1000);
+    }
+
+    async function pollIpcState() {
+      if (!simulationRunning) return;
+      if (demoOverrideUntil > Date.now()) {
+        updateUI();
+        return;
+      }
+      try {
+        const resp = await fetch(`file:///tmp/tokenwatcher_state.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!resp.ok && resp.status !== 0) throw new Error(`HTTP ${resp.status}`);
+        const payload = await resp.json();
+        if (payload && payload.schema_version === '4.0.2') {
+          ipcLiveConnected = true;
+          applyIpcPayload(payload);
+          return;
+        }
+      } catch (_) {
+        ipcLiveConnected = false;
+      }
+      stepFallbackSimulation();
+    }
+
+    // Polling 1.0s (IPC réel /tmp/tokenwatcher_state.json avec fallback simulation)
+    setInterval(pollIpcState, 1000);
 
     function toggleSimulation() {
       simulationRunning = !simulationRunning;
@@ -2213,13 +2568,15 @@
 
     window.addEventListener('resize', drawSparkline);
 
-    window.onload = function() {
+    window.onload = async function() {
       applyLanguage();
-      setTopology(1);
+      setTopology(1, { silent: true });
       renderEndpointsConfig();
       updateApuDonutAndCards();
       updateUI();
       drawSparkline();
+      await loadExternalI18n();
+      await pollIpcState();
     };
   </script>
 </body>
