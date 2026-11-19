@@ -80,9 +80,10 @@ Toutes les requêtes HTTP utilisent `urllib.request.urlopen(..., timeout=1.5)` e
      - `local_generated_tokens` / `local_served_tokens` depuis `/metrics` Prometheus (`llamacpp:tokens_predicted_total`, etc.).
    - **Inspection `/proc/<pid>/cmdline` et `/proc/<pid>/fdinfo/*`** (en Python pur) :
      - Identifier les processus `llama-server` / `lemonade-server` et `vllm`.
+     - **Découverte dynamique du port `llama-server`** : si le port `config/ports.yaml` (`8001`) ne répond pas (par ex. chargement à la demande via Lemonade `:13305`), inspecter `http://{lemonade_admin.host}:{lemonade_admin.port}/api/v1/health` (`all_models_loaded` / `model_loaded`) et l'argument `--port` dans `/proc/<pid>/cmdline` de `llama-server` pour interroger `/slots` et `/metrics` sur le vrai port actif.
      - Extraire les flags CLI actifs (`-ngl`, `-ctk`, `-fa`, `--cache-reuse`, `-b`, `-ub`, `--temp`).
      - Sommer `drm-memory-vram:` et `drm-memory-gtt:` dans `/proc/<pid>/fdinfo/*` pour calculer l'empreinte réelle en Go par moteur (`vulkan_gb` vs `rocm_gb`).
-   - *Dégradation gracieuse* : si connexion refusée / timeout, retourner état `OFFLINE` avec valeurs à `0` sans bloquer la boucle.
+   - *Dégradation gracieuse* : si connexion refusée / timeout ou aucun modèle chargé, retourner état `OFFLINE` / `IDLE` avec valeurs à `0` sans bloquer la boucle.
 
 2. **`poll_vllm_metrics(self) -> Dict[str, Any]`** :
    - URL construite depuis `self.ports_config["services"]["vllm_rocm"]` (`http://{host}:{port}{metrics_endpoint}`).
@@ -95,10 +96,14 @@ Toutes les requêtes HTTP utilisent `urllib.request.urlopen(..., timeout=1.5)` e
 Toutes les connexions SQLite s'ouvrent impérativement avec `sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=0.5)`. En cas d'absence de fichier ou table/colonne manquante, ignorer proprement la source sans planter.
 
 1. **`read_active_topology_and_tokens(self) -> Dict[str, Any]`** :
-   - **Sources scannées** :
-     - **Hermes Agent** : `~/.hermes/state.db` et `~/.hermes/profiles/*/state.db` (tables `sessions`, `session_model_usage` ; détecter `updated_at`, modèle, tokens IN/OUT/RSN, `cachedContentTokenCount` / `cached_tokens`, `tool_calls`).
-     - **OpenCode** : `~/.local/share/opencode/opencode.db` (tables `session`, `part` ; extraire `directory`, `title`, `input`, `output`, `reasoning`, `cache.read`, `cache.write`, `updated_at`).
-     - **OpenWebUI** : `~/.local/share/open-webui/webui.db` (tables `chat`, `user` ; pour détails nominatifs vLLM et activité web).
+   - **Sources scannées (toutes optionnelles — ignorer proprement si fichier absent)** :
+     - **Hermes Agent** : `~/.hermes/state.db` et `~/.hermes/profiles/*/state.db` :
+       - Table `sessions` (`id`, `model`, `title`, `tool_call_count`, `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_tokens`, `reasoning_tokens`, `last_activity_at`, `started_at`, `cwd`, `billing_provider`).
+       - Table `session_model_usage` (`session_id`, `model`, `billing_provider`, `api_call_count`, `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_tokens`, `reasoning_tokens`, `first_seen`, `last_seen`).
+     - **OpenCode** : `~/.local/share/opencode/opencode.db` :
+       - Table `session` (`id`, `directory`, `title`, `model`, `time_created`, `time_updated`, `tokens_input`, `tokens_output`, `tokens_reasoning`, `tokens_cache_read`, `tokens_cache_write`).
+       - Tables `message` / `part` (`session_id`, `time_created`, `time_updated`, `data` JSON).
+     - **OpenWebUI** : `~/.local/share/open-webui/webui.db` (optionnel — absent si OpenWebUI utilise un autre répertoire de données ; dégrader proprement sans erreur). Si présent, tables `chat`, `user`.
    - **Arbitrage & Détection Topologie (1 à 4)** :
      - Comparer les timestamps `updated_at` les plus récents entre Hermes, OpenCode, OpenWebUI et les processus actifs (`engines_http`) pour déduire `active_topology` (1: Hermes→OpenCode→Proxy→Vulkan, 2: OpenCode Direct, 3: OpenWebUI→vLLM ROCm, 4: Hermes→Cloud).
    - **Calcul Glissant Cloud Quotas (60s stricte)** :
@@ -131,10 +136,12 @@ Toutes les connexions SQLite s'ouvrent impérativement avec `sqlite3.connect(f"f
 4. **`run_forever(self) -> None`** :
    - Charger `ports_config`, découvrir les sondes au démarrage.
    - Boucle infinie à intervalle `ipc.polling_interval_sec` (1.0s) : `collect_once()` → `write_ipc_atomic()` ; capturer et journaliser les exceptions non-fatales pour garantir la continuité de service.
+5. **Mode CLI `--once` dans `if __name__ == "__main__":`** :
+   - Utiliser `argparse` pour supporter `--once` : exécute `load_ports_config()`, `payload = await daemon.collect_once()`, `daemon.write_ipc_atomic(payload)` et quitte proprement (`0`). Sans `--once`, exécute `daemon.run_forever()`.
 
 ---
 
 ## 4. Critères de Validation Lot 1
-1. `python3 -m py_compile src/*.py src/probes/*.py` → code retour `0`.
-2. Exécution de `python3 src/tokenwatcher_daemon.py` pendant 3 cycles : `/tmp/tokenwatcher_state.json` existe, est un JSON valide contenant `schema_version: "4.0.2"` et toutes les clés de premier niveau du contrat (`service_ports`, `runtime_config`, `session_hero`, `context_dna`, `apu_pool_128g`, `inference_engines`, `hardware_amd`, `cloud_quotas`, `time_windows`).
+1. `./.venv/bin/python3 -m py_compile src/*.py src/probes/*.py` → code retour `0`.
+2. Exécution de `./.venv/bin/python3 src/tokenwatcher_daemon.py --once` : `/tmp/tokenwatcher_state.json` existe, est un JSON valide contenant `schema_version: "4.0.2"` et toutes les clés de premier niveau du contrat (`service_ports`, `runtime_config`, `session_hero`, `context_dna`, `apu_pool_128g`, `inference_engines`, `hardware_amd`, `cloud_quotas`, `time_windows`).
 3. Vérification qu'aucun port ou chemin `/sys/class/drm/card0` n'est codé en dur et qu'aucun import tiers interdit n'est présent.

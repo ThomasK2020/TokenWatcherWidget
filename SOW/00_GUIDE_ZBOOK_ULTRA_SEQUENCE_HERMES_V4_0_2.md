@@ -44,10 +44,10 @@ Lance l'implémentation du Lot 1 via OpenCode en exécutant :
 ~/data/AI-workspace/TokenWatcherWidget/Widget/scripts/run_sow_widget.sh SOW/specs/01_BACKEND_TELEMETRY_DAEMON.md
 
 Une fois qu'OpenCode a terminé :
-1. Vérifie avec l'environnement hybride (.venv --system-site-packages, Stdlib + PyYAML uniquement) que ./.venv/bin/python3 -m py_compile src/tokenwatcher_daemon.py src/probes/*.py passe sans aucune erreur.
-2. Lance un test unique de collecte (collect_once) avec ./.venv/bin/python3 pour générer /tmp/tokenwatcher_state.json.
-3. Vérifie que /tmp/tokenwatcher_state.json est valide et contient bien les clés schema_version ("4.0.2"), runtime_config, service_ports, apu_pool_128g, inference_engines (vulkan et rocm), hardware_amd (GPU T* Edge et SoC hottest T*Ctl) et cloud_quotas (WARN : RISQUE OUT OF QUOTA).
-4. Si tout est conforme, fais un git commit -m "feat(backend): implement Lot 1 telemetry daemon and probes (V4.0.2)".
+1. Vérifie avec l'environnement hybride (.venv --system-site-packages, Stdlib + PyYAML uniquement) que `./.venv/bin/python3 -m py_compile src/tokenwatcher_daemon.py src/probes/*.py` passe sans aucune erreur.
+2. Lance un test unique de collecte (`./.venv/bin/python3 src/tokenwatcher_daemon.py --once`) pour générer `/tmp/tokenwatcher_state.json`.
+3. Vérifie que `/tmp/tokenwatcher_state.json` est valide et contient bien les clés `schema_version` (`"4.0.2"`), `runtime_config`, `service_ports`, `apu_pool_128g`, `inference_engines` (`vulkan` et `rocm`), `hardware_amd` (`gpu_edge_temp_c`, `soc_tctl_temp_c`, `vram_used_gb`, `gtt_used_gb`), `cloud_quotas` (`status` dans `OK|WARN|CRIT` et `status_label`) et `time_windows`.
+4. Si tout est conforme, fais un `git commit -m "feat(backend): implement Lot 1 telemetry daemon and probes (V4.0.2)"`.
 ```
 
 ### 🔹 ÉTAPE 3 (Dans Hermes) : Exécution du Lot 2 par OpenCode (Raccordement de `ui/index.html` V4.0.2 au flux réel `/tmp/tokenwatcher_state.json`)
