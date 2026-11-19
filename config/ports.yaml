@@ -23,5 +23,5 @@ services:
     port: 8080
 
 ipc:
-  state_file: "/tmp/tokenwatcher_state.json"
+  state_file: "/tmp/tokenwatcher_widget_state.json"
   polling_interval_sec: 1.0

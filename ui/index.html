@@ -1052,7 +1052,7 @@
     <footer class="flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-500 px-2 pt-1 gap-2">
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span>tokenwatcher-daemon · IPC /tmp/tokenwatcher_state.json · Ports synchronisés avec <strong class="text-slate-400">config.json / ports.yaml</strong></span>
+        <span>tokenwatcher-daemon · IPC /tmp/tokenwatcher_widget_state.json · Ports synchronisés avec <strong class="text-slate-400">config.json / ports.yaml</strong></span>
       </div>
       <div class="flex items-center gap-3">
         <span>Polling: <strong class="text-slate-400">1.0s</strong></span>
@@ -2137,7 +2137,7 @@
       return `${n}`;
     }
 
-    // Hydratation complète depuis le payload IPC JSON V4.0.2 (/tmp/tokenwatcher_state.json)
+    // Hydratation complète depuis le payload IPC JSON V4.0.2 (/tmp/tokenwatcher_widget_state.json)
     function applyIpcPayload(data) {
       if (!data || typeof data !== 'object') return;
       lastIpcPayload = data;
@@ -2463,7 +2463,7 @@
         return;
       }
       try {
-        const resp = await fetch(`file:///tmp/tokenwatcher_state.json?t=${Date.now()}`, { cache: 'no-store' });
+        const resp = await fetch(`file:///tmp/tokenwatcher_widget_state.json?t=${Date.now()}`, { cache: 'no-store' });
         if (!resp.ok && resp.status !== 0) throw new Error(`HTTP ${resp.status}`);
         const payload = await resp.json();
         if (payload && payload.schema_version === '4.0.2') {
@@ -2477,7 +2477,7 @@
       stepFallbackSimulation();
     }
 
-    // Polling 1.0s (IPC réel /tmp/tokenwatcher_state.json avec fallback simulation)
+    // Polling 1.0s (IPC réel /tmp/tokenwatcher_widget_state.json avec fallback simulation)
     setInterval(pollIpcState, 1000);
 
     function toggleSimulation() {

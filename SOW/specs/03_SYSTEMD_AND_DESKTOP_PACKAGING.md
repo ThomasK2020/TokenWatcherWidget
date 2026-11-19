@@ -78,7 +78,7 @@ WantedBy=graphical-session.target
 
 ### 4.2 Lanceur Runtime Utilisateur (`scripts/start_widget.sh`)
 - Vérifie que `.venv/bin/python3` existe et exporte `GI_TYPELIB_PATH`.
-- Démarre `src/tokenwatcher_daemon.py` en arrière-plan (avec nettoyage propre sur `EXIT` si lancé hors systemd) et attend l'apparition de `/tmp/tokenwatcher_state.json`.
+- Démarre `src/tokenwatcher_daemon.py` en arrière-plan (avec nettoyage propre sur `EXIT` si lancé hors systemd) et attend l'apparition de `/tmp/tokenwatcher_widget_state.json`.
 - Lance `src/widget_runner.py` au premier plan.
 
 ### 4.3 Script d'Installation Locale & Lanceur GNOME `.desktop` (`scripts/install_local_widget.sh`)
@@ -116,7 +116,7 @@ gh repo create ThomasK2020/TokenWatcherWidget --public --source=. --remote=origi
 1. **Compilation Python** :
    `.venv/bin/python3 -m py_compile src/*.py src/probes/*.py`
 2. **Validation du payload IPC** :
-   Vérification de `/tmp/tokenwatcher_state.json` (JSON valide, `schema_version == "4.0.2"`).
+   Vérification de `/tmp/tokenwatcher_widget_state.json` (JSON valide, `schema_version == "4.0.2"`).
 3. **Validation de l'interface GTK4 / WebKitGTK 6.0** :
    Lancement via `./scripts/start_widget.sh` (ou `systemd --user`) et vérification visuelle du cockpit V4.0.2.
 4. **Validation systemd (après accord utilisateur)** :

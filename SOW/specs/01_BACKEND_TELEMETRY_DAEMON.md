@@ -23,7 +23,7 @@ services:
   vllm_rocm:      { host: "127.0.0.1", port: 8000, metrics_endpoint: "/metrics", models_endpoint: "/v1/models" }
   open_webui:     { host: "127.0.0.1", port: 8080 }
 ipc:
-  state_file: "/tmp/tokenwatcher_state.json"
+  state_file: "/tmp/tokenwatcher_widget_state.json"
   polling_interval_sec: 1.0
 ```
 *Dégradation gracieuse* : si `config/ports.yaml` manque une clé, utiliser les valeurs par défaut ci-dessus en fallback mémoire sans lever d'exception fatale.
@@ -131,7 +131,7 @@ Toutes les connexions SQLite s'ouvrent impérativement avec `sqlite3.connect(f"f
      - `hardware_amd.efficiency_tok_per_j = round(tg_speed / gfx_power_w, 2)` (si `gfx_power_w > 0`).
    - Retourner un dictionnaire strictement conforme au **Contrat JSON V4.0.2** (Section 5 de `00_MASTER_SOW_V4_0_2.md`, incluant `time_windows`).
 3. **`write_ipc_atomic(self, payload: Dict[str, Any]) -> None`** :
-   - Lire le chemin cible depuis `ipc.state_file` (défaut `/tmp/tokenwatcher_state.json`).
+   - Lire le chemin cible depuis `ipc.state_file` (défaut `/tmp/tokenwatcher_widget_state.json`).
    - Écrire JSON dans `<state_file>.tmp` avec `flush()` puis appeler `os.replace(tmp_path, target_path)`.
 4. **`run_forever(self) -> None`** :
    - Charger `ports_config`, découvrir les sondes au démarrage.
@@ -143,5 +143,5 @@ Toutes les connexions SQLite s'ouvrent impérativement avec `sqlite3.connect(f"f
 
 ## 4. Critères de Validation Lot 1
 1. `./.venv/bin/python3 -m py_compile src/*.py src/probes/*.py` → code retour `0`.
-2. Exécution de `./.venv/bin/python3 src/tokenwatcher_daemon.py --once` : `/tmp/tokenwatcher_state.json` existe, est un JSON valide contenant `schema_version: "4.0.2"` et toutes les clés de premier niveau du contrat (`service_ports`, `runtime_config`, `session_hero`, `context_dna`, `apu_pool_128g`, `inference_engines`, `hardware_amd`, `cloud_quotas`, `time_windows`).
+2. Exécution de `./.venv/bin/python3 src/tokenwatcher_daemon.py --once` : `/tmp/tokenwatcher_widget_state.json` existe, est un JSON valide contenant `schema_version: "4.0.2"` et toutes les clés de premier niveau du contrat (`service_ports`, `runtime_config`, `session_hero`, `context_dna`, `apu_pool_128g`, `inference_engines`, `hardware_amd`, `cloud_quotas`, `time_windows`).
 3. Vérification qu'aucun port ou chemin `/sys/class/drm/card0` n'est codé en dur et qu'aucun import tiers interdit n'est présent.

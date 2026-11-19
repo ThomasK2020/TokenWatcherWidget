@@ -2,7 +2,7 @@
 """
 Démon Principal TokenWatcher V4.0.2 (SOW Lot 1).
 Orchestre les 3 sondes (AmdSysfsProbe, EnginesHttpProbe, SqliteTelemetryReader)
-à un intervalle de 1.0s et écrit atomiquement l'état dans /tmp/tokenwatcher_state.json.
+à un intervalle de 1.0s et écrit atomiquement l'état dans /tmp/tokenwatcher_widget_state.json.
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ DEFAULT_PORTS_CONFIG: Dict[str, Any] = {
         "open_webui": {"host": "127.0.0.1", "port": 8080},
     },
     "ipc": {
-        "state_file": "/tmp/tokenwatcher_state.json",
+        "state_file": "/tmp/tokenwatcher_widget_state.json",
         "polling_interval_sec": 1.0,
     },
 }
@@ -293,9 +293,9 @@ class TokenWatcherDaemon:
         }
 
     def write_ipc_atomic(self, payload: Dict[str, Any]) -> None:
-        """Écrire via fichier temporaire + os.replace vers /tmp/tokenwatcher_state.json."""
+        """Écrire via fichier temporaire + os.replace vers /tmp/tokenwatcher_widget_state.json."""
         ipc_cfg = self._full_config.get("ipc", DEFAULT_PORTS_CONFIG["ipc"])
-        target_path = Path(str(ipc_cfg.get("state_file", "/tmp/tokenwatcher_state.json")))
+        target_path = Path(str(ipc_cfg.get("state_file", "/tmp/tokenwatcher_widget_state.json")))
         tmp_path = target_path.with_suffix(target_path.suffix + ".tmp")
 
         tmp_path.parent.mkdir(parents=True, exist_ok=True)

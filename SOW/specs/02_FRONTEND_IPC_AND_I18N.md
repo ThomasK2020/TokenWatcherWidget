@@ -15,11 +15,11 @@ Ce document constitue le cahier des charges exécutable (SOW Lot 2) pour le bran
 - `WebKit.Settings`:
   - `set_allow_file_access_from_file_urls(True)`
   - `set_allow_universal_access_from_file_urls(True)`
-  Ces deux réglages autorisent `ui/index.html` (chargé via `file:///.../ui/index.html`) à lire directement `/tmp/tokenwatcher_state.json` et `../config/i18n_labels.json` via `fetch('file:///...')`.
+  Ces deux réglages autorisent `ui/index.html` (chargé via `file:///.../ui/index.html`) à lire directement `/tmp/tokenwatcher_widget_state.json` et `../config/i18n_labels.json` via `fetch('file:///...')`.
 
 ---
 
-## 3. Pont IPC Réel (`file:///tmp/tokenwatcher_state.json`) & Bascule Live/Simulation
+## 3. Pont IPC Réel (`file:///tmp/tokenwatcher_widget_state.json`) & Bascule Live/Simulation
 
 ### 3.1 Poller IPC Asynchrone dans `ui/index.html`
 > **Piège critique WebKitGTK 6.0 (`file://`)** : Dans `WebKit.WebView`, un `fetch('file:///...')` réussi renvoie **`resp.status === 0` et `resp.ok === false`**. Il ne faut JAMAIS écrire `if (!resp.ok) throw ...` sans autoriser `resp.status === 0` (`if (!resp.ok && resp.status !== 0)`), sinon 100 % des lectures IPC et `i18n_labels.json` échoueront silencieusement !
@@ -31,7 +31,7 @@ let ipcLiveConnected = false;
 async function pollIpcState() {
   if (!simulationRunning) return;
   try {
-    const resp = await fetch(`file:///tmp/tokenwatcher_state.json?t=${Date.now()}`, { cache: 'no-store' });
+    const resp = await fetch(`file:///tmp/tokenwatcher_widget_state.json?t=${Date.now()}`, { cache: 'no-store' });
     if (!resp.ok && resp.status !== 0) throw new Error(`HTTP ${resp.status}`);
     const payload = await resp.json();
     if (payload && payload.schema_version === '4.0.2') {
@@ -59,7 +59,7 @@ Ne pas charger tout `ui/index.html` inutilement en contexte : cibler ces plages 
   - `2028–2223` : `updateUI()`, `setInterval()`, `window.onload`.
 
 ### 3.2 Contrat de Mapping Exact JSON IPC → DOM / Variables JS (`applyIpcPayload(data)`)
-Chaque section du JSON `/tmp/tokenwatcher_state.json` (Section 5 de `00_MASTER_SOW_V4_0_2.md`) doit hydrater les objets JS et IDs DOM existants :
+Chaque section du JSON `/tmp/tokenwatcher_widget_state.json` (Section 5 de `00_MASTER_SOW_V4_0_2.md`) doit hydrater les objets JS et IDs DOM existants :
 
 1. **`service_ports` & `runtime_config`** :
    - Synchroniser `servicePorts.{proxy, vulkan, vllm, webui, lemonadeAdmin}` depuis `data.service_ports` (attention au renommage `lemonade_admin` → `lemonadeAdmin`) et mettre à jour les champs du tiroir `#ports-config-modal`.
@@ -123,5 +123,5 @@ Chaque section du JSON `/tmp/tokenwatcher_state.json` (Section 5 de `00_MASTER_S
 ## 5. Critères de Validation Lot 2
 1. Vérifier que tous les `[data-i18n]` dans `ui/index.html` restent des balises feuilles (`el.children.length === 0`) et qu'aucun `lg:grid-cols-2` n'est introduit.
 2. Vérifier que les appels `fetch('file://...')` / `fetch('../config/i18n_labels.json')` testent `if (!resp.ok && resp.status !== 0)` et fusionnent via `Object.assign(DEFAULT_I18N.fr, ...)`.
-3. Générer `/tmp/tokenwatcher_state.json` via `./.venv/bin/python3 src/tokenwatcher_daemon.py --once` puis lancer `timeout 3s ./.venv/bin/python3 src/widget_runner.py` : un code de sortie `124` (arrêt propre par `timeout` après 3s d'affichage sans exception Python/WebKit) confirme la validité GTK4 + WebKitGTK 6.0.
+3. Générer `/tmp/tokenwatcher_widget_state.json` via `./.venv/bin/python3 src/tokenwatcher_daemon.py --once` puis lancer `timeout 3s ./.venv/bin/python3 src/widget_runner.py` : un code de sortie `124` (arrêt propre par `timeout` après 3s d'affichage sans exception Python/WebKit) confirme la validité GTK4 + WebKitGTK 6.0.
 4. Tester la bascule FR/EN (`toggleLanguage()`), les 3 vues (`cockpit`, `silicium`, `hud`) et le tiroir vLLM (`Voir +` / `Voir -`).
