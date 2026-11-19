@@ -1,9 +1,10 @@
 # Spécification Technique — SOW 03 : Services Systemd, Scripts de Lancement & Packaging
 
 ## 1. Vue d'Ensemble & Périmètre
-Ce document définit l'architecture d'exécution, les scripts d'orchestration/lancement et l'intégration systemd/Git pour TokenWatcher Widget V4.0.2 MULTI-ENGINE :
+Ce document définit l'architecture d'exécution, les scripts d'orchestration/lancement et l'intégration systemd/Desktop/Git pour TokenWatcher Widget V4.0.2 MULTI-ENGINE :
 - `scripts/run_sow_widget.sh` : Orchestrateur CLI (`opencode run`) pour l'exécution des lots SOW (`01_BACKEND_TELEMETRY_DAEMON.md`, `02_FRONTEND_IPC_AND_I18N.md`).
-- `scripts/start_widget.sh` : Lanceur runtime (optionnel) qui démarre le démon backend si absent puis ouvre le Widget GTK4.
+- `scripts/start_widget.sh` : Lanceur runtime qui démarre le démon backend si absent puis ouvre le Widget GTK4.
+- `scripts/install_local_widget.sh` : Script d'installation locale des services `systemd --user` et du lanceur GNOME `.desktop` (`~/.local/share/applications/tokenwatcher-widget.desktop`).
 - `systemd/tokenwatcher-daemon.service` : Service utilisateur Systemd pour `src/tokenwatcher_daemon.py`.
 - `systemd/tokenwatcher-widget.service` : Service utilisateur Systemd pour `src/widget_runner.py` (session graphique Wayland/X11).
 
@@ -79,6 +80,21 @@ WantedBy=graphical-session.target
 - Vérifie que `.venv/bin/python3` existe et exporte `GI_TYPELIB_PATH`.
 - Démarre `src/tokenwatcher_daemon.py` en arrière-plan (avec nettoyage propre sur `EXIT` si lancé hors systemd) et attend l'apparition de `/tmp/tokenwatcher_state.json`.
 - Lance `src/widget_runner.py` au premier plan.
+
+### 4.3 Script d'Installation Locale & Lanceur GNOME `.desktop` (`scripts/install_local_widget.sh`)
+- Copie/lie `systemd/tokenwatcher-daemon.service` et `systemd/tokenwatcher-widget.service` vers `~/.config/systemd/user/`.
+- Génère le lanceur GNOME `~/.local/share/applications/tokenwatcher-widget.desktop` :
+  ```ini
+  [Desktop Entry]
+  Type=Application
+  Name=TokenWatcher Cockpit V4.0.2
+  Comment=Monitoring Multi-Engine LLM & AMD Strix Halo
+  Exec=/home/thomas/data/AI-workspace/TokenWatcherWidget/Widget/scripts/start_widget.sh
+  Terminal=false
+  Categories=System;Monitor;Utility;
+  StartupWMClass=io.thomas.tokenwatcher.widget
+  ```
+- Exécute `update-desktop-database ~/.local/share/applications/` (si disponible) et `systemctl --user daemon-reload`.
 
 ---
 
