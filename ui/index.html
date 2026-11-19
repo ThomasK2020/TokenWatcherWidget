@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TokenWatcher V4.0.2 MULTI-ENGINE — Next-Gen AI Telemetry & Dynamic Pipeline Cockpit</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            twBg: '#090B0E',
+            twSurface: '#121620',
+            twCard: '#171C28',
+            twBorder: '#232A3B',
+            twBorderHover: '#374151',
+            twCyan: '#06B6D4',
+            twPurple: '#8B5CF6',
+            twGreen: '#10B981',
+            twAmber: '#F59E0B',
+            twRed: '#EF4444',
+            twBlue: '#3B82F6',
+          },
+          animation: {
+            'pulse-subtle': 'pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'flow': 'flowPulse 2s infinite ease-in-out',
+            'particle': 'particleMove 1.6s linear infinite',
+          },
+          keyframes: {
+            flowPulse: {
+              '0%, 100%': { opacity: '0.4', transform: 'scale(0.98)' },
+              '50%': { opacity: '1', transform: 'scale(1.02)' }
+            },
+            particleMove: {
+              '0%': { left: '0%', opacity: '0' },
+              '20%': { opacity: '1' },
+              '80%': { opacity: '1' },
+              '100%': { left: '95%', opacity: '0' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090B0E;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #232A3B;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+    .glass-card {
+      background: rgba(23, 28, 40, 0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+    .alert-critical-glow {
+      box-shadow: 0 0 25px -2px rgba(239, 68, 68, 0.45);
+      border-color: rgba(239, 68, 68, 0.6) !important;
+    }
+
+    /* Styles Scoped pour le bloc Inference Engines v3.4 & Jauges à carrés unifiées */
+    .tw-card-v34 {
+      background-color: rgba(18, 23, 34, 0.85);
+      border: 1px solid #1E2638;
+      border-radius: 12px;
+      padding: 14px 16px;
+      transition: all 0.25s ease;
+    }
+    .tw-card-vulkan {
+      border-left: 4px solid #06B6D4;
+    }
+    .tw-card-rocm {
+      border-left: 4px solid #F43F5E;
+    }
+    .svg-ring-anim {
+      transition: stroke-dasharray 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                  stroke-dashoffset 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                  stroke 0.3s ease;
+    }
+    @keyframes pulse-heartbeat {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 7px #10B981;
+      }
+      50% {
+        opacity: 0.32;
+        transform: scale(0.82);
+        box-shadow: none;
+      }
+    }
+    .heartbeat-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #10B981;
+      display: inline-block;
+      animation: pulse-heartbeat 1.25s infinite ease-in-out;
+    }
+    .sq-10-grid {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .sq-cell {
+      width: 11px;
+      height: 11px;
+      border-radius: 2.5px;
+      background-color: #151C2B;
+      border: 1px solid #232F46;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .sq-cell.filled-blue {
+      background-color: rgba(59, 130, 246, 0.42);
+      border-color: rgba(96, 165, 250, 0.8);
+    }
+    .sq-cell.filled-cyan {
+      background-color: rgba(56, 189, 248, 0.36);
+      border-color: rgba(103, 232, 249, 0.72);
+    }
+    .sq-cell.filled-emerald {
+      background-color: rgba(16, 185, 129, 0.38);
+      border-color: rgba(52, 211, 153, 0.75);
+    }
+    .sq-cell.filled-purple {
+      background-color: rgba(168, 85, 247, 0.40);
+      border-color: rgba(192, 132, 252, 0.78);
+    }
+    .sq-cell.filled-rose {
+      background-color: rgba(251, 113, 133, 0.36);
+      border-color: rgba(253, 164, 175, 0.72);
+    }
+    .sq-cell.filled-amber {
+      background-color: rgba(251, 191, 36, 0.38);
+      border-color: rgba(252, 211, 77, 0.78);
+    }
+    @keyframes chevron-rotate-5s {
+      0%, 26%, 100% { transform: rotate(0deg); }
+      8%, 18% { transform: rotate(180deg); }
+    }
+    .expand-chevron {
+      display: inline-block;
+      color: #F43F5E;
+      transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+      animation: chevron-rotate-5s 5s infinite ease-in-out;
+    }
+    .group:hover .expand-chevron:not(.is-open) {
+      animation: none;
+      color: #FB7185;
+      transform: rotate(180deg);
+    }
+    .expand-chevron.is-open {
+      animation: none;
+      transform: rotate(180deg);
+      color: #F43F5E;
+    }
+  </style>
+</head>
+<body class="bg-twBg text-slate-200 font-sans min-h-screen p-3 md:p-5 selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- ==================== FLOATING COMPACT HUD PILL (MODE A) ==================== -->
+  <div id="hud-pill-container" class="hidden max-w-5xl mx-auto mb-6 transition-all duration-300">
+    <div class="glass-card rounded-full px-5 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xl border border-cyan-500/30 hover:border-cyan-400/50 transition">
+      <div class="flex items-center space-x-3">
+        <span class="flex h-2.5 w-2.5 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+        </span>
+        <span class="text-xs font-mono font-bold text-cyan-400 tracking-wider" id="pill-chain-label">HERMES ──► OPENCODE ──► PROXY:13306 ──► VULKAN:8001</span>
+        <span class="text-xs text-slate-600">|</span>
+        <span class="text-xs font-mono font-medium text-slate-200" id="pill-model-name">Qwen3-Coder-30B-A3B</span>
+      </div>
+      <div class="flex items-center space-x-4 font-mono text-xs">
+        <div>
+          <span class="text-slate-400">CTX:</span>
+          <span class="text-white font-semibold tabular-nums" id="pill-tokens">54.2k</span>
+          <span class="text-cyan-400 text-[11px]" id="pill-kv">(94% KV)</span>
+        </div>
+        <div class="hidden sm:flex items-center space-x-1 text-emerald-400">
+          <i class="fa-solid fa-bolt text-[10px]"></i>
+          <span class="tabular-nums" id="pill-tps">58.4 t/s</span>
+        </div>
+        <div class="flex items-center space-x-1 text-amber-400">
+          <i class="fa-solid fa-temperature-half text-[11px]"></i>
+          <span class="tabular-nums" id="pill-temp">68°C</span>
+        </div>
+        <button onclick="setViewMode('cockpit')" class="px-3 py-1 text-[11px] rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/30 font-sans transition flex items-center gap-1.5">
+          <i class="fa-solid fa-expand text-[10px]"></i>
+          <span data-i18n="view.cockpit">Cockpit Complet</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN COCKPIT CONTAINER (MODE B & C) ==================== -->
+  <main id="main-cockpit" class="max-w-6xl mx-auto space-y-4 transition-all duration-300">
+
+    <!-- 1. TOP HEADER BAR & CONTROLS -->
+    <header class="glass-card rounded-2xl p-3.5 px-4 md:px-5 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+      <div class="flex items-center space-x-3">
+        <div class="relative flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-950/70 border border-cyan-500/30 text-cyan-400 shadow-inner">
+          <i class="fa-solid fa-satellite-dish text-sm"></i>
+          <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm md:text-base font-bold tracking-wider text-white" data-i18n="header.title">TOKENWATCHER</h1>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/25" data-i18n="header.version_badge">V4.0.2 MULTI-ENGINE</span>
+            <span id="header-i18n-saved-pill" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25">I18N Dynamic Ready</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
+            <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold" data-i18n="header.live_badge">LIVE</span>
+            <span class="font-mono text-[11px] text-cyan-300 font-medium" id="header-chain">HERMES ──► OPENCODE ──► PROXY :13306 ──► LEMONADE VULKAN :8001</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls: Timeframe Pills, View Selector, Ports Config, I18N Controls -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Timeframe selector -->
+        <div class="bg-black/50 p-1 rounded-xl border border-white/5 flex items-center font-mono text-[11px]">
+          <button onclick="setTimeframe('SESSION')" data-tf="SESSION" data-i18n="nav.session" class="tf-btn px-2.5 py-1 rounded-lg text-cyan-300 bg-cyan-500/20 border border-cyan-500/30 font-semibold transition">SESSION</button>
+          <button onclick="setTimeframe('1H')" data-tf="1H" data-i18n="nav.1h" class="tf-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition">1H</button>
+          <button onclick="setTimeframe('24H')" data-tf="24H" data-i18n="nav.24h" class="tf-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition">24H</button>
+          <button onclick="setTimeframe('7J')" data-tf="7J" data-i18n="nav.7j" class="tf-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition">7J</button>
+          <button onclick="setTimeframe('TOTAL')" data-tf="TOTAL" data-i18n="nav.total" class="tf-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition">TOTAL</button>
+        </div>
+
+        <!-- View mode tabs -->
+        <div class="bg-black/50 p-1 rounded-xl border border-white/5 flex items-center text-xs">
+          <button onclick="setViewMode('cockpit')" id="view-cockpit" class="view-btn px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-table-columns text-[10px]"></i>
+            <span class="hidden sm:inline" data-i18n="view.cockpit">Cockpit Complet</span>
+          </button>
+          <button onclick="setViewMode('silicium')" id="view-silicium" class="view-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
+            <i class="fa-solid fa-microchip text-[10px]"></i>
+            <span class="hidden sm:inline" data-i18n="view.silicium">Focus Silicium</span>
+          </button>
+          <button onclick="setViewMode('hud')" id="view-hud" class="view-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
+            <i class="fa-solid fa-compress text-[10px]"></i>
+            <span class="hidden sm:inline" data-i18n="view.hud">Pill HUD</span>
+          </button>
+        </div>
+
+        <!-- Ports Config & Settings -->
+        <div class="flex items-center space-x-1.5">
+          <button onclick="togglePortsConfigModal()" class="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-mono flex items-center gap-1.5 transition" title="Configurer les ports dynamiques & profils matériels/cloud">
+            <i class="fa-solid fa-network-wired text-[11px]"></i>
+            <span class="hidden md:inline" data-i18n="nav.ports_btn">⚙️ Ports & Config</span>
+          </button>
+          <button onclick="toggleLanguage()" id="lang-switch-btn" class="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-mono transition" title="Basculer Français / English">
+            🌐 <span id="current-lang-label">FR</span>
+          </button>
+          <button id="toggle-sim-btn" onclick="toggleSimulation()" class="p-2 w-8 h-8 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition" title="Mettre en pause ou relancer le polling 1.0s">
+            <i class="fa-solid fa-pause text-xs" id="sim-icon"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== MODAL / DRAWER : PORTS.YAML & CONFIG.JSON DYNAMIC LOADER ==================== -->
+    <div id="ports-config-modal" class="hidden glass-card rounded-2xl p-5 border border-amber-500/40 shadow-2xl space-y-4 bg-twSurface/95">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-xs font-bold border border-amber-500/30">CONFIG.JSON / PORTS.YAML</span>
+          <h3 class="text-xs md:text-sm font-bold text-white tracking-wide">RÉASSIGNATION DYNAMIQUE DES PORTS ET PROFILS</h3>
+        </div>
+        <button onclick="togglePortsConfigModal()" class="text-slate-400 hover:text-white text-sm px-2"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        TokenWatcher détecte automatiquement les variables d'environnement et <code class="text-amber-300 font-mono bg-black/40 px-1.5 py-0.5 rounded">~/.config/tokenwatcher/ports.yaml</code>. La modification ci-dessous met à jour instantanément la télémétrie et tous les libellés sans altérer la hiérarchie du DOM.
+      </p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-xs">
+        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
+          <label class="text-[10px] text-amber-400 uppercase block font-semibold">Proxy OpenCode (Stream)</label>
+          <div class="flex items-center gap-1">
+            <span class="text-slate-500">127.0.0.1:</span>
+            <input type="number" id="input-port-proxy" value="13306" onchange="applyDynamicPorts()" class="w-full bg-slate-900 text-white px-2 py-1 rounded border border-white/15 focus:border-amber-400 focus:outline-none tabular-nums">
+          </div>
+          <span class="text-[10px] text-slate-500 block">lemonade-opencode-proxy</span>
+        </div>
+        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
+          <label class="text-[10px] text-cyan-400 uppercase block font-semibold">Lemonade Vulkan (GGUF)</label>
+          <div class="flex items-center gap-1">
+            <span class="text-slate-500">127.0.0.1:</span>
+            <input type="number" id="input-port-vulkan" value="8001" onchange="applyDynamicPorts()" class="w-full bg-slate-900 text-white px-2 py-1 rounded border border-white/15 focus:border-cyan-400 focus:outline-none tabular-nums">
+          </div>
+          <span class="text-[10px] text-slate-500 block">llama-server --metrics</span>
+        </div>
+        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
+          <label class="text-[10px] text-rose-400 uppercase block font-semibold">vLLM Engine (ROCm 7.x)</label>
+          <div class="flex items-center gap-1">
+            <span class="text-slate-500">127.0.0.1:</span>
+            <input type="number" id="input-port-vllm" value="8000" onchange="applyDynamicPorts()" class="w-full bg-slate-900 text-white px-2 py-1 rounded border border-white/15 focus:border-rose-400 focus:outline-none tabular-nums">
+          </div>
+          <span class="text-[10px] text-slate-500 block">PagedAttention /metrics</span>
+        </div>
+        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
+          <label class="text-[10px] text-emerald-400 uppercase block font-semibold">OpenWebUI Frontend</label>
+          <div class="flex items-center gap-1">
+            <span class="text-slate-500">127.0.0.1:</span>
+            <input type="number" id="input-port-webui" value="8080" onchange="applyDynamicPorts()" class="w-full bg-slate-900 text-white px-2 py-1 rounded border border-white/15 focus:border-emerald-400 focus:outline-none tabular-nums">
+          </div>
+          <span class="text-[10px] text-slate-500 block">webui.db + API</span>
+        </div>
+        <div class="bg-black/40 p-3 rounded-xl border border-purple-400 space-y-1">
+          <label class="text-[10px] text-purple-400 uppercase block font-semibold">Lemonade Health API</label>
+          <div class="flex items-center gap-1">
+            <span class="text-slate-500">127.0.0.1:</span>
+            <input type="number" id="input-port-lemonade-admin" value="13305" onchange="applyDynamicPorts()" class="w-full bg-slate-900 text-white px-2 py-1 rounded border border-white/15 focus:border-purple-400 focus:outline-none tabular-nums">
+          </div>
+          <span class="text-[10px] text-slate-500 block">/api/v1/health</span>
+        </div>
+      </div>
+
+      <!-- SÉLECTEURS PROFIL MATÉRIEL & FOURNISSEUR CLOUD DYNAMIQUES -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-white/10 font-mono text-xs">
+        <div class="bg-black/40 p-3 rounded-xl border border-cyan-500/25 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="text-[10px] text-cyan-400 uppercase font-bold">Profil Matériel Détecté ({cpu_model} · {gpu_model} {gfx_arch})</label>
+            <span class="text-[10px] text-slate-500">hardware.silicon_subtitle</span>
+          </div>
+          <select id="select-hw-profile" onchange="applyDynamicHardwareAndCloud()" class="w-full bg-slate-900 text-white px-2.5 py-1.5 rounded-lg border border-white/15 focus:border-cyan-400 focus:outline-none">
+            <option value="strix_halo">Strix Halo APU : Ryzen AI Max+ 395 · Radeon 8060S (gfx1151)</option>
+            <option value="gorgon_point">Gorgon Point APU : Ryzen AI 9 HX 370 · Radeon 890M (gfx1150)</option>
+            <option value="radeon_dgpu">Workstation dGPU : Threadripper PRO · Radeon PRO W7900 (gfx1100)</option>
+          </select>
+        </div>
+
+        <div class="bg-black/40 p-3 rounded-xl border border-amber-500/25 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="text-[10px] text-amber-400 uppercase font-bold">Service & Modèle Cloud Actif ({provider_name} · {model_name})</label>
+            <span class="text-[10px] text-slate-500">cloud.provider & cloud.model</span>
+          </div>
+          <select id="select-cloud-profile" onchange="applyDynamicHardwareAndCloud()" class="w-full bg-slate-900 text-white px-2.5 py-1.5 rounded-lg border border-white/15 focus:border-amber-400 focus:outline-none">
+            <option value="google_argon">Google AI Studio · Tier 1 ──► GEMINI 4 ARGON</option>
+            <option value="anthropic_claude">Anthropic API · Tier 2 ──► CLAUDE 3.7 SONNET</option>
+            <option value="openrouter_r1">OpenRouter · Pay-as-you-go ──► DEEPSEEK R1</option>
+            <option value="vertex_enterprise">Vertex AI · Tier 4 ──► GEMINI 2.5 PRO</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
+        <span class="font-mono text-emerald-400"><i class="fa-solid fa-check-circle mr-1"></i>Variables d'exécution synchronisées</span>
+        <div class="flex gap-2">
+          <button onclick="resetDefaultPorts()" class="px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 font-mono">Réinitialiser</button>
+          <button onclick="togglePortsConfigModal()" class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/30 font-mono">Fermer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. INTERACTIVE DYNAMIC PIPELINE & TOPOLOGY SWITCHER ==================== -->
+    <section id="section-pipeline" class="glass-card rounded-2xl p-5 border border-cyan-500/25 space-y-4 transition-all duration-300">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-white/5 pb-3.5">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            <i class="fa-solid fa-diagram-project text-sm"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-xs md:text-sm font-bold text-white tracking-wider uppercase" data-i18n="pipeline.section_title">CHAINES D'EXÉCUTION</h2>
+              <span class="text-[10px] font-mono px-2 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" data-i18n="pipeline.badge_auto">Auto-Détection Active</span>
+            </div>
+            <p class="text-[11px] text-slate-400" data-i18n="pipeline.subtitle">Topologies d'orchestration des noeuds d'execution</p>
+          </div>
+        </div>
+
+        <!-- 4 Topologies Switcher Pills -->
+        <div class="flex flex-wrap items-center gap-1.5 bg-black/50 p-1.5 rounded-xl border border-white/5 font-mono text-[11px]">
+          <button onclick="setTopology(1)" id="topo-btn-1" class="topo-btn px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold transition flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            <span data-i18n="pipeline.topo1">1. Hermes ➔ OpenCode ➔ Proxy ➔ Vulkan</span>
+          </button>
+          <button onclick="setTopology(2)" id="topo-btn-2" class="topo-btn px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+            <span data-i18n="pipeline.topo2">2. OpenCode CLI Direct (Sans Hermes)</span>
+          </button>
+          <button onclick="setTopology(3)" id="topo-btn-3" class="topo-btn px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+            <span data-i18n="pipeline.topo3">3. OpenWebUI ➔ vLLM ROCm</span>
+          </button>
+          <button onclick="setTopology(4)" id="topo-btn-4" class="topo-btn px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span data-i18n="pipeline.topo4">4. Hermes ➔ Cloud Argon</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- DYNAMIC VISUAL NODE CHAIN CONTAINER (HORIZONTAL) -->
+      <div id="pipeline-nodes-chain" class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 pt-1 min-h-[82px]">
+        <!-- Rendu dynamique via JS -->
+      </div>
+
+      <!-- Interactive Simulation Action Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/5 text-xs">
+        <div class="flex items-center gap-2 text-slate-400 font-mono text-[11px]">
+          <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i>
+          <span data-i18n="testbench.label">banc d'essai interactif :</span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="simulateCodePatchStream()" class="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 font-mono text-[11px] transition flex items-center gap-1.5">
+            <i class="fa-solid fa-code"></i>
+            <span data-i18n="testbench.btn_patch">Simuler Patch Code (OpenCode ➔ Proxy ➔ Vulkan)</span>
+          </button>
+          <button onclick="simulateCloudBurst429()" class="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-mono text-[11px] transition flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt-lightning"></i>
+            <span data-i18n="testbench.btn_burst">Simuler Burst Cloud (Tester Seuil Out of Quota)</span>
+          </button>
+          <button onclick="cycleNextTopology()" class="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 font-mono text-[11px] transition flex items-center gap-1.5">
+            <i class="fa-solid fa-shuffle"></i>
+            <span data-i18n="testbench.btn_topo">Changer Topologie Active</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 3. HERO BENTO: ACTIVE SESSION & CONTEXT DNA BAR ==================== -->
+    <section id="section-hero" class="glass-card rounded-2xl p-5 md:p-6 border border-cyan-500/20 relative overflow-hidden transition-all duration-300">
+      <div class="absolute -right-20 -top-20 w-72 h-72 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="relative z-10 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/5 pb-4">
+          <div class="space-y-1">
+            <!-- Dynamic Local Inference Block Title -->
+            <div class="flex items-center gap-2 pb-0.5">
+              <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+              <span id="local-inference-block-title" class="text-[11px] font-mono font-bold tracking-wider text-cyan-400 uppercase">
+                INFÉRENCE LOCALE ACTIVE · (VULKAN ENGINE on LLAMA-SERVER :8001)
+              </span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span id="hero-backend-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                <i class="fa-solid fa-microchip text-[9px]"></i> VULKAN LOCAL (:8001)
+              </span>
+              <span id="active-model-title" class="text-base font-bold text-white tracking-wide font-mono">Qwen3-Coder-30B-A3B-Instruct-GGUF</span>
+              <span id="active-model-quant" class="text-xs text-slate-400 font-mono">(Q4_K_M · 65 536 ctx · MoE 3B active)</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+              <span class="text-cyan-400 font-medium" data-i18n="session.active_task_label">Tâche active :</span>
+              <span id="active-task-title" class="bg-black/40 px-2 py-0.5 rounded text-slate-200 border border-white/5 font-mono text-[11px]">SOW-01 GPU Telemetry ──► Étape 3/5 : code_patch_file</span>
+              <span id="active-agent-mode" class="text-[11px] text-emerald-400 font-mono font-medium">[BUILD MODE · 22 tools]</span>
+            </div>
+            <div class="pt-0.5">
+              <button onclick="triggerToast('📁 Emplacement workspace : /home/thomas/data/AI-workspace/TokenWatcherWidget')" class="text-[11px] font-mono text-slate-400 hover:text-cyan-300 transition flex items-center gap-1.5">
+                <i class="fa-regular fa-folder-open text-cyan-400"></i>
+                <span>/home/thomas/data/AI-workspace/TokenWatcherWidget/tokenwatcher-topbar</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Right: Total Tokens & Real-time Speed -->
+          <div class="flex items-center gap-4 bg-black/45 p-3 rounded-xl border border-white/10">
+            <div class="text-right">
+              <div class="text-[10px] uppercase tracking-wider text-slate-400 font-mono" id="tf-label-volume">Volume (SESSION)</div>
+              <div class="text-2xl font-bold font-mono text-white tabular-nums tracking-tight">
+                <span id="session-tokens-display">0.42</span><span class="text-xs text-cyan-400 font-sans ml-1">M TOK</span>
+              </div>
+            </div>
+            <div class="w-px h-8 bg-white/10"></div>
+            <div>
+              <div class="text-[10px] uppercase tracking-wider text-slate-400 font-mono">Débit TG (Gen)</div>
+              <div class="text-xl font-bold font-mono text-emerald-400 tabular-nums flex items-center gap-1.5">
+                <i class="fa-solid fa-bolt text-xs animate-pulse"></i>
+                <span id="speed-tg">58.4</span> <span class="text-xs text-slate-400 font-sans font-normal">t/s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4-SEGMENT CONTEXT DNA BAR (REDESIGNED WITH 10 SQUARES GRID) -->
+        <div class="space-y-2">
+          <div class="bg-[#0A0D14] border border-[#1B2436] rounded-lg px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-3 font-mono">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-xs text-[#94A3B8] font-semibold" data-i18n="context.title">Anatomie du Contexte (Context DNA) :</span>
+              <div id="context-dna-squares-10" class="sq-10-grid" title="Anatomie du Contexte (1 carré = 10% · Bleu: KV Cache, Cyan: Prompt In, Vert: Out, Violet: Rsn)"></div>
+              <div class="flex items-center tabular-nums text-xs">
+                <span class="text-[#94A3B8] font-semibold" id="ctx-used-val">54.2k / 65.5k</span>
+                <span class="text-[#38BDF8] font-bold ml-1.5" id="ctx-percent-val">(83%)</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 text-[11px] tabular-nums">
+              <span class="text-slate-400"><span data-i18n="context.free_suffix">Headroom libre</span> : <strong class="text-emerald-400" id="ctx-free-val">11.3k tok</strong></span>
+              <span class="text-slate-600">|</span>
+              <span id="ctx-status-badge" class="text-emerald-400 font-mono font-semibold flex items-center gap-1" data-i18n="context.overflow_ok">
+                [OK · Zéro Overflow]
+              </span>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-300 pt-0.5 gap-2">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-sm bg-blue-500/50 border border-blue-400"></span>
+                <span class="text-slate-400" data-i18n="context.kv_label">KV Cache:</span>
+                <strong class="text-blue-300 tabular-nums" id="val-kv-hit">48.7k (94% Hit)</strong>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-sm bg-cyan-400/50 border border-cyan-300"></span>
+                <span class="text-slate-400" data-i18n="context.in_label">Prompt In:</span>
+                <span class="text-cyan-300 tabular-nums" id="val-in">+3.1k (Tot: 51.8k)</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400/50 border border-emerald-300"></span>
+                <span class="text-slate-400" data-i18n="context.out_label">Out:</span>
+                <span class="text-emerald-300 tabular-nums" id="val-out">1.8k</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-sm bg-purple-400/50 border border-purple-300"></span>
+                <span class="text-slate-400" data-i18n="context.rsn_label">Rsn (Thought):</span>
+                <span class="text-purple-300 tabular-nums" id="val-rsn">640 tok (26%)</span>
+              </span>
+            </div>
+            <div class="text-slate-400 text-[10px]">
+              <span data-i18n="session.thought_detector_label">Détecteur Boucle Thought:</span> <strong class="text-emerald-400" id="loop-risk-label" data-i18n="session.thought_detector_state">[OK · StopTokens Actifs]</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Speed Pills & Flags -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+          <div class="bg-black/35 p-2.5 rounded-xl border border-white/5 space-y-1">
+            <div class="text-[10px] text-slate-400 uppercase font-mono flex items-center justify-between">
+              <span>PP (Prefill Speed)</span>
+              <i class="fa-solid fa-forward-fast text-blue-400 text-[10px]"></i>
+            </div>
+            <div class="text-base font-bold font-mono text-white tabular-nums" id="speed-pp">1 420 <span class="text-xs text-slate-400 font-normal">t/s</span></div>
+            <div class="text-[10px] text-slate-500 font-mono">Batch 512 / uBatch 128</div>
+          </div>
+          <div class="bg-black/35 p-2.5 rounded-xl border border-white/5 space-y-1">
+            <div class="text-[10px] text-slate-400 uppercase font-mono flex items-center justify-between">
+              <span>Latence TTFT</span>
+              <i class="fa-regular fa-clock text-cyan-400 text-[10px]"></i>
+            </div>
+            <div class="text-base font-bold font-mono text-cyan-300 tabular-nums" id="speed-ttft">0.18 <span class="text-xs text-slate-400 font-normal">s</span></div>
+            <div class="text-[10px] text-emerald-400 font-mono">--cache-reuse 256 actif</div>
+          </div>
+          <div class="bg-black/35 p-2.5 rounded-xl border border-white/5 space-y-1 sm:col-span-2">
+            <div class="text-[10px] text-slate-400 uppercase font-mono flex items-center justify-between">
+              <span>Flags Fine-Tuning & Runtime Détectés</span>
+              <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono">Zero-Hardcode</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 pt-0.5" id="hero-tuning-badges">
+              <span class="px-2 py-0.5 rounded bg-white/5 text-[11px] font-mono text-slate-300 border border-white/10">Temp <strong class="text-white">0.15</strong></span>
+              <span class="px-2 py-0.5 rounded bg-white/5 text-[11px] font-mono text-slate-300 border border-white/10">RepPen <strong class="text-white">1.0</strong></span>
+              <span class="px-2 py-0.5 rounded bg-blue-500/15 text-[11px] font-mono text-blue-300 border border-blue-500/30">KV <strong class="text-white">q8_0</strong></span>
+              <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-[11px] font-mono text-emerald-300 border border-emerald-500/30">FA: <strong class="text-white">ON</strong></span>
+              <span class="px-2 py-0.5 rounded bg-purple-500/15 text-[11px] font-mono text-purple-300 border border-purple-500/30">stream_options: include_usage</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 4 & 5. STACKED FULL-WIDTH: MULTI-ENGINE RUNTIME & HARDWARE ==================== -->
+    <div class="grid grid-cols-1 gap-4">
+
+      <!-- 4. MULTI-ENGINE MEMORY & RUNTIME TOPOLOGY CARD (v3.4 INTEGRATED + PROTECTED DOM - 100% WIDTH) -->
+      <section id="section-slots" class="glass-card rounded-2xl p-4 md:p-5 border border-white/5 space-y-3.5 transition-all duration-300">
+        <!-- En-tête du bloc -->
+        <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-white/5">
+          <div class="flex items-center gap-3 w-full">
+            <div class="w-8 h-8 rounded-full bg-purple-500/15 border border-purple-500/35 flex items-center justify-center text-purple-300 font-bold text-sm shrink-0">
+              ≡
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <h2 class="text-xs md:text-sm font-bold text-white tracking-tight truncate">
+                  <span data-i18n="memory.section_title">Inference Engines and Unified Memory Usage</span>
+                </h2>
+                <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 shrink-0">
+                  v3.4
+                </span>
+              </div>
+              <div class="font-mono text-[11px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2 tabular-nums">
+                <span data-i18n="memory.subtitle">Usage et Occupation Memoire</span>
+                <span class="text-slate-600">|</span>
+                <span>
+                  <span data-i18n="memory.gen_loc_label">Générés Loc:</span>
+                  <strong id="hdr-gen" class="text-white font-bold">14.8k</strong>
+                </span>
+                <span class="text-slate-600">|</span>
+                <span>
+                  <span data-i18n="memory.served_label">Servis:</span>
+                  <strong id="hdr-serv" class="text-white font-bold">0.42M</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- POOL UNIFIÉ APU (128 Go LPDDR5X) — CAMEMBERT 96px + 4 BLOCS -->
+        <article class="bg-[#0A0D14]/90 border border-[#1E2638] rounded-xl px-3.5 py-3">
+          <div class="flex flex-col sm:flex-row items-center gap-4">
+            <!-- Camembert SVG -->
+            <div class="relative w-[96px] h-[96px] shrink-0 flex items-center justify-center">
+              <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120" aria-label="Répartition Pool Unifié APU 128 Go">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#263042" stroke-width="13" />
+                <circle id="donut-os" class="svg-ring-anim" cx="60" cy="60" r="50" fill="none" stroke="#94A3B8" stroke-width="13" stroke-dasharray="28.27 314.16" stroke-dashoffset="-99.28" />
+                <circle id="donut-rocm" class="svg-ring-anim" cx="60" cy="60" r="50" fill="none" stroke="#F43F5E" stroke-width="13" stroke-dasharray="54.04 314.16" stroke-dashoffset="-45.24" />
+                <circle id="donut-vulkan" class="svg-ring-anim" cx="60" cy="60" r="50" fill="none" stroke="#06B6D4" stroke-width="13" stroke-dasharray="45.24 314.16" stroke-dashoffset="0" />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center text-center font-mono pointer-events-none tabular-nums">
+                <span id="donut-pct-text" class="text-[13.5px] font-extrabold text-white leading-tight">31.5%</span>
+                <span id="donut-gb-text" class="text-[10px] font-semibold text-slate-300 mt-0.5">40.4 Go</span>
+              </div>
+            </div>
+
+            <!-- Légendes & Détails -->
+            <div class="flex-1 w-full flex flex-col gap-2 font-mono">
+              <div class="flex flex-wrap items-center justify-between gap-1.5 pb-1.5 border-b border-[#182030] text-[11px]">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="font-bold text-slate-200" data-i18n="memory.apu_title">Répartition Pool Unifié APU (128 Go LPDDR5X) :</span>
+                  <span class="text-slate-400">
+                    <span data-i18n="memory.total_ia_label">Total IA :</span>
+                    <strong id="apu-total-ia" class="text-white font-bold tabular-nums">40.4 Go (31.5%)</strong>
+                  </span>
+                  <span class="text-slate-600">·</span>
+                  <span class="text-[#CBD5E1]" data-i18n="memory.zero_copy_pcie">Zero-Copy LLM data via PCIe</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] tabular-nums">
+                <div class="bg-[#0F141E] border border-[#1B2436] rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
+                  <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
+                    <span class="w-2 h-2 rounded-sm bg-[#06B6D4] shrink-0"></span>
+                    <span data-i18n="memory.leg_vulkan">Vulkan:</span>
+                  </div>
+                  <div class="text-white font-bold">
+                    <span id="leg-v-gb">18.4 Go</span>
+                    <span id="leg-v-pct" class="text-[#38BDF8] font-semibold text-[10px]">(14.4%)</span>
+                  </div>
+                </div>
+
+                <div class="bg-[#0F141E] border border-[#1B2436] rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
+                  <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
+                    <span class="w-2 h-2 rounded-sm bg-[#F43F5E] shrink-0"></span>
+                    <span data-i18n="memory.leg_rocm">ROCm:</span>
+                  </div>
+                  <div class="text-white font-bold">
+                    <span id="leg-r-gb">22.0 Go</span>
+                    <span id="leg-r-pct" class="text-[#FB7185] font-semibold text-[10px]">(17.2%)</span>
+                  </div>
+                </div>
+
+                <div class="bg-[#0F141E] border border-[#1B2436] rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
+                  <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
+                    <span class="w-2 h-2 rounded-sm bg-[#94A3B8] shrink-0"></span>
+                    <span data-i18n="memory.leg_os">OS:</span>
+                  </div>
+                  <div class="text-slate-200 font-bold">
+                    <span id="leg-os-gb">11.5 Go</span>
+                    <span id="leg-os-pct" class="text-slate-400 font-normal text-[10px]">(9%)</span>
+                  </div>
+                </div>
+
+                <div class="bg-[#0F141E] border border-[#1B2436] rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
+                  <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
+                    <span class="w-2 h-2 rounded-sm bg-[#263042] border border-slate-600 shrink-0"></span>
+                    <span data-i18n="memory.leg_free">Libre:</span>
+                  </div>
+                  <div class="text-slate-300 font-bold">
+                    <span id="leg-free-gb">76.1 Go</span>
+                    <span id="leg-free-pct" class="text-slate-400 font-normal text-[10px]">(59.5%)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- CARTE MOTEUR 1 : [VULKAN] Qwen3-Coder-30B-A3B-GGUF -->
+        <article id="card-vulkan" class="tw-card-v34 tw-card-vulkan">
+          <div class="flex flex-col sm:flex-row items-center gap-4">
+            <div class="w-full sm:w-[116px] shrink-0 flex flex-col items-center text-center sm:border-r sm:border-[#1E2638] sm:pr-3">
+              <div class="relative w-[80px] h-[80px] flex items-center justify-center">
+                <svg class="w-full h-full -rotate-90" viewBox="0 0 88 88">
+                  <circle cx="44" cy="44" r="38" fill="none" stroke="#1E2738" stroke-width="6.5" />
+                  <circle id="ring-vulkan" class="svg-ring-anim" cx="44" cy="44" r="38" fill="none" stroke="#38BDF8" stroke-width="6.5" stroke-linecap="round" stroke-dasharray="34.38 238.76" />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center font-mono pointer-events-none tabular-nums">
+                  <span id="ring-vulkan-pct" class="text-[12px] font-extrabold text-white leading-tight">14.4%</span>
+                  <span id="vulkan-mem-gb" class="text-[10px] font-bold text-[#67E8F9] mt-0.5">18.4 Go</span>
+                </div>
+              </div>
+              <div class="font-mono mt-1 flex flex-col items-center leading-tight tabular-nums">
+                <span class="text-[9.5px] uppercase tracking-wider text-slate-400" data-i18n="engines.alloc_uma">Alloc UMA</span>
+                <span id="vulkan-kv-gb" class="text-[10px] text-slate-300 font-medium mt-0.5">KV: 3.8 Go</span>
+              </div>
+            </div>
+
+            <div class="flex-1 w-full flex flex-col gap-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap font-mono">
+                  <span id="vulkan-engine-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">[VULKAN]</span>
+                  <h3 id="vulkan-model-title" class="text-xs font-bold text-white">Qwen3-Coder-30B-A3B-GGUF</h3>
+                  <span id="vulkan-port-badge" title="Endpoint : http://127.0.0.1:8001/slots" class="text-[10px] text-[#94A3B8] bg-[#192132] px-1.5 py-0.5 rounded cursor-help tabular-nums">:8001</span>
+                </div>
+
+                <div class="font-mono text-[10.5px] bg-[#090C12] border border-[#243047] px-2.5 py-0.5 rounded-md flex items-center gap-1.5 tabular-nums">
+                  <span id="vulkan-heartbeat" class="heartbeat-dot"></span>
+                  <span id="vulkan-slot-label" class="text-slate-300">SLOT 0 · RUN</span>
+                  <strong id="vulkan-speed" class="text-white font-extrabold text-[11.5px]">58.4 t/s</strong>
+                </div>
+              </div>
+
+              <div class="bg-[#0A0D14] border border-[#1B2436] rounded-lg px-3 py-2 flex flex-wrap items-center justify-between gap-2 font-mono">
+                <div class="flex items-center gap-2.5">
+                  <span id="vulkan-kv-label" class="text-[10.5px] text-[#94A3B8] font-semibold">KV Slot (64k) :</span>
+                  <div id="vulkan-squares-10" class="sq-10-grid" title="Occupation du KV Slot (1 carré = 10%)"></div>
+                </div>
+                <div class="flex items-center tabular-nums">
+                  <span id="vulkan-kv-tokens" class="text-[10.5px] text-[#94A3B8] font-semibold">54.2k / 65.5k</span>
+                  <span id="vulkan-kv-pct" class="text-[11px] text-[#38BDF8] font-bold ml-1">(83%)</span>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-1.5 font-mono text-[10px] text-[#94A3B8]">
+                <div id="vulkan-flags-container" class="flex flex-wrap items-center gap-1">
+                  <span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">NGL 999</span>
+                  <span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">KV q8_0</span>
+                  <span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">FA:ON</span>
+                  <span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">Reuse 256</span>
+                </div>
+                <div class="tabular-nums">
+                  <span data-i18n="engines.client_label">Client:</span>
+                  <strong id="vulkan-client-name" class="text-[#38BDF8] font-bold">OpenCode</strong>
+                  <span data-i18n="engines.via_label">via</span>
+                  <strong id="vulkan-proxy-name" class="text-[#38BDF8] font-bold">Proxy</strong>
+                  <span id="vulkan-proxy-port" title="http://127.0.0.1:13306/v1" class="text-[#94A3B8] cursor-help">:13306</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- CARTE MOTEUR 2 : [ROCm 7.x] Qwen2.5-14B-Instruct-AWQ (TIROIR DÉPLIÉ PAR DÉFAUT + RÈGLE <= 3 REQUÊTES) -->
+        <article id="card-rocm" class="tw-card-v34 tw-card-rocm">
+          <div class="flex flex-col sm:flex-row items-center gap-4">
+            <div class="w-full sm:w-[116px] shrink-0 flex flex-col items-center text-center sm:border-r sm:border-[#1E2638] sm:pr-3">
+              <div class="relative w-[80px] h-[80px] flex items-center justify-center">
+                <svg class="w-full h-full -rotate-90" viewBox="0 0 88 88">
+                  <circle cx="44" cy="44" r="38" fill="none" stroke="#1E2738" stroke-width="6.5" />
+                  <circle id="ring-rocm" class="svg-ring-anim" cx="44" cy="44" r="38" fill="none" stroke="#FB7185" stroke-width="6.5" stroke-linecap="round" stroke-dasharray="41.07 238.76" />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center font-mono pointer-events-none tabular-nums">
+                  <span id="ring-rocm-pct" class="text-[12px] font-extrabold text-white leading-tight">17.2%</span>
+                  <span id="rocm-mem-gb" class="text-[10px] font-bold text-[#FDA4AF] mt-0.5">22.0 Go</span>
+                </div>
+              </div>
+              <div class="font-mono mt-1 flex flex-col items-center leading-tight tabular-nums">
+                <span id="rocm-mem-label" class="text-[9.5px] uppercase tracking-wider text-slate-400" data-i18n="engines.pool_gtt">Pool GTT</span>
+                <span class="text-[10px] text-slate-300 font-medium mt-0.5">
+                  <span id="rocm-active-val">9.2G</span>
+                  <span data-i18n="engines.active_suffix">actif</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="flex-1 w-full flex flex-col gap-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap font-mono">
+                  <span id="rocm-engine-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">[ROCm 7.x]</span>
+                  <h3 id="rocm-model-title" class="text-xs font-bold text-white">Qwen2.5-14B-Instruct-AWQ</h3>
+                  <span id="rocm-port-badge" title="Endpoint : http://127.0.0.1:8000/metrics" class="text-[10px] text-[#94A3B8] bg-[#192132] px-1.5 py-0.5 rounded cursor-help tabular-nums">:8000</span>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="toggleVllmReqCountDemo()" class="font-mono text-[9.5px] bg-[#161D2B] hover:bg-[#1E293B] text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded transition cursor-pointer" title="Basculer entre 5 requêtes et 3 requêtes pour tester la règle d'affichage">
+                    <span id="vllm-demo-count-btn">Sim: 5 req</span>
+                  </button>
+                  <button type="button" onclick="toggleBatchDrawer()" class="group font-mono text-[10.5px] bg-[#090C12] hover:bg-[#111726] border border-[#243047] hover:border-rose-500/60 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 cursor-pointer transition tabular-nums" title="Cliquer pour déplier/replier le détail des requêtes actives">
+                    <span class="heartbeat-dot"></span>
+                    <span id="rocm-batch-pill-text" class="text-slate-300">BATCH (5 req · 0 wait) ·</span>
+                    <strong id="rocm-speed" class="text-white font-extrabold text-[11.5px]">142.0 t/s</strong>
+                    <span id="batch-chevron" class="expand-chevron is-open text-[9px] text-[#FB7185] ml-0.5 leading-none">▼</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-[#0A0D14] border border-[#1B2436] rounded-lg px-3 py-2 flex flex-wrap items-center justify-between gap-2 font-mono">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-[10.5px] text-[#94A3B8] font-semibold cursor-help" data-i18n="engines.paged_cache_label" title="PagedAttention (vLLM) : réservoir de mémoire de contexte découpé en blocs dynamiques partagés entre toutes les requêtes simultanées sans fragmentation.">Cache Contexte (Paged) :</span>
+                  <div id="rocm-squares-10" class="sq-10-grid" title="Occupation du Cache Contexte PagedAttention (1 carré = 10%)"></div>
+                </div>
+                <div class="flex items-center tabular-nums">
+                  <span id="rocm-paged-used-total" class="text-[10.5px] text-[#94A3B8] font-semibold">9.2 Go / 22.0 Go</span>
+                  <span id="rocm-paged-pct" class="text-[11px] text-[#FB7185] font-bold ml-1">(42%)</span>
+                </div>
+              </div>
+
+              <!-- Tiroir déplié PAR DÉFAUT d'inspection des requêtes parallèles vLLM + OpenWebUI (Règle <= 3 visibles + Voir +) -->
+              <div id="vllm-batch-drawer" class="bg-[#080B11] border border-[#1E2638] rounded-lg p-2.5 font-mono text-[10px] text-[#94A3B8] flex flex-col gap-1.5">
+                <div class="flex flex-wrap items-center justify-between gap-1.5 pb-1 border-b border-[#161E2E] text-[9.5px]">
+                  <span id="vllm-drawer-endpoint-label">Inspecteur Batch vLLM (http://127.0.0.1:8000/metrics + webui.db)</span>
+                  <span id="vllm-drawer-meta-label">Prefix Cache Hit: 78% · Preemptions: 0 · TTFT moy: 0.24s</span>
+                </div>
+                <div id="vllm-requests-list" class="flex flex-col gap-1">
+                  <!-- Rendu dynamique par renderVllmRequestsList() : 3 premières requêtes max par défaut -->
+                </div>
+                <div id="vllm-requests-more-wrapper" class="hidden pt-0.5 flex justify-end">
+                  <button type="button" onclick="toggleShowAllVllmRequests()" id="vllm-show-more-btn" class="text-[10px] font-mono bg-[#121824] hover:bg-[#1A2234] text-slate-300 hover:text-white border border-[#243047] px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1">
+                    Voir + (+2)
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-1.5 font-mono text-[10px] text-[#94A3B8]">
+                <div id="rocm-flags-container" class="flex flex-wrap items-center gap-1">
+                  <span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">/dev/kfd gfx1151</span>
+                  <span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">Continuous Batching</span>
+                  <span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">AWQ 4-bit</span>
+                </div>
+                <div class="tabular-nums">
+                  <span data-i18n="engines.client_label">Client:</span>
+                  <strong id="rocm-client-name" class="text-[#FB7185] font-bold">OpenWebUI</strong>
+                  <span id="rocm-client-port" title="http://127.0.0.1:8080" class="text-[#94A3B8] cursor-help">:8080</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- 5. SILICIUM AMD INDICATORS (VARIABILISÉ - 100% WIDTH STACKED BELOW INFERENCE ENGINES) -->
+      <section id="section-silicon" class="glass-card rounded-2xl p-5 border border-white/5 space-y-4 transition-all duration-300 relative">
+        <div class="flex items-center justify-between border-b border-white/5 pb-3">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-sm">
+              <i class="fa-solid fa-microchip"></i>
+            </div>
+            <div>
+              <h2 class="text-xs md:text-sm font-bold text-white tracking-wider" data-i18n="hardware.silicon_title">HARDWARE & AMD INDICATORS</h2>
+              <p class="text-[11px] text-slate-400 font-mono" id="hw-silicon-subtitle">Ryzen AI Max+ 395 · Radeon 8060S gfx1151 · sondes sysfs/hwmon</p>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            Offload GPU: 100%
+          </span>
+        </div>
+
+        <!-- Dual Radial Gauges: VRAM Dedicated vs GTT Unified Memory -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="bg-black/40 p-3 rounded-xl border border-white/5 flex items-center space-x-3">
+            <div class="relative w-12 h-12 flex-shrink-0 flex items-center justify-center">
+              <svg class="w-12 h-12 transform -rotate-90">
+                <circle cx="24" cy="24" r="20" stroke="#1e293b" stroke-width="4" fill="transparent"/>
+                <circle id="gauge-vram-circle" cx="24" cy="24" r="20" stroke="#06B6D4" stroke-width="4" stroke-dasharray="125.6" stroke-dashoffset="20.1" stroke-linecap="round" fill="transparent" class="transition-all duration-700"/>
+              </svg>
+              <span class="absolute text-[11px] font-mono font-bold text-white tabular-nums" id="vram-pct">84%</span>
+            </div>
+            <div class="space-y-0.5 font-mono">
+              <div class="text-[10px] uppercase text-slate-400"><span data-i18n="hardware.memory.vram_dedicated">VRAM Dédiée</span> [■■■■□]</div>
+              <div class="text-xs font-bold text-white tabular-nums" id="vram-val">13.5 / 16.0 <span class="text-[10px] text-slate-400 font-normal">Go</span></div>
+              <div class="text-[10px] text-emerald-400"><span data-i18n="hardware.memory.free">Libre</span>: 2.5 Go</div>
+            </div>
+          </div>
+
+          <div class="bg-black/40 p-3 rounded-xl border border-white/5 flex items-center space-x-3">
+            <div class="relative w-12 h-12 flex-shrink-0 flex items-center justify-center">
+              <svg class="w-12 h-12 transform -rotate-90">
+                <circle cx="24" cy="24" r="20" stroke="#1e293b" stroke-width="4" fill="transparent"/>
+                <circle id="gauge-gtt-circle" cx="24" cy="24" r="20" stroke="#8B5CF6" stroke-width="4" stroke-dasharray="125.6" stroke-dashoffset="95.4" stroke-linecap="round" fill="transparent" class="transition-all duration-700"/>
+              </svg>
+              <span class="absolute text-[11px] font-mono font-bold text-purple-300 tabular-nums" id="gtt-pct">24%</span>
+            </div>
+            <div class="space-y-0.5 font-mono">
+              <div class="text-[10px] uppercase text-slate-400"><span data-i18n="hardware.memory.gtt_uma">GTT UMA</span> [■□□□□]</div>
+              <div class="text-xs font-bold text-white tabular-nums" id="gtt-val">26.7 / 112.0 <span class="text-[10px] text-slate-400 font-normal">Go</span></div>
+              <div class="text-[10px] text-purple-300"><span data-i18n="hardware.memory.free">Libre</span>: 85.3 Go</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hardware Thermal, Power & 3-Point Vectors with Sparkline -->
+        <div class="bg-black/45 p-3.5 rounded-xl border border-white/5 space-y-2.5 relative overflow-hidden">
+          <canvas id="silicon-sparkline-canvas" class="absolute inset-0 w-full h-full pointer-events-none opacity-25"></canvas>
+
+          <div class="relative z-10 space-y-2">
+            <!-- Compute Row -->
+            <div class="flex flex-wrap items-center justify-between text-xs font-mono border-b border-white/5 pb-1.5">
+              <div class="flex items-center space-x-2">
+                <span class="text-slate-400"><span data-i18n="hardware.compute.activity">Compute</span>:</span>
+                <span class="text-cyan-300 font-bold tabular-nums">[■■■■■] GPU Busy <span id="hw-gpu-busy">94%</span></span>
+                <span class="text-[11px] text-slate-400 tabular-nums">(<span id="hw-gpu-clock">2 450</span> MHz)</span>
+              </div>
+              <div class="text-slate-400 text-[11px]">
+                CPU Zen5: <strong class="text-slate-200 tabular-nums">12%</strong>
+              </div>
+            </div>
+
+            <!-- Row 1: Thermal sensors & 3-Point Vector -->
+            <div class="flex flex-wrap items-center justify-between text-xs font-mono">
+              <div class="flex items-center space-x-2">
+                <span class="text-slate-400" data-i18n="hardware.gpu_edge">GPU T* Edge</span><span>:</span>
+                <span class="text-amber-400 font-bold tabular-nums text-sm" id="hw-temp-edge">68°C</span>
+                <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">[WARN]</span>
+                <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-200 text-[10px] border border-amber-500/20 tabular-nums" id="hw-vector-temp">
+                  [44° → 61° → 68°C ↗ Pic 74°C]
+                </span>
+              </div>
+              <div class="text-slate-400 text-[11px]">
+                <span data-i18n="hardware.soc_tctl">SoC hottest T*Ctl</span>: <span class="text-amber-300 font-semibold tabular-nums" id="hw-temp-soc">72°C</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Power Consumption & 3-Point Vector -->
+            <div class="flex flex-wrap items-center justify-between text-xs font-mono">
+              <div class="flex items-center space-x-2">
+                <span class="text-slate-400" data-i18n="hardware.energy_label">Énergie GFX</span><span>:</span>
+                <span class="text-cyan-300 font-bold tabular-nums" id="hw-power-watts">38 W</span>
+                <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-200 text-[10px] border border-cyan-500/20 tabular-nums" id="hw-vector-power">
+                  [12W → 48W → 38W ↘ Moy 31W]
+                </span>
+              </div>
+              <div class="text-slate-400 text-[11px]">
+                <span data-i18n="hardware.power.efficiency">Efficacité</span>: <strong class="text-emerald-400 tabular-nums">1.53 tok/J</strong>
+              </div>
+            </div>
+
+            <!-- Row 3: Battery & AI Autonomy -->
+            <div class="flex flex-wrap items-center justify-between text-xs font-mono pt-1 border-t border-white/5">
+              <div class="flex items-center space-x-2 text-emerald-400">
+                <i class="fa-solid fa-battery-three-quarters"></i>
+                <span class="tabular-nums font-semibold" id="hw-battery">[■■■■□] 74% (66 Wh · -52 W)</span>
+              </div>
+              <div class="text-[11px] text-slate-300">
+                <span data-i18n="hardware.battery.ai_runtime">Autonomie IA</span>: <strong class="text-amber-300 tabular-nums">1h 18m</strong> <span class="text-slate-500">(Idle: 5h 40m)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ==================== 6. RADAR QUOTAS & FLUX CLOUD (VARIABILISÉ) ==================== -->
+    <section id="section-cloud" class="glass-card rounded-2xl p-4 md:p-5 border border-amber-500/25 relative overflow-hidden transition-all duration-300">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base">
+            <i class="fa-solid fa-cloud-bolt"></i>
+          </div>
+          <div>
+            <div class="flex items-center flex-wrap gap-2">
+              <span class="text-xs font-bold text-white tracking-wider" data-i18n="cloud.section_title">INFOS ET QUOTAS D'UTILISATION DU SERVICE CLOUD BASED</span>
+              <span class="px-2 py-0.2 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30" id="cloud-provider-label">Google AI Studio · Tier 1</span>
+              <span class="px-2 py-0.2 rounded text-[10px] font-mono bg-white/5 text-cyan-300 border border-cyan-500/20" id="cloud-model-label">GEMINI 4 ARGON</span>
+            </div>
+            <div class="text-[11px] text-slate-400" data-i18n="cloud.alert.sliding_window_desc">
+              Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted
+            </div>
+          </div>
+        </div>
+
+        <!-- Out of Quota Smart Alert Pill (RENOMMÉ : WARN : RISQUE OUT OF QUOTA) -->
+        <div class="flex items-center gap-2.5">
+          <div id="alert-429-badge" class="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping" id="alert-429-dot"></span>
+            <span id="alert-429-text">WARN : RISQUE OUT OF QUOTA (71%)</span>
+          </div>
+          <button onclick="compressCloudContext()" class="px-3 py-1.5 text-xs font-mono rounded-xl bg-white/5 hover:bg-white/15 text-slate-200 border border-white/10 transition flex items-center gap-1.5" title="Exécuter /compress dans Hermes pour réduire le TPM">
+            <i class="fa-solid fa-compress text-[11px] text-cyan-400"></i>
+            <span>/compress</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cloud Metrics Grid (AVEC JAUGE 10 CARRÉS SUR TPM GLISSANT) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 mt-3 border-t border-white/5">
+        <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-2">
+          <div class="bg-[#0A0D14] border border-[#1B2436] rounded-lg px-2.5 py-2 flex flex-wrap items-center justify-between gap-2 font-mono">
+            <div class="flex items-center gap-2">
+              <span class="text-[10.5px] text-[#94A3B8] font-semibold" data-i18n="cloud.metrics.tpm_sliding">TPM Glissant (60s)</span>
+              <div id="cloud-tpm-squares-10" class="sq-10-grid" title="Occupation du Quota TPM Glissant 60s (1 carré = 10%)"></div>
+            </div>
+            <div class="flex items-center tabular-nums">
+              <span class="text-[10.5px] text-[#94A3B8] font-semibold" id="cloud-tpm-text">1.42M / 2.00M</span>
+              <span class="text-[11px] text-amber-300 font-bold ml-1" id="cloud-tpm-pct">(71%)</span>
+            </div>
+          </div>
+          <div class="flex justify-between text-[10px] font-mono text-slate-400">
+            <span><span data-i18n="cloud.metrics.headroom">Headroom libre</span>: <strong class="text-emerald-400 tabular-nums" id="cloud-tpm-free">580k tok/min</strong></span>
+            <span class="text-slate-500"><span data-i18n="cloud.limits.tier1_ceiling">Plafond Tier 1</span>: 2.0M</span>
+          </div>
+        </div>
+
+        <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
+          <div class="text-[11px] font-mono text-slate-400 flex justify-between">
+            <span><span data-i18n="cloud.metrics.rpm">Requêtes RPM</span> [■□□□□]</span>
+            <span class="text-white font-mono font-bold tabular-nums" id="cloud-rpm-val">18 / 1 000 req/min</span>
+          </div>
+          <div class="text-[11px] font-mono text-slate-400 flex justify-between pt-0.5">
+            <span data-i18n="cloud.metrics.rpd_quota">Quota Journalier (RPD)</span>
+            <span class="text-white font-mono font-bold tabular-nums">482 / 10 000 req/j</span>
+          </div>
+          <div class="text-[10px] text-slate-500 pt-0.5 font-mono">
+            Moy/Req: <strong class="text-slate-300 tabular-nums">58.0k tok</strong> (Historique + 22 tools)
+          </div>
+        </div>
+
+        <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-slate-400" data-i18n="cloud.cache_hit_label">Cache Cloud Hit</span>
+            <span class="text-cyan-400 font-bold tabular-nums">60% (110k tok)</span>
+          </div>
+          <div class="text-[11px] font-mono text-slate-300">
+            <span data-i18n="cloud.metrics.total_tokens">Cumul Cloud</span>: <span class="text-white tabular-nums">IN: 184.0k · OUT: 6.4k · RSN: 2.1k</span>
+          </div>
+          <div class="text-[10px] text-emerald-400 font-mono">
+            Source: usageMetadata.cachedContentTokenCount · Switch Cloud ⇄ Local 100%
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER STATUS -->
+    <footer class="flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-500 px-2 pt-1 gap-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span>tokenwatcher-daemon · IPC /tmp/tokenwatcher_state.json · Ports synchronisés avec <strong class="text-slate-400">config.json / ports.yaml</strong></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span>Polling: <strong class="text-slate-400">1.0s</strong></span>
+        <span>·</span>
+        <span id="footer-hw-summary">AMD Strix Halo gfx1151 (Vulkan + ROCm 7.x)</span>
+      </div>
+    </footer>
+  </main>
+
+  <!-- TOAST FEEDBACK FLOATING NOTIFICATION -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-card px-4 py-2.5 rounded-xl border border-cyan-500/40 text-cyan-200 text-xs font-mono shadow-2xl flex items-center gap-2 pointer-events-none">
+    <i class="fa-solid fa-circle-info text-cyan-400"></i>
+    <span id="toast-msg">Action effectuée</span>
+  </div>
+
+  <!-- ==================== JAVASCRIPT ROBUSTE V4.0.2 ==================== -->
+  <script>
+    // 1. DICTIONNAIRE I18N COMPLET SANS CODE EN DUR
+    const DEFAULT_I18N = {
+      fr: {
+        "header.title": "TOKENWATCHER",
+        "header.version_badge": "V4.0.2 MULTI-ENGINE",
+        "header.live_badge": "LIVE",
+        "nav.session": "SESSION",
+        "nav.1h": "1H",
+        "nav.24h": "24H",
+        "nav.7j": "7J",
+        "nav.total": "TOTAL",
+        "nav.ports_btn": "⚙️ Ports & Config",
+        "view.cockpit": "Cockpit Complet",
+        "view.silicium": "Focus Silicium",
+        "view.hud": "Pill HUD",
+        "pipeline.section_title": "CHAINES D'EXÉCUTION",
+        "pipeline.badge_auto": "Auto-Détection Active",
+        "pipeline.subtitle": "Topologies d'orchestration des noeuds d'execution",
+        "pipeline.topo1": "1. Hermes ➔ OpenCode ➔ Proxy ➔ Vulkan",
+        "pipeline.topo2": "2. OpenCode CLI Direct (Sans Hermes)",
+        "pipeline.topo3": "3. OpenWebUI ➔ vLLM ROCm",
+        "pipeline.topo4": "4. Hermes ➔ Cloud Argon",
+
+        "pipeline.hermes.name": "HERMES CLI",
+        "pipeline.hermes.sub": "Chef d'Orchestre",
+        "pipeline.hermes.meta": "22 tools · SOW-01",
+        "pipeline.opencode.name": "OPENCODE",
+        "pipeline.opencode.sub": "Agent Chirurgical",
+        "pipeline.opencode.meta": "code_patch_file",
+        "pipeline.proxy.name": "PROXY :{port}",
+        "pipeline.proxy.sub": "Stream Interceptor",
+        "pipeline.proxy.meta": "include_usage: true",
+        "pipeline.vulkan.name": "LEMONADE VULKAN :{port}",
+        "pipeline.vulkan.sub": "Qwen3-Coder-30B (64k)",
+        "pipeline.vulkan.meta": "KV 94% · 58.4 t/s",
+        "pipeline.webui.name": "OPENWEBUI :{port}",
+        "pipeline.webui.sub": "Multi-Sessions Web",
+        "pipeline.webui.meta": "Workspace Dev Studio",
+        "pipeline.vllm.name": "vLLM ENGINE ROCm :{port}",
+        "pipeline.vllm.sub": "Qwen2.5-14B-AWQ",
+        "pipeline.vllm.meta": "PagedAttention 42% · 142 t/s",
+        "pipeline.cloud.name": "{provider_name}",
+        "pipeline.cloud.sub": "{model_name}",
+        "pipeline.cloud.meta": "Contexte >1M · Zero-Drop",
+
+        "testbench.label": "banc d'essai interactif :",
+        "testbench.btn_patch": "Simuler Patch Code (OpenCode ➔ Proxy ➔ Vulkan)",
+        "testbench.btn_burst": "Simuler Burst Cloud (Tester Seuil Out of Quota)",
+        "testbench.btn_topo": "Changer Topologie Active",
+
+        "inference.local.block_prefix": "INFÉRENCE LOCALE ACTIVE",
+        "inference.local.block_title": "INFÉRENCE LOCALE ACTIVE · ({engine} on {runtime} :{port})",
+        "inference.engine.vulkan": "VULKAN ENGINE",
+        "inference.engine.rocm": "ROCm ENGINE",
+        "inference.runtime.llama": "LLAMA-SERVER",
+        "inference.runtime.vllm": "vLLM",
+
+        "session.active_task_label": "Tâche active :",
+        "session.thought_detector_label": "Détecteur Boucle Thought:",
+        "session.thought_detector_state": "[OK · StopTokens Actifs]",
+        "context.title": "Anatomie du Contexte (Context DNA) :",
+        "context.free_suffix": "Headroom libre",
+        "context.overflow_ok": "[OK · Zéro Overflow]",
+        "context.kv_label": "KV Cache:",
+        "context.in_label": "Prompt In:",
+        "context.out_label": "Out:",
+        "context.rsn_label": "Rsn (Thought):",
+        "memory.section_title": "Inference Engines and Unified Memory Usage",
+        "memory.subtitle": "Usage et Occupation Memoire",
+        "memory.gen_loc_label": "Générés Loc:",
+        "memory.served_label": "Servis:",
+        "memory.apu_title": "Répartition Pool Unifié APU (128 Go LPDDR5X) :",
+        "memory.total_ia_label": "Total IA :",
+        "memory.zero_copy_pcie": "Zero-Copy LLM data via PCIe",
+        "memory.leg_vulkan": "Vulkan:",
+        "memory.leg_rocm": "ROCm:",
+        "memory.leg_os": "OS:",
+        "memory.leg_free": "Libre:",
+        "engines.alloc_uma": "Alloc UMA",
+        "engines.pool_gtt": "Pool GTT",
+        "engines.active_suffix": "actif",
+        "engines.kv_slot_label": "KV Slot ({ctx}) :",
+        "engines.paged_cache_label": "Cache Contexte (Paged) :",
+        "engines.batch_pill": "BATCH ({req} req · {wait} wait) ·",
+        "engines.client_label": "Client:",
+        "engines.via_label": "via",
+        "engines.vllm_inspector_hdr": "Inspecteur Batch vLLM ({url} + {db})",
+        "engines.vllm_inspector_meta": "Prefix Cache Hit: {hit}% · Preemptions: {pre} · TTFT moy: {ttft}s",
+        "engines.show_more_reqs": "Voir + (+{extra})",
+        "engines.show_less_reqs": "Voir -",
+        "hardware.silicon_title": "HARDWARE & AMD INDICATORS",
+        "hardware.silicon_subtitle": "{cpu_model} · {gpu_model} {gfx_arch} · sondes sysfs/hwmon",
+        "hardware.gpu_edge": "GPU T* Edge",
+        "hardware.soc_tctl": "SoC hottest T*Ctl",
+        "hardware.energy_label": "Énergie GFX",
+        "hardware.memory.vram_dedicated": "VRAM Dédiée",
+        "hardware.memory.gtt_uma": "GTT UMA",
+        "hardware.memory.free": "Libre",
+        "hardware.compute.activity": "Compute",
+        "hardware.power.efficiency": "Efficacité",
+        "hardware.battery.ai_runtime": "Autonomie IA",
+
+        "cloud.section_title": "INFOS ET QUOTAS D'UTILISATION DU SERVICE CLOUD BASED",
+        "cloud.provider": "{provider_name} · {provider_tier}",
+        "cloud.model": "{model_name}",
+        "cloud.cache_hit_label": "Cache Cloud Hit",
+        "cloud.status_warn": "Warn: risque Out of Quota",
+        "cloud.alert_warn_text": "WARN : RISQUE OUT OF QUOTA ({pct}%)",
+        "cloud.alert_crit_text": "CRIT : OUT OF QUOTA IMMINENT ({pct}%)",
+        "cloud.alert_ok_text": "OK : QUOTA CLOUD NOMINAL ({pct}%)",
+        "cloud.metrics.tpm_sliding": "TPM Glissant (60s)",
+        "cloud.metrics.rpm": "Requêtes RPM",
+        "cloud.metrics.total_tokens": "Cumul Cloud",
+        "cloud.metrics.headroom": "Headroom libre",
+        "cloud.metrics.rpd_quota": "Quota Journalier (RPD)",
+        "cloud.limits.tier1_ceiling": "Plafond Tier 1",
+        "cloud.alert.sliding_window_desc": "Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted"
+      },
+      en: {
+        "header.title": "TOKENWATCHER",
+        "header.version_badge": "V4.0.2 MULTI-ENGINE",
+        "header.live_badge": "LIVE",
+        "nav.session": "SESSION",
+        "nav.1h": "1H",
+        "nav.24h": "24H",
+        "nav.7j": "7D",
+        "nav.total": "TOTAL",
+        "nav.ports_btn": "⚙️ Ports & Config",
+        "view.cockpit": "Full Cockpit",
+        "view.silicium": "Silicon Focus",
+        "view.hud": "Pill HUD",
+        "pipeline.section_title": "DYNAMIC EXECUTION SEQUENCES",
+        "pipeline.badge_auto": "Auto-Detection Active",
+        "pipeline.subtitle": "Orchestration topologies and Execution Nodes",
+        "pipeline.topo1": "1. Hermes ➔ OpenCode ➔ Proxy ➔ Vulkan",
+        "pipeline.topo2": "2. OpenCode CLI Direct (No Hermes)",
+        "pipeline.topo3": "3. OpenWebUI ➔ vLLM ROCm",
+        "pipeline.topo4": "4. Hermes ➔ Cloud Argon",
+
+        "pipeline.hermes.name": "HERMES CLI",
+        "pipeline.hermes.sub": "Orchestrator Agent",
+        "pipeline.hermes.meta": "22 tools · SOW-01",
+        "pipeline.opencode.name": "OPENCODE",
+        "pipeline.opencode.sub": "Surgical Coding Agent",
+        "pipeline.opencode.meta": "code_patch_file",
+        "pipeline.proxy.name": "PROXY :{port}",
+        "pipeline.proxy.sub": "Stream Interceptor",
+        "pipeline.proxy.meta": "include_usage: true",
+        "pipeline.vulkan.name": "LEMONADE VULKAN :{port}",
+        "pipeline.vulkan.sub": "Qwen3-Coder-30B (64k)",
+        "pipeline.vulkan.meta": "KV 94% · 58.4 t/s",
+        "pipeline.webui.name": "OPENWEBUI :{port}",
+        "pipeline.webui.sub": "Multi-Sessions Web",
+        "pipeline.webui.meta": "Workspace Dev Studio",
+        "pipeline.vllm.name": "vLLM ENGINE ROCm :{port}",
+        "pipeline.vllm.sub": "Qwen2.5-14B-AWQ",
+        "pipeline.vllm.meta": "PagedAttention 42% · 142 t/s",
+        "pipeline.cloud.name": "{provider_name}",
+        "pipeline.cloud.sub": "{model_name}",
+        "pipeline.cloud.meta": ">1M Context · Zero-Drop",
+
+        "testbench.label": "interactive testbench:",
+        "testbench.btn_patch": "Simulate Code Patch (OpenCode ➔ Proxy ➔ Vulkan)",
+        "testbench.btn_burst": "Simulate Cloud Burst (Test Out of Quota Threshold)",
+        "testbench.btn_topo": "Cycle Active Topology",
+
+        "inference.local.block_prefix": "ACTIVE LOCAL INFERENCE",
+        "inference.local.block_title": "ACTIVE LOCAL INFERENCE · ({engine} on {runtime} :{port})",
+        "inference.engine.vulkan": "VULKAN ENGINE",
+        "inference.engine.rocm": "ROCm ENGINE",
+        "inference.runtime.llama": "LLAMA-SERVER",
+        "inference.runtime.vllm": "vLLM",
+
+        "session.active_task_label": "Active task:",
+        "session.thought_detector_label": "Thought Loop Detector:",
+        "session.thought_detector_state": "[OK · Active StopTokens]",
+        "context.title": "Context Anatomy (Context DNA):",
+        "context.free_suffix": "Free headroom",
+        "context.overflow_ok": "[OK · Zero Overflow]",
+        "context.kv_label": "KV Cache:",
+        "context.in_label": "Prompt In:",
+        "context.out_label": "Out:",
+        "context.rsn_label": "Rsn (Thought):",
+        "memory.section_title": "Inference Engines and Unified Memory Usage",
+        "memory.subtitle": "Memory Usage & Occupation",
+        "memory.gen_loc_label": "Local Gen:",
+        "memory.served_label": "Served:",
+        "memory.apu_title": "Unified APU Memory Pool (128 GB LPDDR5X):",
+        "memory.total_ia_label": "Total AI:",
+        "memory.zero_copy_pcie": "Zero-Copy LLM data via PCIe",
+        "memory.leg_vulkan": "Vulkan:",
+        "memory.leg_rocm": "ROCm:",
+        "memory.leg_os": "OS:",
+        "memory.leg_free": "Free:",
+        "engines.alloc_uma": "UMA Alloc",
+        "engines.pool_gtt": "GTT Pool",
+        "engines.active_suffix": "active",
+        "engines.kv_slot_label": "KV Slot ({ctx}):",
+        "engines.paged_cache_label": "Context Cache (Paged):",
+        "engines.batch_pill": "BATCH ({req} req · {wait} wait) ·",
+        "engines.client_label": "Client:",
+        "engines.via_label": "via",
+        "engines.vllm_inspector_hdr": "vLLM Batch Inspector ({url} + {db})",
+        "engines.vllm_inspector_meta": "Prefix Cache Hit: {hit}% · Preemptions: {pre} · Avg TTFT: {ttft}s",
+        "engines.show_more_reqs": "See + (+{extra})",
+        "engines.show_less_reqs": "See -",
+        "hardware.silicon_title": "HARDWARE & AMD INDICATORS",
+        "hardware.silicon_subtitle": "{cpu_model} · {gpu_model} {gfx_arch} · sysfs/hwmon sensors",
+        "hardware.gpu_edge": "GPU T* Edge",
+        "hardware.soc_tctl": "SoC hottest T*Ctl",
+        "hardware.energy_label": "GFX Power",
+        "hardware.memory.vram_dedicated": "Dedicated VRAM",
+        "hardware.memory.gtt_uma": "UMA GTT",
+        "hardware.memory.free": "Free",
+        "hardware.compute.activity": "Compute",
+        "hardware.power.efficiency": "Efficiency",
+        "hardware.battery.ai_runtime": "AI Battery Life",
+
+        "cloud.section_title": "CLOUD BASED SERVICE INFOS AND QUOTAS",
+        "cloud.provider": "{provider_name} · {provider_tier}",
+        "cloud.model": "{model_name}",
+        "cloud.cache_hit_label": "Cloud Cache Hit",
+        "cloud.status_warn": "Warn: Out of Quota risk",
+        "cloud.alert_warn_text": "WARN : OUT OF QUOTA RISK ({pct}%)",
+        "cloud.alert_crit_text": "CRIT : OUT OF QUOTA IMMINENT ({pct}%)",
+        "cloud.alert_ok_text": "OK : CLOUD QUOTA NOMINAL ({pct}%)",
+        "cloud.metrics.tpm_sliding": "Sliding TPM (60s)",
+        "cloud.metrics.rpm": "RPM Requests",
+        "cloud.metrics.total_tokens": "Cloud Total",
+        "cloud.metrics.headroom": "Free Headroom",
+        "cloud.metrics.rpd_quota": "Daily Quota (RPD)",
+        "cloud.limits.tier1_ceiling": "Tier 1 Ceiling",
+        "cloud.alert.sliding_window_desc": "Active 60s sliding window monitoring to prevent HTTP 429 Resource Exhausted errors"
+      }
+    };
+
+    // 2. CONFIGURATION DYNAMIQUE DU RUNTIME (UNIFIÉE AVEC ENGINE_ENDPOINTS_CONFIG)
+    const runtimeConfig = {
+      cpu_model: "Ryzen AI Max+ 395",
+      gpu_model: "Radeon 8060S",
+      gfx_arch: "gfx1151",
+      backend: "vulkan",
+      runtime: "llama",
+      port: 8001,
+      provider_name: "Google AI Studio",
+      provider_tier: "Tier 1",
+      model_name: "GEMINI 4 ARGON",
+      engines: {
+        vulkan: {
+          engineBadge: '[VULKAN]',
+          modelName: 'Qwen3-Coder-30B-A3B-GGUF',
+          host: 'http://127.0.0.1',
+          slotsPath: '/slots',
+          metricsPath: '/metrics',
+          ctxLabel: '64k',
+          flags: ['NGL 999', 'KV q8_0', 'FA:ON', 'Reuse 256'],
+          clientName: 'OpenCode',
+          proxyName: 'Proxy',
+          proxyHost: 'http://127.0.0.1'
+        },
+        rocm: {
+          engineBadge: '[ROCm 7.x]',
+          modelName: 'Qwen2.5-14B-Instruct-AWQ',
+          host: 'http://127.0.0.1',
+          metricsPath: '/metrics',
+          modelsPath: '/v1/models',
+          flags: ['/dev/kfd gfx1151', 'Continuous Batching', 'AWQ 4-bit'],
+          clientName: 'OpenWebUI',
+          clientHost: 'http://127.0.0.1',
+          dbSource: 'webui.db'
+        }
+      }
+    };
+
+    // Liste complète des requêtes parallèles ROCm vLLM (règle : afficher <= 3 par défaut + lien "Voir + (+N)")
+    const ALL_VLLM_REQUESTS = [
+      { id: 'REQ #1', user: 'Alice', prompt: '"Refactorisation FastMCP code_engine..."', inTok: '6.4k', outTok: '820', speed: '32.4 t/s' },
+      { id: 'REQ #2', user: 'Bob', prompt: '"Diagnostic amdgpu GTT overflow..."', inTok: '3.1k', outTok: '410', speed: '31.5 t/s' },
+      { id: 'REQ #3', user: 'Dev-CI', prompt: '"Tests unitaires SOW_02_WIDGET..."', inTok: '8.9k', outTok: '1.2k', speed: '28.3 t/s' },
+      { id: 'REQ #4', user: 'Chloé', prompt: '"Audit sécurité OAuth2 proxy :13306..."', inTok: '4.7k', outTok: '650', speed: '25.8 t/s' },
+      { id: 'REQ #5', user: 'Studio-DJ', prompt: '"Génération shaders Vulkan compute..."', inTok: '5.2k', outTok: '390', speed: '24.0 t/s' }
+    ];
+
+    let activeVllmReqLimit = 5; // 5 requêtes actives par défaut pour illustrer la règle "> 3 -> Voir + (+2)"
+    let showAllVllmRequests = false;
+
+    const servicePorts = {
+      proxy: 13306,
+      vulkan: 8001,
+      vllm: 8000,
+      webui: 8080,
+      lemonadeAdmin: 13305
+    };
+
+    const DONUT_C = 2 * Math.PI * 50; // 314.159
+    const RING_C = 2 * Math.PI * 38;  // 238.761
+
+    let currentLang = 'fr';
+    let simulationRunning = true;
+    let activeTopology = 1;
+
+    // State télémétrique
+    const state = {
+      tokensTotal: 420800,
+      tgSpeed: 58.4,
+      ppSpeed: 1420,
+      ttft: 0.18,
+      ctxUsed: 54200,
+      ctxMax: 65536,
+      kvHitPct: 94.2,
+      cloudTpm: 1420000,
+      cloudTpmMax: 2000000,
+      cloudRpm: 18,
+      edgeTemp: 68,
+      socTemp: 72,
+      powerWatts: 38,
+      gpuBusy: 94,
+      timeframe: 'SESSION',
+      historyTemps: [44, 48, 52, 59, 61, 65, 68, 68],
+      historyWatts: [12, 18, 28, 48, 45, 42, 38, 38],
+    };
+
+    const timeframeMultipliers = {
+      'SESSION': 1,
+      '1H': 1.8,
+      '24H': 6.4,
+      '7J': 28.5,
+      'TOTAL': 112.0
+    };
+
+    // 3. FONCTIONS I18N ROBUSTES (SANS RÉCURSION INFINIE)
+    function getRawString(key) {
+      const dict = DEFAULT_I18N[currentLang] || DEFAULT_I18N['fr'];
+      return dict[key] || DEFAULT_I18N['fr'][key] || key;
+    }
+
+    function getDynamicParams() {
+      const isRocm = activeTopology === 3;
+      const engineKey = isRocm ? "inference.engine.rocm" : "inference.engine.vulkan";
+      const runtimeKey = isRocm ? "inference.runtime.vllm" : "inference.runtime.llama";
+      const activePort = isRocm ? servicePorts.vllm : servicePorts.vulkan;
+
+      return {
+        cpu_model: runtimeConfig.cpu_model || "AMD Silicon",
+        gpu_model: runtimeConfig.gpu_model || "Radeon GPU",
+        gfx_arch: runtimeConfig.gfx_arch || "gfx115x",
+        engine: getRawString(engineKey),
+        runtime: getRawString(runtimeKey),
+        port: activePort,
+        provider_name: runtimeConfig.provider_name || "Cloud Provider",
+        provider_tier: runtimeConfig.provider_tier || "Tier",
+        model_name: runtimeConfig.model_name || "Frontier Model"
+      };
+    }
+
+    function t(key, customParams = null) {
+      let str = getRawString(key);
+      const params = Object.assign({}, getDynamicParams(), customParams || {});
+      for (const [k, v] of Object.entries(params)) {
+        str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+      }
+      return str;
+    }
+
+    // Protection : applyLanguage ne remplace que les feuilles cibles
+    function applyLanguage() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (el.id === 'pipeline-nodes-chain' || el.classList.contains('pipeline-row')) return;
+        if (el.children.length > 0) return;
+        el.textContent = t(key);
+      });
+
+      document.getElementById('current-lang-label').textContent = currentLang.toUpperCase();
+      updateDynamicLabels();
+      renderEndpointsConfig();
+      renderVllmRequestsList();
+      renderPipelineChain();
+      updateUI();
+    }
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'fr' ? 'en' : 'fr';
+      applyLanguage();
+      triggerToast(`🌐 Langue : ${currentLang.toUpperCase()}`);
+    }
+
+    function updateDynamicLabels() {
+      const infTitleEl = document.getElementById('local-inference-block-title');
+      if (infTitleEl) infTitleEl.textContent = t("inference.local.block_title");
+
+      const hwSubEl = document.getElementById('hw-silicon-subtitle');
+      if (hwSubEl) hwSubEl.textContent = t("hardware.silicon_subtitle");
+
+      const cpEl = document.getElementById('cloud-provider-label');
+      if (cpEl) cpEl.textContent = t("cloud.provider");
+      const cmEl = document.getElementById('cloud-model-label');
+      if (cmEl) cmEl.textContent = t("cloud.model");
+
+      const ftEl = document.getElementById('footer-hw-summary');
+      if (ftEl) ftEl.textContent = `${runtimeConfig.gpu_model} ${runtimeConfig.gfx_arch} (Vulkan + ROCm 7.x)`;
+    }
+
+    // Rendu de la liste des requêtes ROCm vLLM avec la règle : <= 3 affichées par défaut + lien "Voir + (+N)" si > 3
+    function renderVllmRequestsList() {
+      const listEl = document.getElementById('vllm-requests-list');
+      const moreWrapperEl = document.getElementById('vllm-requests-more-wrapper');
+      const moreBtnEl = document.getElementById('vllm-show-more-btn');
+      const batchPillEl = document.getElementById('rocm-batch-pill-text');
+      const demoBtnEl = document.getElementById('vllm-demo-count-btn');
+
+      if (!listEl) return;
+
+      const currentRequests = ALL_VLLM_REQUESTS.slice(0, activeVllmReqLimit);
+      const totalCount = currentRequests.length;
+      const visibleRequests = (totalCount > 3 && !showAllVllmRequests)
+        ? currentRequests.slice(0, 3)
+        : currentRequests;
+
+      if (batchPillEl) {
+        batchPillEl.textContent = t('engines.batch_pill', { req: totalCount, wait: 0 });
+      }
+      if (demoBtnEl) {
+        demoBtnEl.textContent = `Sim: ${totalCount} req`;
+      }
+
+      listEl.innerHTML = visibleRequests.map(req => `
+        <div class="flex flex-wrap items-center justify-between gap-1.5 bg-[#0D111A] border border-[#1A2234] px-2 py-1 rounded">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="px-1 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-slate-300 font-semibold text-[9px]">${req.id}</span>
+            <span class="text-slate-200 font-semibold">${req.user}</span>
+            <span class="text-[#94A3B8] truncate">${req.prompt}</span>
+          </div>
+          <div class="text-[#94A3B8] shrink-0 tabular-nums">In: ${req.inTok} · Out: ${req.outTok} · <span class="text-slate-200 font-semibold">${req.speed}</span></div>
+        </div>
+      `).join('');
+
+      if (moreWrapperEl && moreBtnEl) {
+        if (totalCount > 3) {
+          moreWrapperEl.classList.remove('hidden');
+          const extraCount = totalCount - 3;
+          moreBtnEl.textContent = showAllVllmRequests
+            ? t('engines.show_less_reqs')
+            : t('engines.show_more_reqs', { extra: extraCount });
+        } else {
+          moreWrapperEl.classList.add('hidden');
+        }
+      }
+    }
+
+    function toggleShowAllVllmRequests() {
+      showAllVllmRequests = !showAllVllmRequests;
+      renderVllmRequestsList();
+    }
+
+    function toggleVllmReqCountDemo() {
+      activeVllmReqLimit = activeVllmReqLimit === 5 ? 3 : 5;
+      showAllVllmRequests = false;
+      renderVllmRequestsList();
+      triggerToast(`ROCm vLLM : simulation de ${activeVllmReqLimit} requêtes parallèles`);
+    }
+
+    // Rendu dynamique du bloc Inference Engines v3.4 (URLs, Ports, Flags & I18N)
+    function renderEndpointsConfig() {
+      const vCfg = runtimeConfig.engines.vulkan;
+      const rCfg = runtimeConfig.engines.rocm;
+
+      const vBaseUrl = `${vCfg.host}:${servicePorts.vulkan}`;
+      const vProxyUrl = `${vCfg.proxyHost}:${servicePorts.proxy}/v1`;
+      const rMetricsUrl = `${rCfg.host}:${servicePorts.vllm}${rCfg.metricsPath}`;
+      const rClientUrl = `${rCfg.clientHost}:${servicePorts.webui}`;
+
+      // Carte Vulkan
+      const vBadge = document.getElementById('vulkan-engine-badge');
+      if (vBadge) vBadge.textContent = vCfg.engineBadge;
+      const vTitle = document.getElementById('vulkan-model-title');
+      if (vTitle) vTitle.textContent = vCfg.modelName;
+
+      const vPortEl = document.getElementById('vulkan-port-badge');
+      if (vPortEl) {
+        vPortEl.textContent = `:${servicePorts.vulkan}`;
+        vPortEl.title = `Endpoint Slots : ${vBaseUrl}${vCfg.slotsPath} | Metrics : ${vBaseUrl}${vCfg.metricsPath}`;
+      }
+
+      const vKvLabel = document.getElementById('vulkan-kv-label');
+      if (vKvLabel) vKvLabel.textContent = t('engines.kv_slot_label', { ctx: vCfg.ctxLabel });
+
+      const vClientEl = document.getElementById('vulkan-client-name');
+      if (vClientEl) vClientEl.textContent = vCfg.clientName;
+      const vProxyEl = document.getElementById('vulkan-proxy-name');
+      if (vProxyEl) vProxyEl.textContent = vCfg.proxyName;
+
+      const vProxyPortEl = document.getElementById('vulkan-proxy-port');
+      if (vProxyPortEl) {
+        vProxyPortEl.textContent = `:${servicePorts.proxy}`;
+        vProxyPortEl.title = `Proxy Endpoint : ${vProxyUrl}`;
+      }
+
+      const vFlagsContainer = document.getElementById('vulkan-flags-container');
+      if (vFlagsContainer) {
+        vFlagsContainer.innerHTML = vCfg.flags
+          .map(f => `<span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">${f}</span>`)
+          .join('');
+      }
+
+      // Carte ROCm / vLLM
+      const rBadge = document.getElementById('rocm-engine-badge');
+      if (rBadge) rBadge.textContent = rCfg.engineBadge;
+      const rTitle = document.getElementById('rocm-model-title');
+      if (rTitle) rTitle.textContent = rCfg.modelName;
+
+      const rPortEl = document.getElementById('rocm-port-badge');
+      if (rPortEl) {
+        rPortEl.textContent = `:${servicePorts.vllm}`;
+        rPortEl.title = `Endpoint Prometheus : ${rMetricsUrl} | Models : ${rCfg.host}:${servicePorts.vllm}${rCfg.modelsPath}`;
+      }
+
+      const drawerHdrEl = document.getElementById('vllm-drawer-endpoint-label');
+      if (drawerHdrEl) {
+        drawerHdrEl.textContent = t('engines.vllm_inspector_hdr', { url: rMetricsUrl, db: rCfg.dbSource });
+      }
+
+      const drawerMetaEl = document.getElementById('vllm-drawer-meta-label');
+      if (drawerMetaEl) {
+        drawerMetaEl.textContent = t('engines.vllm_inspector_meta', { hit: 78, pre: 0, ttft: '0.24' });
+      }
+
+      const rClientEl = document.getElementById('rocm-client-name');
+      if (rClientEl) rClientEl.textContent = rCfg.clientName;
+
+      const rClientPortEl = document.getElementById('rocm-client-port');
+      if (rClientPortEl) {
+        rClientPortEl.textContent = `:${servicePorts.webui}`;
+        rClientPortEl.title = `Client WebUI : ${rClientUrl}`;
+      }
+
+      const rFlagsContainer = document.getElementById('rocm-flags-container');
+      if (rFlagsContainer) {
+        const dynamicFlags = rCfg.flags.map(f => f.replace(/gfx1151/g, runtimeConfig.gfx_arch));
+        rFlagsContainer.innerHTML = dynamicFlags
+          .map(f => `<span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">${f}</span>`)
+          .join('');
+      }
+
+      renderVllmRequestsList();
+    }
+
+    function render10Squares(containerId, percentage, colorClass) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const filledCount = Math.round(percentage / 10);
+      container.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const sq = document.createElement('span');
+        sq.className = 'sq-cell' + (i < filledCount ? ` ${colorClass}` : '');
+        container.appendChild(sq);
+      }
+    }
+
+    // Jauge à 10 carrés multi-segments pour l'Anatomie du Contexte (Context DNA)
+    function renderContextDnaSquares(ctxUsed, ctxMax) {
+      const container = document.getElementById('context-dna-squares-10');
+      if (!container) return;
+      const totalFilled = Math.min(10, Math.round((ctxUsed / ctxMax) * 10));
+      container.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const sq = document.createElement('span');
+        let colorCls = '';
+        if (i < totalFilled) {
+          if (i < Math.max(1, totalFilled - 2)) colorCls = 'filled-blue';
+          else if (i === totalFilled - 2) colorCls = 'filled-cyan';
+          else colorCls = 'filled-emerald';
+        }
+        sq.className = 'sq-cell' + (colorCls ? ` ${colorCls}` : '');
+        container.appendChild(sq);
+      }
+    }
+
+    function updateApuDonutAndCards() {
+      const totalApu = 128.0;
+      const vGb = 18.4;
+      const rGb = 22.0;
+      const osGb = 11.5;
+      const totalAi = +(vGb + rGb).toFixed(1);
+      const freeGb = +(totalApu - totalAi - osGb).toFixed(1);
+
+      const vPct = +((vGb / totalApu) * 100).toFixed(1);
+      const rPct = +((rGb / totalApu) * 100).toFixed(1);
+      const osPct = Math.round((osGb / totalApu) * 100);
+      const freePct = +((freeGb / totalApu) * 100).toFixed(1);
+      const aiPct = +((totalAi / totalApu) * 100).toFixed(1);
+
+      const lenV = (vPct / 100) * DONUT_C;
+      const lenR = (rPct / 100) * DONUT_C;
+      const lenOs = ((osGb / totalApu)) * DONUT_C;
+
+      const segV = document.getElementById('donut-vulkan');
+      const segR = document.getElementById('donut-rocm');
+      const segOs = document.getElementById('donut-os');
+
+      if (segV && segR && segOs) {
+        segV.setAttribute('stroke-dasharray', `${lenV.toFixed(2)} ${DONUT_C.toFixed(2)}`);
+        segV.setAttribute('stroke-dashoffset', '0');
+
+        segR.setAttribute('stroke-dasharray', `${lenR.toFixed(2)} ${DONUT_C.toFixed(2)}`);
+        segR.setAttribute('stroke-dashoffset', (-lenV).toFixed(2));
+
+        segOs.setAttribute('stroke-dasharray', `${lenOs.toFixed(2)} ${DONUT_C.toFixed(2)}`);
+        segOs.setAttribute('stroke-dashoffset', (-(lenV + lenR)).toFixed(2));
+      }
+
+      const dPctEl = document.getElementById('donut-pct-text');
+      if (dPctEl) dPctEl.textContent = `${aiPct}%`;
+      const dGbEl = document.getElementById('donut-gb-text');
+      if (dGbEl) dGbEl.textContent = `${totalAi} Go`;
+      const apuTotEl = document.getElementById('apu-total-ia');
+      if (apuTotEl) apuTotEl.textContent = `${totalAi} Go (${aiPct}%)`;
+
+      const legVGb = document.getElementById('leg-v-gb');
+      if (legVGb) legVGb.textContent = `${vGb.toFixed(1)} Go`;
+      const legVPct = document.getElementById('leg-v-pct');
+      if (legVPct) legVPct.textContent = `(${vPct}%)`;
+      const legRGb = document.getElementById('leg-r-gb');
+      if (legRGb) legRGb.textContent = `${rGb.toFixed(1)} Go`;
+      const legRPct = document.getElementById('leg-r-pct');
+      if (legRPct) legRPct.textContent = `(${rPct}%)`;
+      const legOsGb = document.getElementById('leg-os-gb');
+      if (legOsGb) legOsGb.textContent = `${osGb.toFixed(1)} Go`;
+      const legOsPct = document.getElementById('leg-os-pct');
+      if (legOsPct) legOsPct.textContent = `(${osPct}%)`;
+      const legFreeGb = document.getElementById('leg-free-gb');
+      if (legFreeGb) legFreeGb.textContent = `${freeGb.toFixed(1)} Go`;
+      const legFreePct = document.getElementById('leg-free-pct');
+      if (legFreePct) legFreePct.textContent = `(${freePct}%)`;
+
+      // Anneaux & 10 carrés
+      const ringV = document.getElementById('ring-vulkan');
+      if (ringV) {
+        const lenRingV = (vPct / 100) * RING_C;
+        ringV.setAttribute('stroke-dasharray', `${lenRingV.toFixed(2)} ${RING_C.toFixed(2)}`);
+      }
+      const ringR = document.getElementById('ring-rocm');
+      if (ringR) {
+        const lenRingR = (rPct / 100) * RING_C;
+        ringR.setAttribute('stroke-dasharray', `${lenRingR.toFixed(2)} ${RING_C.toFixed(2)}`);
+      }
+
+      const kvPct = Math.round((state.ctxUsed / state.ctxMax) * 100);
+      render10Squares('vulkan-squares-10', kvPct, 'filled-cyan');
+      const vKvTokEl = document.getElementById('vulkan-kv-tokens');
+      if (vKvTokEl) vKvTokEl.textContent = `${(state.ctxUsed / 1000).toFixed(1)}k / 65.5k`;
+      const vKvPctEl = document.getElementById('vulkan-kv-pct');
+      if (vKvPctEl) vKvPctEl.textContent = `(${kvPct}%)`;
+
+      const vSpeedEl = document.getElementById('vulkan-speed');
+      if (vSpeedEl) vSpeedEl.textContent = `${state.tgSpeed.toFixed(1)} t/s`;
+
+      render10Squares('rocm-squares-10', 42, 'filled-rose');
+    }
+
+    function toggleBatchDrawer() {
+      const drawer = document.getElementById('vllm-batch-drawer');
+      const chevron = document.getElementById('batch-chevron');
+      if (drawer && chevron) {
+        drawer.classList.toggle('hidden');
+        chevron.classList.toggle('is-open', !drawer.classList.contains('hidden'));
+      }
+    }
+
+    // 4. RENDU DE LA CHAÎNE HORIZONTALE COMPACTE
+    function renderPipelineChain() {
+      const container = document.getElementById('pipeline-nodes-chain');
+      if (!container) return;
+
+      const topologies = {
+        1: [
+          { key: 'hermes', icon: 'fa-terminal', color: 'cyan', name: t('pipeline.hermes.name'), sub: t('pipeline.hermes.sub'), meta: t('pipeline.hermes.meta'), status: 'ACTIF' },
+          { key: 'opencode', icon: 'fa-code', color: 'purple', name: t('pipeline.opencode.name'), sub: t('pipeline.opencode.sub'), meta: t('pipeline.opencode.meta'), status: 'RUN' },
+          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'amber', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM' },
+          { key: 'vulkan', icon: 'fa-microchip', color: 'emerald', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: t('pipeline.vulkan.sub'), meta: `KV 94% · ${state.tgSpeed.toFixed(1)} t/s`, status: 'SLOT 0 RUN' }
+        ],
+        2: [
+          { key: 'opencode', icon: 'fa-code', color: 'purple', name: 'OPENCODE CLI (DIRECT)', sub: 'Session TUI Autonome', meta: 'Sans Hermes parent', status: 'RUN' },
+          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'amber', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM' },
+          { key: 'vulkan', icon: 'fa-microchip', color: 'emerald', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: t('pipeline.vulkan.sub'), meta: `KV 94% · ${state.tgSpeed.toFixed(1)} t/s`, status: 'SLOT 0 RUN' }
+        ],
+        3: [
+          { key: 'webui', icon: 'fa-globe', color: 'emerald', name: t('pipeline.webui.name', { port: servicePorts.webui }), sub: t('pipeline.webui.sub'), meta: t('pipeline.webui.meta'), status: '3 USERS' },
+          { key: 'vllm', icon: 'fa-layer-group', color: 'rose', name: t('pipeline.vllm.name', { port: servicePorts.vllm }), sub: t('pipeline.vllm.sub'), meta: t('pipeline.vllm.meta'), status: 'BATCH RUN' }
+        ],
+        4: [
+          { key: 'hermes', icon: 'fa-terminal', color: 'cyan', name: t('pipeline.hermes.name'), sub: 'Cadrage Architecture', meta: 'Contexte 100% préservé', status: 'ACTIF' },
+          { key: 'cloud', icon: 'fa-cloud', color: 'amber', name: `${runtimeConfig.provider_name.toUpperCase()} (${runtimeConfig.provider_tier.toUpperCase()})`, sub: runtimeConfig.model_name, meta: `TPM ${(state.cloudTpm/1e6).toFixed(2)}M / 2.0M`, status: 'CLOUD RUN' }
+        ]
+      };
+
+      const colorStyles = {
+        cyan: 'border-cyan-500/40 bg-cyan-950/25 text-cyan-300',
+        purple: 'border-purple-500/40 bg-purple-950/25 text-purple-300',
+        amber: 'border-amber-500/40 bg-amber-950/25 text-amber-300',
+        emerald: 'border-emerald-500/40 bg-emerald-950/25 text-emerald-300',
+        rose: 'border-rose-500/40 bg-rose-950/25 text-rose-300'
+      };
+
+      const nodes = topologies[activeTopology] || topologies[1];
+      let html = '';
+
+      nodes.forEach((node, idx) => {
+        html += `
+          <div class="flex-1 rounded-xl p-3 border ${colorStyles[node.color]} transition-all duration-200 space-y-1 relative">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-xs font-bold flex items-center gap-1.5 text-white">
+                <i class="fa-solid ${node.icon} text-xs"></i>
+                <span>${node.name}</span>
+              </span>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-black/50 border border-white/10">${node.status}</span>
+            </div>
+            <div class="text-[11px] font-mono text-slate-200 font-medium">${node.sub}</div>
+            <div class="text-[10px] font-mono text-slate-400 pt-0.5">${node.meta}</div>
+          </div>
+        `;
+
+        if (idx < nodes.length - 1) {
+          html += `
+            <div class="hidden md:flex flex-col items-center justify-center px-1 w-14">
+              <div class="w-full h-1 bg-slate-800 rounded-full relative overflow-hidden">
+                <span class="absolute top-0 h-1 w-3 rounded-full bg-cyan-400 animate-particle"></span>
+              </div>
+              <span class="text-[9px] font-mono text-cyan-400 mt-1">──►</span>
+            </div>
+            <div class="flex md:hidden items-center justify-center py-0.5 text-cyan-400 text-xs font-mono">▼</div>
+          `;
+        }
+      });
+
+      container.innerHTML = html;
+    }
+
+    function setTopology(topoNum) {
+      activeTopology = topoNum;
+      document.querySelectorAll('.topo-btn').forEach(btn => {
+        btn.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/40', 'font-semibold');
+        btn.classList.add('text-slate-400');
+      });
+      const activeBtn = document.getElementById('topo-btn-' + topoNum);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/40', 'font-semibold');
+        activeBtn.classList.remove('text-slate-400');
+      }
+
+      const chainTextEl = document.getElementById('header-chain');
+      const pillChainEl = document.getElementById('pill-chain-label');
+      const heroModel = document.getElementById('active-model-title');
+      const heroQuant = document.getElementById('active-model-quant');
+      const heroTask = document.getElementById('active-task-title');
+      const heroBadge = document.getElementById('hero-backend-badge');
+
+      if (topoNum === 1) {
+        const chain = `HERMES ──► OPENCODE ──► PROXY :${servicePorts.proxy} ──► LEMONADE VULKAN :${servicePorts.vulkan}`;
+        chainTextEl.textContent = chain;
+        pillChainEl.textContent = chain;
+        heroBadge.innerHTML = `<i class="fa-solid fa-microchip text-[9px]"></i> VULKAN LOCAL (:${servicePorts.vulkan})`;
+        heroModel.textContent = 'Qwen3-Coder-30B-A3B-Instruct-GGUF';
+        heroQuant.textContent = '(Q4_K_M · 65 536 ctx · MoE 3B active)';
+        heroTask.textContent = 'SOW-01 GPU Telemetry ──► Étape 3/5 : code_patch_file';
+        state.tgSpeed = 58.4;
+        state.ppSpeed = 1420;
+      } else if (topoNum === 2) {
+        const chain = `OPENCODE CLI (DIRECT) ──► PROXY :${servicePorts.proxy} ──► LEMONADE VULKAN :${servicePorts.vulkan}`;
+        chainTextEl.textContent = chain;
+        pillChainEl.textContent = chain;
+        heroBadge.innerHTML = `<i class="fa-solid fa-code text-[9px]"></i> OPENCODE LOCAL (:${servicePorts.vulkan})`;
+        heroModel.textContent = 'Qwen3-Coder-30B-A3B-Instruct-GGUF';
+        heroQuant.textContent = '(Q4_K_M · 65 536 ctx · Hermes en veille)';
+        heroTask.textContent = 'Session interactive TUI : Refactoring extension.js & stylesheet.css';
+        state.tgSpeed = 61.2;
+        state.ppSpeed = 1480;
+      } else if (topoNum === 3) {
+        const chain = `OPENWEBUI :${servicePorts.webui} ──► vLLM ENGINE ROCm 7.x :${servicePorts.vllm}`;
+        chainTextEl.textContent = chain;
+        pillChainEl.textContent = chain;
+        heroBadge.innerHTML = `<i class="fa-solid fa-layer-group text-[9px]"></i> ROCm 7.x vLLM (:${servicePorts.vllm})`;
+        heroModel.textContent = 'Qwen2.5-14B-Instruct-AWQ';
+        heroQuant.textContent = '(AWQ 4-bit · PagedAttention · Continuous Batching)';
+        heroTask.textContent = 'Workspace "Dev Studio" · 5 requêtes concurrentes servies en parallèle';
+        state.tgSpeed = 142.0;
+        state.ppSpeed = 2850;
+      } else if (topoNum === 4) {
+        const chain = `HERMES CLI ──► ${runtimeConfig.provider_name.toUpperCase()} ${runtimeConfig.provider_tier.toUpperCase()} (${runtimeConfig.model_name})`;
+        chainTextEl.textContent = chain;
+        pillChainEl.textContent = chain;
+        heroBadge.innerHTML = `<i class="fa-solid fa-cloud text-[9px]"></i> CLOUD FRONTIER (${runtimeConfig.provider_tier.toUpperCase()})`;
+        heroModel.textContent = `${runtimeConfig.model_name} (Cloud API)`;
+        heroQuant.textContent = '(Contexte >1M · Context Caching 60% Hit · Zéro perte de contexte)';
+        heroTask.textContent = 'Cadrage Architecture Multi-Backends & Génération SOW-02';
+        state.tgSpeed = 84.5;
+        state.ppSpeed = 3200;
+      }
+
+      updateDynamicLabels();
+      renderPipelineChain();
+      updateUI();
+      triggerToast(`Topologie #${topoNum} active`);
+    }
+
+    function cycleNextTopology() {
+      const next = (activeTopology % 4) + 1;
+      setTopology(next);
+    }
+
+    // 5. GESTION DES PORTS ET PROFILS DYNAMIQUES
+    function applyDynamicHardwareAndCloud() {
+      const hwVal = document.getElementById('select-hw-profile').value;
+      if (hwVal === 'strix_halo') {
+        runtimeConfig.cpu_model = 'Ryzen AI Max+ 395';
+        runtimeConfig.gpu_model = 'Radeon 8060S';
+        runtimeConfig.gfx_arch = 'gfx1151';
+      } else if (hwVal === 'gorgon_point') {
+        runtimeConfig.cpu_model = 'Ryzen AI 9 HX 370';
+        runtimeConfig.gpu_model = 'Radeon 890M';
+        runtimeConfig.gfx_arch = 'gfx1150';
+      } else if (hwVal === 'radeon_dgpu') {
+        runtimeConfig.cpu_model = 'Threadripper PRO';
+        runtimeConfig.gpu_model = 'Radeon PRO W7900';
+        runtimeConfig.gfx_arch = 'gfx1100';
+      }
+
+      const cloudVal = document.getElementById('select-cloud-profile').value;
+      if (cloudVal === 'google_argon') {
+        runtimeConfig.provider_name = 'Google AI Studio';
+        runtimeConfig.provider_tier = 'Tier 1';
+        runtimeConfig.model_name = 'GEMINI 4 ARGON';
+      } else if (cloudVal === 'anthropic_claude') {
+        runtimeConfig.provider_name = 'Anthropic API';
+        runtimeConfig.provider_tier = 'Tier 2';
+        runtimeConfig.model_name = 'CLAUDE 3.7 SONNET';
+      } else if (cloudVal === 'openrouter_r1') {
+        runtimeConfig.provider_name = 'OpenRouter';
+        runtimeConfig.provider_tier = 'Pay-as-you-go';
+        runtimeConfig.model_name = 'DEEPSEEK R1';
+      } else if (cloudVal === 'vertex_enterprise') {
+        runtimeConfig.provider_name = 'Vertex AI';
+        runtimeConfig.provider_tier = 'Tier 4';
+        runtimeConfig.model_name = 'GEMINI 2.5 PRO';
+      }
+
+      updateDynamicLabels();
+      if (activeTopology === 4) setTopology(4);
+      renderEndpointsConfig();
+      triggerToast(`🔄 Profils mis à jour : ${runtimeConfig.gpu_model} | ${runtimeConfig.model_name}`);
+    }
+
+    function applyDynamicPorts() {
+      servicePorts.proxy = parseInt(document.getElementById('input-port-proxy').value, 10) || 13306;
+      servicePorts.vulkan = parseInt(document.getElementById('input-port-vulkan').value, 10) || 8001;
+      servicePorts.vllm = parseInt(document.getElementById('input-port-vllm').value, 10) || 8000;
+      servicePorts.webui = parseInt(document.getElementById('input-port-webui').value, 10) || 8080;
+      servicePorts.lemonadeAdmin = parseInt(document.getElementById('input-port-lemonade-admin').value, 10) || 13305;
+
+      renderEndpointsConfig();
+      setTopology(activeTopology);
+      triggerToast(`⚙️ Ports configurés (:Proxy ${servicePorts.proxy}, :Vulkan ${servicePorts.vulkan}, :vLLM ${servicePorts.vllm})`);
+    }
+
+    function resetDefaultPorts() {
+      document.getElementById('input-port-proxy').value = 13306;
+      document.getElementById('input-port-vulkan').value = 8001;
+      document.getElementById('input-port-vllm').value = 8000;
+      document.getElementById('input-port-webui').value = 8080;
+      document.getElementById('input-port-lemonade-admin').value = 13305;
+      document.getElementById('select-hw-profile').value = 'strix_halo';
+      document.getElementById('select-cloud-profile').value = 'google_argon';
+      applyDynamicHardwareAndCloud();
+      applyDynamicPorts();
+    }
+
+    function togglePortsConfigModal() {
+      document.getElementById('ports-config-modal').classList.toggle('hidden');
+    }
+
+    // 6. SIMULATIONS ET TESTBENCH
+    function simulateCodePatchStream() {
+      setTopology(1);
+      state.ctxUsed = Math.min(64000, state.ctxUsed + 2400);
+      state.tokensTotal += 2400;
+      state.tgSpeed = 62.8;
+      state.gpuBusy = 98;
+      state.powerWatts = 46;
+      updateUI();
+      triggerToast('⚡ Streaming code_patch_file via Proxy :13306 (include_usage: true)');
+    }
+
+    function simulateCloudBurst429() {
+      state.cloudTpm = 1780000;
+      state.cloudRpm = 42;
+      updateUI();
+      const cloudSec = document.getElementById('section-cloud');
+      cloudSec.classList.add('alert-critical-glow');
+      setTimeout(() => cloudSec.classList.remove('alert-critical-glow'), 3500);
+      triggerToast('⚠️ ALERTE OUT OF QUOTA CRITIQUE : 1.78M / 2.00M TPM (89%) sur 60s !');
+    }
+
+    function compressCloudContext() {
+      state.cloudTpm = 920000;
+      updateUI();
+      triggerToast('☁️ /compress exécuté : TPM redescendu à 0.92M / 2.00M (46% [OK])');
+    }
+
+    // Courbe Sparkline Canvas
+    function drawSparkline() {
+      const canvas = document.getElementById('silicon-sparkline-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
+      canvas.width = w;
+      canvas.height = h;
+
+      ctx.clearRect(0, 0, w, h);
+      const data = state.historyTemps;
+      if (data.length < 2) return;
+
+      const minVal = 40;
+      const maxVal = 78;
+      const stepX = w / (data.length - 1);
+
+      ctx.beginPath();
+      data.forEach((val, i) => {
+        const x = i * stepX;
+        const normalized = (val - minVal) / (maxVal - minVal);
+        const y = h - (normalized * (h * 0.75) + h * 0.1);
+        if (i === 0) ctx.moveTo(x, y);
+        else {
+          const prevX = (i - 1) * stepX;
+          const prevVal = data[i - 1];
+          const prevY = h - (((prevVal - minVal) / (maxVal - minVal)) * (h * 0.75) + h * 0.1);
+          const cpX = (prevX + x) / 2;
+          ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
+        }
+      });
+      ctx.strokeStyle = '#06B6D4';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      ctx.lineTo(w, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(6, 182, 212, 0.25)');
+      grad.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+
+    // Mise à jour de l'UI
+    function updateUI() {
+      const mult = timeframeMultipliers[state.timeframe] || 1;
+      const displayedMillions = ((state.tokensTotal * mult) / 1000000).toFixed(2);
+      document.getElementById('session-tokens-display').textContent = displayedMillions;
+      document.getElementById('tf-label-volume').textContent = `Volume (${state.timeframe})`;
+
+      document.getElementById('pill-tokens').textContent = (state.ctxUsed / 1000).toFixed(1) + 'k';
+      document.getElementById('speed-tg').textContent = state.tgSpeed.toFixed(1);
+      document.getElementById('pill-tps').textContent = state.tgSpeed.toFixed(1) + ' t/s';
+      document.getElementById('speed-pp').innerHTML = Math.round(state.ppSpeed) + ' <span class="text-xs text-slate-400 font-normal">t/s</span>';
+      document.getElementById('speed-ttft').innerHTML = state.ttft.toFixed(2) + ' <span class="text-xs text-slate-400 font-normal">s</span>';
+
+      // Context DNA avec la jauge à 10 carrés (même design que le bloc Inference)
+      const ctxPct = Math.round((state.ctxUsed / state.ctxMax) * 100);
+      document.getElementById('ctx-used-val').textContent = `${(state.ctxUsed / 1000).toFixed(1)}k / 65.5k`;
+      document.getElementById('ctx-percent-val').textContent = `(${ctxPct}%)`;
+      const freeTokens = Math.max(0, state.ctxMax - state.ctxUsed);
+      document.getElementById('ctx-free-val').textContent = (freeTokens / 1000).toFixed(1) + 'k tok';
+      renderContextDnaSquares(state.ctxUsed, state.ctxMax);
+
+      // Sondes Silicium
+      document.getElementById('hw-temp-edge').textContent = Math.round(state.edgeTemp) + '°C';
+      document.getElementById('pill-temp').textContent = Math.round(state.edgeTemp) + '°C';
+      document.getElementById('hw-temp-soc').textContent = Math.round(state.socTemp) + '°C';
+      document.getElementById('hw-power-watts').textContent = Math.round(state.powerWatts) + ' W';
+      document.getElementById('hw-gpu-busy').textContent = Math.round(state.gpuBusy) + '%';
+
+      const tStart = state.historyTemps[0];
+      const tMid = state.historyTemps[Math.floor(state.historyTemps.length / 2)];
+      const tNow = Math.round(state.edgeTemp);
+      const tArrow = (tNow - tMid > 1.5) ? '↗' : (tNow - tMid < -1.5 ? '↘' : '→');
+      document.getElementById('hw-vector-temp').textContent = `[${tStart}° → ${tMid}° → ${tNow}°C ${tArrow} Pic 74°C]`;
+
+      const wStart = state.historyWatts[0];
+      const wMid = state.historyWatts[Math.floor(state.historyWatts.length / 2)];
+      const wNow = Math.round(state.powerWatts);
+      const wArrow = (wNow - wMid > 2) ? '↗' : (wNow - wMid < -2 ? '↘' : '→');
+      document.getElementById('hw-vector-power').textContent = `[${wStart}W → ${wMid}W → ${wNow}W ${wArrow} Moy 31W]`;
+
+      // Quotas Cloud : Jauge à 10 carrés sur TPM Glissant + Badge "WARN : RISQUE OUT OF QUOTA"
+      const tpmMillions = (state.cloudTpm / 1000000).toFixed(2);
+      const tpmPct = Math.min(100, Math.round((state.cloudTpm / state.cloudTpmMax) * 100));
+      document.getElementById('cloud-tpm-text').textContent = `${tpmMillions}M / 2.00M`;
+      const tpmPctEl = document.getElementById('cloud-tpm-pct');
+      if (tpmPctEl) {
+        tpmPctEl.textContent = `(${tpmPct}%)`;
+        tpmPctEl.className = tpmPct >= 85
+          ? 'text-[11px] text-rose-400 font-bold ml-1'
+          : (tpmPct >= 70 ? 'text-[11px] text-amber-300 font-bold ml-1' : 'text-[11px] text-emerald-400 font-bold ml-1');
+      }
+
+      const tpmSqColor = tpmPct >= 85 ? 'filled-rose' : (tpmPct >= 70 ? 'filled-amber' : 'filled-emerald');
+      render10Squares('cloud-tpm-squares-10', tpmPct, tpmSqColor);
+
+      const tpmFreeK = Math.max(0, Math.round((state.cloudTpmMax - state.cloudTpm) / 1000));
+      document.getElementById('cloud-tpm-free').textContent = tpmFreeK + 'k tok/min';
+      document.getElementById('cloud-rpm-val').textContent = `${state.cloudRpm} / 1 000 req/min`;
+
+      const badge429 = document.getElementById('alert-429-badge');
+      const text429 = document.getElementById('alert-429-text');
+      if (tpmPct >= 85) {
+        badge429.className = 'px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs font-mono flex items-center gap-2';
+        text429.textContent = t('cloud.alert_crit_text', { pct: tpmPct });
+      } else if (tpmPct >= 70) {
+        badge429.className = 'px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono flex items-center gap-2';
+        text429.textContent = t('cloud.alert_warn_text', { pct: tpmPct });
+      } else {
+        badge429.className = 'px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-2';
+        text429.textContent = t('cloud.alert_ok_text', { pct: tpmPct });
+      }
+
+      const hdrServEl = document.getElementById('hdr-serv');
+      if (hdrServEl) hdrServEl.textContent = `${displayedMillions}M`;
+      updateApuDonutAndCards();
+      drawSparkline();
+    }
+
+    // Polling 1.0s
+    setInterval(() => {
+      if (!simulationRunning) return;
+
+      state.tokensTotal += Math.floor(Math.random() * 45) + 25;
+      state.ctxUsed += Math.floor(Math.random() * 10) + 2;
+      if (state.ctxUsed > 64500) state.ctxUsed = 54200;
+
+      const baseTg = activeTopology === 3 ? 142.0 : (activeTopology === 4 ? 84.5 : 58.4);
+      state.tgSpeed = baseTg + (Math.random() * 2.8 - 1.4);
+      state.edgeTemp = 67.5 + (Math.random() * 1.6 - 0.8);
+      state.socTemp = 71.8 + (Math.random() * 1.2 - 0.6);
+      state.powerWatts = 38 + (Math.random() * 4 - 2);
+      state.gpuBusy = activeTopology === 4 ? 4 : Math.min(99, Math.max(88, 94 + (Math.random() * 6 - 3)));
+
+      state.historyTemps.shift();
+      state.historyTemps.push(Math.round(state.edgeTemp));
+      state.historyWatts.shift();
+      state.historyWatts.push(Math.round(state.powerWatts));
+
+      updateUI();
+    }, 1000);
+
+    function toggleSimulation() {
+      simulationRunning = !simulationRunning;
+      const btn = document.getElementById('toggle-sim-btn');
+      const icon = document.getElementById('sim-icon');
+      if (simulationRunning) {
+        icon.className = 'fa-solid fa-pause text-xs';
+        btn.className = 'p-2 w-8 h-8 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition';
+        triggerToast('Polling temps réel actif (1.0s)');
+      } else {
+        icon.className = 'fa-solid fa-play text-xs';
+        btn.className = 'p-2 w-8 h-8 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 flex items-center justify-center transition';
+        triggerToast('Polling en pause');
+      }
+    }
+
+    function setViewMode(mode) {
+      const mainCockpit = document.getElementById('main-cockpit');
+      const hudPill = document.getElementById('hud-pill-container');
+      const secHero = document.getElementById('section-hero');
+      const secCloud = document.getElementById('section-cloud');
+      const secSlots = document.getElementById('section-slots');
+      const secSilicon = document.getElementById('section-silicon');
+      const secPipeline = document.getElementById('section-pipeline');
+
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/30');
+        btn.classList.add('text-slate-400');
+      });
+      const activeBtn = document.getElementById('view-' + mode);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/30');
+        activeBtn.classList.remove('text-slate-400');
+      }
+
+      if (mode === 'hud') {
+        mainCockpit.classList.add('hidden');
+        hudPill.classList.remove('hidden');
+        triggerToast('Mode Pill HUD activé');
+      } else if (mode === 'silicium') {
+        hudPill.classList.add('hidden');
+        mainCockpit.classList.remove('hidden');
+        secHero.classList.add('hidden');
+        secCloud.classList.add('hidden');
+        secPipeline.classList.add('hidden');
+        secSlots.classList.remove('hidden');
+        secSilicon.classList.remove('hidden');
+        triggerToast('Focus Silicium AMD');
+        setTimeout(drawSparkline, 50);
+      } else {
+        hudPill.classList.add('hidden');
+        mainCockpit.classList.remove('hidden');
+        secHero.classList.remove('hidden');
+        secCloud.classList.remove('hidden');
+        secSlots.classList.remove('hidden');
+        secSilicon.classList.remove('hidden');
+        secPipeline.classList.remove('hidden');
+        triggerToast('Cockpit complet affiché');
+        setTimeout(drawSparkline, 50);
+      }
+    }
+
+    function setTimeframe(tf) {
+      state.timeframe = tf;
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        if (btn.getAttribute('data-tf') === tf) {
+          btn.className = 'tf-btn px-2.5 py-1 rounded-lg text-cyan-300 bg-cyan-500/20 border border-cyan-500/30 font-semibold transition';
+        } else {
+          btn.className = 'tf-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition';
+        }
+      });
+      updateUI();
+      triggerToast(`Fenêtre temporelle : ${tf}`);
+    }
+
+    let toastTimeout;
+    function triggerToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-msg');
+      toastMsg.textContent = message;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    window.addEventListener('resize', drawSparkline);
+
+    window.onload = function() {
+      applyLanguage();
+      setTopology(1);
+      renderEndpointsConfig();
+      updateApuDonutAndCards();
+      updateUI();
+      drawSparkline();
+    };
+  </script>
+</body>
+</html>

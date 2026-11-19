@@ -1,0 +1,27 @@
+# Configuration dynamique des ports services pour TokenWatcher V4.0.2
+services:
+  proxy:
+    host: "127.0.0.1"
+    port: 13306
+    unit: "lemonade-opencode-proxy.service"
+  vulkan:
+    host: "127.0.0.1"
+    port: 8001
+    slots_endpoint: "/slots"
+    metrics_endpoint: "/metrics"
+  lemonade_admin:
+    host: "127.0.0.1"
+    port: 13305
+    health_endpoint: "/api/v1/health"
+  vllm_rocm:
+    host: "127.0.0.1"
+    port: 8000
+    metrics_endpoint: "/metrics"
+    models_endpoint: "/v1/models"
+  open_webui:
+    host: "127.0.0.1"
+    port: 8080
+
+ipc:
+  state_file: "/tmp/tokenwatcher_state.json"
+  polling_interval_sec: 1.0

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "lemonade/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+  "instructions": [
+    "AGENTS.md",
+    "SOW/00_AGENT_CODING_RULES.md",
+    "config/ports.yaml",
+    "config/i18n_labels.json"
+  ],
+  "ignore": [
+    "../tokenwatcher-topbar/**",
+    "SOW/archive/**",
+    ".git/**",
+    "__pycache__/**",
+    "*.pyc",
+    "node_modules/**"
+  ]
+}

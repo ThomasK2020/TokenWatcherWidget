@@ -1,0 +1,17 @@
+[Unit]
+Description=TokenWatcher GTK4 Cockpit Widget V4.0.2
+After=graphical-session.target tokenwatcher-daemon.service
+Wants=tokenwatcher-daemon.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/thomas/data/AI-workspace/TokenWatcherWidget/Widget
+PassEnvironment=WAYLAND_DISPLAY DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+Environment=GI_TYPELIB_PATH=/home/thomas/.local/lib/girepository-1.0
+ExecStart=/home/thomas/data/AI-workspace/TokenWatcherWidget/Widget/.venv/bin/python3 src/widget_runner.py
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Bases SQLite locales & IPC temps réel
+*.db
+*.sqlite
+*.sqlite3
+tokenwatcher_state.json
+/tmp/tokenwatcher_state.json
+
+# Secrets & surcharges locales
+.env
+config/config.local.json
+config/secrets.yaml
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
