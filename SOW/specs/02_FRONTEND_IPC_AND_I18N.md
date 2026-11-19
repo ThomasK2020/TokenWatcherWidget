@@ -22,13 +22,17 @@ Ce document constitue le cahier des charges exécutable (SOW Lot 2) pour le bran
 ## 3. Pont IPC Réel (`file:///tmp/tokenwatcher_state.json`) & Bascule Live/Simulation
 
 ### 3.1 Poller IPC Asynchrone dans `ui/index.html`
-Remplacer la boucle de simulation pure par un poller dual **Live IPC / Fallback Simulation** toutes les `1000 ms` (`pollingPaused` piloté par `toggleSimulation()`) :
+> **Piège critique WebKitGTK 6.0 (`file://`)** : Dans `WebKit.WebView`, un `fetch('file:///...')` réussi renvoie **`resp.status === 0` et `resp.ok === false`**. Il ne faut JAMAIS écrire `if (!resp.ok) throw ...` sans autoriser `resp.status === 0` (`if (!resp.ok && resp.status !== 0)`), sinon 100 % des lectures IPC et `i18n_labels.json` échoueront silencieusement !
+
+Remplacer la boucle de simulation pure (lignes `2106–2126`) par un poller dual **Live IPC / Fallback Simulation** toutes les `1000 ms` (`simulationRunning` piloté par `toggleSimulation()`) :
 ```javascript
+let ipcLiveConnected = false;
+
 async function pollIpcState() {
   if (!simulationRunning) return;
   try {
     const resp = await fetch(`file:///tmp/tokenwatcher_state.json?t=${Date.now()}`, { cache: 'no-store' });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok && resp.status !== 0) throw new Error(`HTTP ${resp.status}`);
     const payload = await resp.json();
     if (payload && payload.schema_version === '4.0.2') {
       ipcLiveConnected = true;
@@ -43,6 +47,16 @@ async function pollIpcState() {
 }
 ```
 - **Règle de continuité** : En mode Live IPC (`ipcLiveConnected === true`), les boutons du banc d'essai (`simulateCodePatchStream`, `simulateCloudBurst429`) peuvent déclencher un override temporaire de démonstration (ou basculer en mode test) sans écraser silencieusement les métriques réelles au cycle suivant.
+
+### 3.2 Carte de Lecture Ciblée `ui/index.html` (Protection Fenêtre 64k)
+Ne pas charger tout `ui/index.html` inutilement en contexte : cibler ces plages exactes :
+- **HTML — Éléments sans `id` sur valeur dynamique** (poser un `<span id="...">` uniquement sur la valeur numérique, sans jamais mettre `data-i18n` sur un parent avec enfants) :
+  - Ligne `890` (`#vram-free-val`), ligne `905` (`#gtt-free-val`), ligne `923` (`#hw-cpu-busy`), ligne `952` (`#hw-efficiency`), ligne `963` (`#hw-ai-runtime`, `#hw-idle-runtime`), lignes `1029`/`1039`/`1042` (`#cloud-rpd-val`, `#cloud-cache-hit-val`, `#cloud-cumul-val`).
+- **JS principal (`<script>` lignes `1072–2226`)** :
+  - `1074–1307` : `const DEFAULT_I18N` (à conserver comme `const` et enrichir par mutation de ses clés via `Object.assign`, **jamais** par réassignation `DEFAULT_I18N = ...`).
+  - `1310–1458` : `runtimeConfig`, `ALL_VLLM_REQUESTS`, `servicePorts`, `state`, `getRawString()`, `getDynamicParams()`, `t()`, `applyLanguage()`.
+  - `1651–1731` : `updateApuDonutAndCards()` (à paramétrer pour consommer `apu_pool_128g` et `inference_engines` réels).
+  - `2028–2223` : `updateUI()`, `setInterval()`, `window.onload`.
 
 ### 3.2 Contrat de Mapping Exact JSON IPC → DOM / Variables JS (`applyIpcPayload(data)`)
 Chaque section du JSON `/tmp/tokenwatcher_state.json` (Section 5 de `00_MASTER_SOW_V4_0_2.md`) doit hydrater les objets JS et IDs DOM existants :
@@ -73,7 +87,19 @@ Chaque section du JSON `/tmp/tokenwatcher_state.json` (Section 5 de `00_MASTER_S
 
 ### 4.1 Protection Stricte du Layout & des Feuilles DOM
 - **Empilement Vertical Pleine Largeur** : Conserver `.grid.grid-cols-1.gap-4` sur `#section-slots` et `#section-silicon` (jamais de `lg:grid-cols-2`).
-- **Chargement i18n dynamique** : Charger `../config/i18n_labels.json` au démarrage (avec `DEFAULT_I18N` conservé comme fallback synchrone).
+- **Chargement i18n dynamique (sans réassigner `const DEFAULT_I18N`)** :
+  ```javascript
+  async function loadExternalI18n() {
+    try {
+      const resp = await fetch(`../config/i18n_labels.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!resp.ok && resp.status !== 0) return;
+      const loaded = await resp.json();
+      if (loaded && loaded.fr) Object.assign(DEFAULT_I18N.fr, loaded.fr);
+      if (loaded && loaded.en) Object.assign(DEFAULT_I18N.en, loaded.en);
+      applyLanguage();
+    } catch (_) { /* Fallback synchrone sur DEFAULT_I18N */ }
+  }
+  ```
 - **Découplage sans récursion** : Conserver `getRawString(key)`, `getDynamicParams()`, `t(key, params)` et `applyLanguage()`.
 - **Règle d'or DOM (`el.children.length === 0`)** :
   ```javascript
@@ -96,5 +122,6 @@ Chaque section du JSON `/tmp/tokenwatcher_state.json` (Section 5 de `00_MASTER_S
 
 ## 5. Critères de Validation Lot 2
 1. Vérifier que tous les `[data-i18n]` dans `ui/index.html` restent des balises feuilles (`el.children.length === 0`) et qu'aucun `lg:grid-cols-2` n'est introduit.
-2. Lancer `src/tokenwatcher_daemon.py` puis `src/widget_runner.py` : confirmer que les valeurs GPU/VRAM/GTT/Moteurs/SQLite affichées dans la fenêtre GTK4 reflètent en direct `/tmp/tokenwatcher_state.json`.
-3. Tester la bascule FR/EN (`toggleLanguage()`), les 3 vues (`cockpit`, `silicium`, `hud`) et le tiroir vLLM (`Voir +` / `Voir -`).
+2. Vérifier que les appels `fetch('file://...')` / `fetch('../config/i18n_labels.json')` testent `if (!resp.ok && resp.status !== 0)` et fusionnent via `Object.assign(DEFAULT_I18N.fr, ...)`.
+3. Générer `/tmp/tokenwatcher_state.json` via `./.venv/bin/python3 src/tokenwatcher_daemon.py --once` puis lancer `timeout 3s ./.venv/bin/python3 src/widget_runner.py` : un code de sortie `124` (arrêt propre par `timeout` après 3s d'affichage sans exception Python/WebKit) confirme la validité GTK4 + WebKitGTK 6.0.
+4. Tester la bascule FR/EN (`toggleLanguage()`), les 3 vues (`cockpit`, `silicium`, `hud`) et le tiroir vLLM (`Voir +` / `Voir -`).

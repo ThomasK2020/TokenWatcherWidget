@@ -56,10 +56,10 @@ Lance l'implémentation du Lot 2 via OpenCode en exécutant :
 ~/data/AI-workspace/TokenWatcherWidget/Widget/scripts/run_sow_widget.sh SOW/specs/02_FRONTEND_IPC_AND_I18N.md
 
 Consignes de contrôle strict après l'exécution d'OpenCode :
-1. Vérifie dans ui/index.html que la boucle de polling lit désormais /tmp/tokenwatcher_state.json toutes les 1.0s avec cache-busting WebKitGTK 6.0 (fetch('file:///tmp/tokenwatcher_state.json?t=' + Date.now(), { cache: 'no-store' })) et charge ../config/i18n_labels.json (avec fallback propre sur les données de démonstration si le démon est en pause ou absent).
+1. Vérifie dans ui/index.html que la boucle de polling lit désormais /tmp/tokenwatcher_state.json toutes les 1.0s avec cache-busting WebKitGTK 6.0 (`fetch('file:///tmp/tokenwatcher_state.json?t=' + Date.now(), { cache: 'no-store' })` et test `if (!resp.ok && resp.status !== 0)`) et fusionne `../config/i18n_labels.json` dans `DEFAULT_I18N` via `Object.assign` (avec fallback propre sur les données de démonstration si le démon est en pause ou absent).
 2. Vérifie que le conteneur des sections 4 et 5 conserve la classe "grid grid-cols-1 gap-4" (aucun lg:grid-cols-2) pour maintenir l'empilement vertical 100% largeur.
 3. Vérifie qu'aucune balise parente avec enfants HTML n'a reçu d'attribut data-i18n et que getRawString() est toujours utilisé dans getDynamicParams().
-4. Valide l'ouverture GTK4 + WebKitGTK 6.0 sans erreur (timeout 3s ./.venv/bin/python3 src/widget_runner.py).
+4. Valide l'ouverture GTK4 + WebKitGTK 6.0 sans erreur (`timeout 3s ./.venv/bin/python3 src/widget_runner.py` : code retour `124` = succès GUI après 3s sans crash).
 5. Fais un git commit -m "feat(ui): connect V4.0.2 cockpit to live IPC state and external i18n_labels.json".
 ```
 
