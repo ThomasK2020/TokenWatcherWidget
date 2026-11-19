@@ -4,6 +4,7 @@
   "instructions": [
     "AGENTS.md",
     "SOW/00_AGENT_CODING_RULES.md",
+    "SOW/specs/00_MASTER_SOW_V4_0_2.md",
     "config/ports.yaml",
     "config/i18n_labels.json"
   ],
