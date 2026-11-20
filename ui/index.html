@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TokenWatcher V4.1.0 MULTI-ENGINE — AI Telemetry & Dynamic Pipeline Cockpit</title>
+  <title>TokenWatcher V4.1.1 MULTI-ENGINE — AI Telemetry & Dynamic Pipeline Cockpit</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome 6 icons -->
@@ -88,7 +88,7 @@
       border-color: rgba(239, 68, 68, 0.6) !important;
     }
 
-    /* Styles Scoped pour le bloc Inference Engines v3.4 & Jauges à carrés unifiées */
+    /* Styles Scoped pour le bloc Inference Engines & Jauges à carrés unifiées */
     .tw-card-v34 {
       background-color: rgba(18, 23, 34, 0.85);
       border: 1px solid #1E2638;
@@ -126,6 +126,16 @@
       background-color: #10B981;
       display: inline-block;
       animation: pulse-heartbeat 1.25s infinite ease-in-out;
+    }
+    .heartbeat-dot.idle {
+      background-color: #10B981;
+      animation: none;
+      box-shadow: none;
+    }
+    .heartbeat-dot.inactive {
+      background-color: #64748B;
+      animation: none;
+      box-shadow: none;
     }
     .sq-10-grid {
       display: flex;
@@ -238,7 +248,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-sm md:text-base font-bold tracking-wider text-white" data-i18n="header.title">TOKENWATCHER</h1>
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/25" data-i18n="header.version_badge">V4.1.0 MULTI-ENGINE</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/25" data-i18n="header.version_badge">V4.1.1 MULTI-ENGINE</span>
             <span id="header-preprod-badge" class="hidden text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">PREPROD</span>
             <span id="header-i18n-saved-pill" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25">I18N Ready</span>
           </div>
@@ -393,7 +403,7 @@
       </div>
     </section>
 
-    <!-- ==================== 2B. RADAR QUOTAS & FLUX CLOUD (DIRECTEMENT SOUS CHAINES D'EXÉCUTION - V4.1.0) ==================== -->
+    <!-- ==================== 2B. RADAR QUOTAS & FLUX CLOUD (DIRECTEMENT SOUS CHAINES D'EXÉCUTION - V4.1.1) ==================== -->
     <section id="section-cloud" class="glass-card rounded-2xl p-4 md:p-5 border border-amber-500/25 relative overflow-hidden transition-all duration-300">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div class="flex items-center space-x-3">
@@ -412,21 +422,21 @@
           </div>
         </div>
 
-        <!-- Out of Quota Smart Alert Pill -->
-        <div class="flex items-center gap-2.5">
-          <div id="alert-429-badge" class="px-3 py-1.5 rounded-xl bg-slate-500/15 border border-slate-500/40 text-slate-300 text-xs font-mono flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-slate-400" id="alert-429-dot"></span>
+        <!-- Out of Quota Flat Status Readout (sans apparence bouton) -->
+        <div class="flex items-center gap-2.5 shrink-0">
+          <div id="alert-429-badge" class="text-xs font-mono flex items-center gap-2 text-slate-400">
+            <span class="w-2 h-2 rounded-full bg-slate-500 shrink-0" id="alert-429-dot"></span>
             <span id="alert-429-text">--</span>
           </div>
         </div>
       </div>
 
-      <!-- Tâche active & Dernière requête Cloud (V4.0.4) -->
+      <!-- Tâche active & Dernière requête Cloud (V4.1.1) -->
       <div class="mt-3 pt-3 border-t border-white/5 flex flex-col gap-1.5 text-xs">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="text-amber-400 font-medium" data-i18n="cloud.active_task_label">Tâche active :</span>
-          <span id="cloud-active-task-title" class="bg-black/40 px-2 py-0.5 rounded text-slate-200 border border-white/5 font-mono text-[11px]">Session Cloud active</span>
-          <span id="cloud-agent-mode" class="text-[11px] text-amber-300 font-mono font-medium">[HERMES · 0 tools · 0 req]</span>
+          <span class="text-slate-300 font-medium" data-i18n="cloud.active_task_label">Tâche active :</span>
+          <span id="cloud-active-task-title" class="bg-black/40 px-2 py-0.5 rounded text-slate-200 border border-white/5 font-mono text-[11px]">--</span>
+          <span id="cloud-agent-mode" class="text-[11px] text-slate-400 font-mono font-medium">[HERMES · 0 tools · 0 req]</span>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-slate-400 font-medium" data-i18n="cloud.last_prompt_label">Dernière requête :</span>
@@ -443,37 +453,37 @@
               <div id="cloud-tpm-squares-10" class="sq-10-grid" title="Occupation du Quota TPM Glissant 60s (1 carré = 10%)"></div>
             </div>
             <div class="flex items-center tabular-nums">
-              <span class="text-[10.5px] text-[#94A3B8] font-semibold" id="cloud-tpm-text">1.42M / 2.00M</span>
-              <span class="text-[11px] text-amber-300 font-bold ml-1" id="cloud-tpm-pct">(71%)</span>
+              <span class="text-[10.5px] text-[#94A3B8] font-semibold" id="cloud-tpm-text">--</span>
+              <span class="text-[11px] text-emerald-400 font-bold ml-1" id="cloud-tpm-pct">(--)</span>
             </div>
           </div>
           <div class="flex justify-between text-[10px] font-mono text-slate-400">
-            <span><span data-i18n="cloud.metrics.headroom">Headroom libre</span>: <strong class="text-emerald-400 tabular-nums" id="cloud-tpm-free">580k tok/min</strong></span>
-            <span class="text-slate-500"><span data-i18n="cloud.limits.tier1_ceiling">Plafond Tier 1</span>: <span id="cloud-tpm-ceiling">2.0M</span></span>
+            <span><span data-i18n="cloud.metrics.headroom">Headroom libre</span>: <strong class="text-emerald-400 tabular-nums" id="cloud-tpm-free">--</strong></span>
+            <span class="text-slate-500"><span data-i18n="cloud.limits.tier1_ceiling">Plafond Tier 1</span>: <span id="cloud-tpm-ceiling">--</span></span>
           </div>
         </div>
 
         <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
           <div class="text-[11px] font-mono text-slate-400 flex justify-between">
             <span><span data-i18n="cloud.metrics.rpm">Requêtes RPM</span> [■□□□□]</span>
-            <span class="text-white font-mono font-bold tabular-nums" id="cloud-rpm-val">18 / 1 000 req/min</span>
+            <span class="text-white font-mono font-bold tabular-nums" id="cloud-rpm-val">--</span>
           </div>
           <div class="text-[11px] font-mono text-slate-400 flex justify-between pt-0.5">
             <span data-i18n="cloud.metrics.rpd_quota">Quota Journalier (RPD)</span>
-            <span id="cloud-rpd-val" class="text-white font-mono font-bold tabular-nums">482 / 10 000 req/j</span>
+            <span id="cloud-rpd-val" class="text-white font-mono font-bold tabular-nums">--</span>
           </div>
           <div class="text-[10px] text-slate-500 pt-0.5 font-mono">
-            Moy/Req: <strong id="cloud-avg-req" class="text-slate-300 tabular-nums">58.0k tok</strong> (Historique + tools)
+            Moy/Req: <strong id="cloud-avg-req" class="text-slate-300 tabular-nums">--</strong> (Historique + tools)
           </div>
         </div>
 
         <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
           <div class="flex items-center justify-between text-xs font-mono">
             <span class="text-slate-400" data-i18n="cloud.cache_hit_label">Cache Cloud Hit</span>
-            <span id="cloud-cache-hit-val" class="text-cyan-400 font-bold tabular-nums">60% (110k tok)</span>
+            <span id="cloud-cache-hit-val" class="text-cyan-400 font-bold tabular-nums">--</span>
           </div>
           <div class="text-[11px] font-mono text-slate-300">
-            <span data-i18n="cloud.metrics.total_tokens">Cumul Cloud</span>: <span id="cloud-cumul-val" class="text-white tabular-nums">IN: 184.0k · OUT: 6.4k · RSN: 2.1k</span>
+            <span data-i18n="cloud.metrics.total_tokens">Cumul Cloud</span>: <span id="cloud-cumul-val" class="text-white tabular-nums">--</span>
           </div>
           <div class="text-[10px] text-emerald-400 font-mono">
             Source: usageMetadata.cachedContentTokenCount · Switch Cloud ⇄ Local 100%
@@ -488,12 +498,12 @@
 
       <div class="relative z-10 space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/5 pb-4">
-          <div class="space-y-1">
+          <div class="space-y-1 min-w-0">
             <!-- Dynamic Local Inference Block Title -->
             <div class="flex items-center gap-2 pb-0.5">
               <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
               <span id="local-inference-block-title" class="text-[11px] font-mono font-bold tracking-wider text-cyan-400 uppercase">
-                INFÉRENCE LOCALE ACTIVE · (VULKAN ENGINE on LLAMA-SERVER :8001)
+                MOTEUR D'INFÉRENCE LOCALE / LLM · (VULKAN ENGINE on LLAMA-SERVER :8001)
               </span>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -506,13 +516,13 @@
             <div class="flex flex-wrap items-center gap-2 text-xs text-slate-300">
               <span class="text-cyan-400 font-medium" data-i18n="session.active_task_label">Tâche active :</span>
               <span id="active-task-title" class="bg-black/40 px-2 py-0.5 rounded text-slate-200 border border-white/5 font-mono text-[11px]">--</span>
-              <span id="active-agent-mode" class="text-[11px] text-emerald-400 font-mono font-medium">[--]</span>
             </div>
-            <div class="pt-0.5">
-              <button id="workspace-dir-btn" onclick="triggerToast('📁 Workspace : ' + (document.getElementById('workspace-dir-text')?.textContent || ''))" class="text-[11px] font-mono text-slate-400 hover:text-cyan-300 transition flex items-center gap-1.5">
-                <i class="fa-regular fa-folder-open text-cyan-400"></i>
-                <span id="workspace-dir-text">--</span>
-                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60"></i>
+            <div class="flex items-center gap-2.5 pt-0.5 min-w-0">
+              <span id="active-agent-mode" class="text-[11px] text-emerald-400 font-mono font-medium shrink-0 whitespace-nowrap">[--]</span>
+              <button id="workspace-dir-btn" onclick="triggerToast('📁 Workspace : ' + (document.getElementById('workspace-dir-text')?.textContent || ''))" class="text-[11px] font-mono text-slate-400 hover:text-cyan-300 transition flex items-center gap-1.5 min-w-0">
+                <i class="fa-regular fa-folder-open text-cyan-400 shrink-0"></i>
+                <span id="workspace-dir-text" class="truncate">--</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60 shrink-0"></i>
               </button>
             </div>
           </div>
@@ -623,7 +633,7 @@
     <!-- ==================== 4 & 5. STACKED FULL-WIDTH: MULTI-ENGINE RUNTIME & HARDWARE ==================== -->
     <div class="grid grid-cols-1 gap-4">
 
-      <!-- 4. MULTI-ENGINE MEMORY & RUNTIME TOPOLOGY CARD (v3.4 INTEGRATED + PROTECTED DOM - 100% WIDTH) -->
+      <!-- 4. MULTI-ENGINE MEMORY & RUNTIME TOPOLOGY CARD (PROTECTED DOM - 100% WIDTH) -->
       <section id="section-slots" class="glass-card rounded-2xl p-4 md:p-5 border border-white/5 space-y-3.5 transition-all duration-300">
         <!-- En-tête du bloc -->
         <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-white/5">
@@ -636,9 +646,6 @@
                 <h2 class="text-xs md:text-sm font-bold text-white tracking-tight truncate">
                   <span data-i18n="memory.section_title">Inference Engines and Unified Memory Usage</span>
                 </h2>
-                <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 shrink-0">
-                  v3.4
-                </span>
               </div>
               <div class="font-mono text-[11px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2 tabular-nums">
                 <span data-i18n="memory.subtitle">Usage et Occupation Memoire</span>
@@ -835,7 +842,7 @@
 
                 <div class="flex items-center gap-1.5">
                   <button type="button" onclick="toggleBatchDrawer()" class="group font-mono text-[10.5px] bg-[#090C12] hover:bg-[#111726] border border-[#243047] hover:border-rose-500/60 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 cursor-pointer transition tabular-nums" title="Cliquer pour déplier/replier le détail des requêtes actives">
-                    <span class="heartbeat-dot"></span>
+                    <span id="rocm-heartbeat" class="heartbeat-dot inactive"></span>
                     <span id="rocm-batch-pill-text" class="text-slate-300">BATCH (0 req · 0 wait) ·</span>
                     <strong id="rocm-speed" class="text-white font-extrabold text-[11.5px]">0.0 t/s</strong>
                     <span id="batch-chevron" class="expand-chevron is-open text-[9px] text-[#FB7185] ml-0.5 leading-none">▼</span>
@@ -849,8 +856,8 @@
                   <div id="rocm-squares-10" class="sq-10-grid" title="Occupation du Cache Contexte PagedAttention (1 carré = 10%)"></div>
                 </div>
                 <div class="flex items-center tabular-nums">
-                  <span id="rocm-paged-used-total" class="text-[10.5px] text-[#94A3B8] font-semibold">9.2 Go / 22.0 Go</span>
-                  <span id="rocm-paged-pct" class="text-[11px] text-[#FB7185] font-bold ml-1">(42%)</span>
+                  <span id="rocm-paged-used-total" class="text-[10.5px] text-[#94A3B8] font-semibold">0.0 Go / 0.0 Go</span>
+                  <span id="rocm-paged-pct" class="text-[11px] text-slate-400 font-bold ml-1">(0%)</span>
                 </div>
               </div>
 
@@ -1018,7 +1025,7 @@
     <span id="toast-msg">Action effectuée</span>
   </div>
 
-  <!-- ==================== JAVASCRIPT ROBUSTE V4.1.0 ==================== -->
+  <!-- ==================== JAVASCRIPT ROBUSTE V4.1.1 ==================== -->
   <script>
     const isPreprod = new URLSearchParams(window.location.search).get('mode') === 'preprod';
 
@@ -1026,7 +1033,7 @@
     const DEFAULT_I18N = {
       fr: {
         "header.title": "TOKENWATCHER",
-        "header.version_badge": "V4.1.0 MULTI-ENGINE",
+        "header.version_badge": "V4.1.1 MULTI-ENGINE",
         "header.live_badge": "LIVE",
         "header.offline_badge": "HORS LIGNE",
         "nav.session": "SESSION",
@@ -1068,8 +1075,8 @@
         "pipeline.cloud.sub": "{model_name}",
         "pipeline.cloud.meta": "Contexte Cloud API",
 
-        "inference.local.block_prefix": "INFÉRENCE LOCALE ACTIVE",
-        "inference.local.block_title": "INFÉRENCE LOCALE ACTIVE · ({engine} on {runtime} :{port})",
+        "inference.local.block_prefix": "MOTEUR D'INFÉRENCE LOCALE / LLM",
+        "inference.local.block_title": "MOTEUR D'INFÉRENCE LOCALE / LLM · ({engine} on {runtime} :{port})",
         "inference.engine.vulkan": "VULKAN ENGINE",
         "inference.engine.rocm": "ROCm ENGINE",
         "inference.runtime.llama": "LLAMA-SERVER",
@@ -1126,14 +1133,15 @@
         "cloud.model": "{model_name}",
         "cloud.cache_hit_label": "Cache Cloud Hit",
         "cloud.status_warn": "Warn: risque Out of Quota",
-        "cloud.alert_warn_text": "WARN : RISQUE OUT OF QUOTA ({pct}%)",
-        "cloud.alert_crit_text": "CRIT : OUT OF QUOTA IMMINENT ({pct}%)",
-        "cloud.alert_ok_text": "OK : QUOTA CLOUD NOMINAL ({pct}%)",
+        "cloud.alert_warn_text": "ALERTE · {pct}% · Alerte Quota Cloud",
+        "cloud.alert_crit_text": "CRITIQUE · {pct}% · Quota Cloud Saturé",
+        "cloud.alert_ok_text": "OK · {pct}% · Nominal Cloud Quota",
         "cloud.metrics.tpm_sliding": "TPM Glissant (60s)",
         "cloud.metrics.rpm": "Requêtes RPM",
         "cloud.metrics.total_tokens": "Cumul Cloud",
         "cloud.metrics.headroom": "Headroom libre",
         "cloud.metrics.rpd_quota": "Quota Journalier (RPD)",
+        "cloud.metrics.rpd_unit": "req/j",
         "cloud.limits.tier1_ceiling": "Plafond Tier 1",
         "cloud.alert.sliding_window_desc": "Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted",
         "cloud.active_task_label": "Tâche active :",
@@ -1141,7 +1149,7 @@
       },
       en: {
         "header.title": "TOKENWATCHER",
-        "header.version_badge": "V4.1.0 MULTI-ENGINE",
+        "header.version_badge": "V4.1.1 MULTI-ENGINE",
         "header.live_badge": "LIVE",
         "header.offline_badge": "OFFLINE",
         "nav.session": "SESSION",
@@ -1183,8 +1191,8 @@
         "pipeline.cloud.sub": "{model_name}",
         "pipeline.cloud.meta": "Cloud API Context",
 
-        "inference.local.block_prefix": "ACTIVE LOCAL INFERENCE",
-        "inference.local.block_title": "ACTIVE LOCAL INFERENCE · ({engine} on {runtime} :{port})",
+        "inference.local.block_prefix": "LOCAL INFERENCE ENGINE/LLM",
+        "inference.local.block_title": "LOCAL INFERENCE ENGINE/LLM · ({engine} on {runtime} :{port})",
         "inference.engine.vulkan": "VULKAN ENGINE",
         "inference.engine.rocm": "ROCm ENGINE",
         "inference.runtime.llama": "LLAMA-SERVER",
@@ -1241,14 +1249,15 @@
         "cloud.model": "{model_name}",
         "cloud.cache_hit_label": "Cloud Cache Hit",
         "cloud.status_warn": "Warn: Out of Quota risk",
-        "cloud.alert_warn_text": "WARN : OUT OF QUOTA RISK ({pct}%)",
-        "cloud.alert_crit_text": "CRIT : OUT OF QUOTA IMMINENT ({pct}%)",
-        "cloud.alert_ok_text": "OK : CLOUD QUOTA NOMINAL ({pct}%)",
+        "cloud.alert_warn_text": "ALERT · {pct}% · Cloud Quota Warning",
+        "cloud.alert_crit_text": "CRITICAL · {pct}% · Cloud Quota Critical",
+        "cloud.alert_ok_text": "OK · {pct}% · Nominal Cloud Quota",
         "cloud.metrics.tpm_sliding": "Sliding TPM (60s)",
         "cloud.metrics.rpm": "RPM Requests",
         "cloud.metrics.total_tokens": "Cloud Total",
         "cloud.metrics.headroom": "Free Headroom",
         "cloud.metrics.rpd_quota": "Daily Quota (RPD)",
+        "cloud.metrics.rpd_unit": "req/d",
         "cloud.limits.tier1_ceiling": "Tier 1 Ceiling",
         "cloud.alert.sliding_window_desc": "Active 60s sliding window monitoring to prevent HTTP 429 Resource Exhausted errors",
         "cloud.active_task_label": "Active task:",
@@ -1330,6 +1339,8 @@
       cloudTpmMax: 2000000,
       cloudRpm: 0,
       cloudRpmMax: 1000,
+      cloudRpdCurrent: 0,
+      cloudRpdCeiling: 10000,
       edgeTemp: 0,
       socTemp: 0,
       powerWatts: 0,
@@ -1502,7 +1513,7 @@
       renderVllmRequestsList();
     }
 
-    // Rendu dynamique du bloc Inference Engines v3.4 (URLs, Ports, Flags & I18N)
+    // Rendu dynamique du bloc Inference Engines (URLs, Ports, Flags & I18N)
     function renderEndpointsConfig() {
       const vCfg = runtimeConfig.engines.vulkan;
       const rCfg = runtimeConfig.engines.rocm;
@@ -1595,12 +1606,43 @@
     function render10Squares(containerId, percentage, colorClass) {
       const container = document.getElementById(containerId);
       if (!container) return;
-      const filledCount = Math.round(percentage / 10);
+      const clamped = Math.max(0, Math.min(100, Number(percentage) || 0));
+      const filledCount = Math.round(clamped / 10);
       container.innerHTML = '';
       for (let i = 0; i < 10; i++) {
         const sq = document.createElement('span');
-        sq.className = 'sq-cell' + (i < filledCount ? ` ${colorClass}` : '');
+        sq.className = 'sq-cell' + (i < filledCount && colorClass ? ` ${colorClass}` : '');
         container.appendChild(sq);
+      }
+    }
+
+    function setEngineHeartbeat(dotEl, isOnline, isRunning) {
+      if (!dotEl) return;
+      if (!isOnline) {
+        dotEl.className = 'heartbeat-dot inactive';
+      } else if (isRunning) {
+        dotEl.className = 'heartbeat-dot';
+      } else {
+        dotEl.className = 'heartbeat-dot idle';
+      }
+    }
+
+    function applyConsumptionStyle(squaresId, pctEl, pctVal, isOnline) {
+      const pct = Math.max(0, Math.min(100, Number(pctVal) || 0));
+      if (!isOnline) {
+        render10Squares(squaresId, 0, '');
+        if (pctEl) pctEl.className = 'text-[11px] text-slate-400 font-bold ml-1';
+        return;
+      }
+      if (pct >= 85) {
+        render10Squares(squaresId, pct, 'filled-rose');
+        if (pctEl) pctEl.className = 'text-[11px] text-rose-400 font-bold ml-1';
+      } else if (pct >= 70) {
+        render10Squares(squaresId, pct, 'filled-amber');
+        if (pctEl) pctEl.className = 'text-[11px] text-amber-300 font-bold ml-1';
+      } else {
+        render10Squares(squaresId, pct, 'filled-emerald');
+        if (pctEl) pctEl.className = 'text-[11px] text-emerald-400 font-bold ml-1';
       }
     }
 
@@ -1717,17 +1759,23 @@
       if (rMemGbEl) rMemGbEl.textContent = `${rGb.toFixed(1)} Go`;
 
       const vEng = enginesData?.vulkan;
+      const vOnline = vEng
+        ? (vEng.online !== undefined ? Boolean(vEng.online) : !String(vEng.status_label || '').includes('OFFLINE'))
+        : false;
+      const vRunning = vOnline && String(vEng?.status_label || '').includes('RUN');
+      setEngineHeartbeat(document.getElementById('vulkan-heartbeat'), vOnline, vRunning);
+
       const vKvUsed = vEng ? Number(vEng.kv_used_tokens || 0) : state.ctxUsed;
       const vKvMax = vEng ? Number(vEng.kv_max_tokens || 65536) : state.ctxMax;
       const kvPct = vEng && vEng.kv_pct !== undefined
         ? Number(vEng.kv_pct)
         : Math.round((vKvUsed / Math.max(1, vKvMax)) * 100);
 
-      render10Squares('vulkan-squares-10', kvPct, 'filled-cyan');
       const vKvTokEl = document.getElementById('vulkan-kv-tokens');
       if (vKvTokEl) vKvTokEl.textContent = `${(vKvUsed / 1000).toFixed(1)}k / ${(vKvMax / 1000).toFixed(1)}k`;
       const vKvPctEl = document.getElementById('vulkan-kv-pct');
       if (vKvPctEl) vKvPctEl.textContent = `(${kvPct}%)`;
+      applyConsumptionStyle('vulkan-squares-10', vKvPctEl, kvPct, vOnline);
 
       const vSpeedEl = document.getElementById('vulkan-speed');
       const vSpeed = vEng ? Number(vEng.speed_tps || 0) : state.tgSpeed;
@@ -1741,17 +1789,33 @@
       }
 
       const rEng = enginesData?.rocm;
-      const rPagedPct = rEng ? Number(rEng.paged_cache_pct || 0) : 42;
-      render10Squares('rocm-squares-10', rPagedPct, 'filled-rose');
+      const rOnline = rEng
+        ? (rEng.online !== undefined ? Boolean(rEng.online) : !String(rEng.model || '').includes('Inactif'))
+        : false;
+      const rRunning = rOnline && Number(rEng?.running_reqs || 0) > 0;
+      setEngineHeartbeat(document.getElementById('rocm-heartbeat'), rOnline, rRunning);
+
+      const rPagedPct = rEng ? Number(rEng.paged_cache_pct || 0) : 0;
+      const rPagedPctEl = document.getElementById('rocm-paged-pct');
+      if (rPagedPctEl) rPagedPctEl.textContent = `(${rPagedPct}%)`;
+      applyConsumptionStyle('rocm-squares-10', rPagedPctEl, rPagedPct, rOnline);
+
+      if (rMemGbEl) {
+        rMemGbEl.className = rOnline
+          ? 'text-[10px] font-bold text-[#FDA4AF] mt-0.5'
+          : 'text-[10px] font-bold text-slate-400 mt-0.5';
+      }
+
       if (rEng) {
         const rActEl = document.getElementById('rocm-active-val');
         if (rActEl) rActEl.textContent = `${Number(rEng.gtt_active_gb || 0).toFixed(1)}G`;
         const rSpdEl = document.getElementById('rocm-speed');
-        if (rSpdEl) rSpdEl.textContent = `${Number(rEng.speed_tps || 0).toFixed(1)} t/s`;
+        if (rSpdEl) {
+          rSpdEl.textContent = `${Number(rEng.speed_tps || 0).toFixed(1)} t/s`;
+          rSpdEl.className = rOnline ? 'text-white font-extrabold text-[11.5px]' : 'text-slate-400 font-semibold text-[11.5px]';
+        }
         const rPagedTot = document.getElementById('rocm-paged-used-total');
         if (rPagedTot) rPagedTot.textContent = `${Number(rEng.gtt_active_gb || 0).toFixed(1)} Go / ${Number(rEng.gtt_pool_gb || 0).toFixed(1)} Go`;
-        const rPagedPctEl = document.getElementById('rocm-paged-pct');
-        if (rPagedPctEl) rPagedPctEl.textContent = `(${rPagedPct}%)`;
         const drawerMetaEl = document.getElementById('vllm-drawer-meta-label');
         if (drawerMetaEl) {
           drawerMetaEl.textContent = t('engines.vllm_inspector_meta', {
@@ -1953,7 +2017,7 @@
       return `${n}`;
     }
 
-    // Hydratation complète depuis le payload IPC JSON V4.1.0 (/tmp/tokenwatcher_widget_state.json)
+    // Hydratation complète depuis le payload IPC JSON V4.1.1 (/tmp/tokenwatcher_widget_state.json)
     function applyIpcPayload(data) {
       if (!data || typeof data !== 'object') return;
       lastIpcPayload = data;
@@ -2150,11 +2214,17 @@
         state.cloudTpmMax = Number(cq.tpm_ceiling || 2000000);
         state.cloudRpm = Number(cq.rpm_current ?? 0);
         state.cloudRpmMax = Number(cq.rpm_ceiling || 1000);
+        state.cloudRpdCurrent = Number(cq.rpd_current ?? 0);
+        state.cloudRpdCeiling = Number(cq.rpd_ceiling || 10000);
 
         const ceilEl = document.getElementById('cloud-tpm-ceiling');
         if (ceilEl) ceilEl.textContent = `${(state.cloudTpmMax / 1_000_000).toFixed(1)}M`;
-        const rpdEl = document.getElementById('cloud-rpd-val');
-        if (rpdEl) rpdEl.textContent = `${Number(cq.rpd_current ?? 0).toLocaleString('fr-FR')} / ${Number(cq.rpd_ceiling ?? 10000).toLocaleString('fr-FR')} req/j`;
+        const avgReqEl = document.getElementById('cloud-avg-req');
+        if (avgReqEl) {
+          const rpdVal = Number(cq.rpd_current ?? 0);
+          const totTok = Number(cq.total_in_tokens ?? 0) + Number(cq.total_out_tokens ?? 0) + Number(cq.total_rsn_tokens ?? 0);
+          avgReqEl.textContent = rpdVal > 0 ? `${formatCompactTokens(Math.round(totTok / rpdVal))} tok` : '--';
+        }
         const chEl = document.getElementById('cloud-cache-hit-val');
         if (chEl) chEl.textContent = `${cq.cache_hit_pct ?? 0}% (${formatCompactTokens(cq.cached_tokens)} tok)`;
         const cumEl = document.getElementById('cloud-cumul-val');
@@ -2246,18 +2316,27 @@
 
       const tpmFreeK = Math.max(0, Math.round((tpmMaxSafe - state.cloudTpm) / 1000));
       document.getElementById('cloud-tpm-free').textContent = tpmFreeK + 'k tok/min';
-      document.getElementById('cloud-rpm-val').textContent = `${state.cloudRpm} / ${state.cloudRpmMax.toLocaleString('fr-FR')} req/min`;
+      const numLoc = currentLang === 'en' ? 'en-US' : 'fr-FR';
+      document.getElementById('cloud-rpm-val').textContent = `${state.cloudRpm} / ${state.cloudRpmMax.toLocaleString(numLoc)} req/min`;
+      const rpdEl = document.getElementById('cloud-rpd-val');
+      if (rpdEl) {
+        rpdEl.textContent = `${state.cloudRpdCurrent.toLocaleString(numLoc)} / ${state.cloudRpdCeiling.toLocaleString(numLoc)} ${t('cloud.metrics.rpd_unit')}`;
+      }
 
       const badge429 = document.getElementById('alert-429-badge');
+      const dot429 = document.getElementById('alert-429-dot');
       const text429 = document.getElementById('alert-429-text');
       if (tpmPct >= 85) {
-        badge429.className = 'px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs font-mono flex items-center gap-2';
+        badge429.className = 'text-xs font-mono flex items-center gap-2 text-rose-400 font-semibold';
+        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-pulse';
         text429.textContent = t('cloud.alert_crit_text', { pct: tpmPct });
       } else if (tpmPct >= 70) {
-        badge429.className = 'px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono flex items-center gap-2';
+        badge429.className = 'text-xs font-mono flex items-center gap-2 text-amber-300 font-semibold';
+        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-amber-400 shrink-0';
         text429.textContent = t('cloud.alert_warn_text', { pct: tpmPct });
       } else {
-        badge429.className = 'px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-2';
+        badge429.className = 'text-xs font-mono flex items-center gap-2 text-emerald-400 font-medium';
+        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0';
         text429.textContent = t('cloud.alert_ok_text', { pct: tpmPct });
       }
 
@@ -2271,7 +2350,7 @@
         const resp = await fetch(`file:///tmp/tokenwatcher_widget_state.json?t=${Date.now()}`, { cache: 'no-store' });
         if (!resp.ok && resp.status !== 0) throw new Error(`HTTP ${resp.status}`);
         const payload = await resp.json();
-        if (payload && ['4.1.0', '4.0.4', '4.0.2'].includes(payload.schema_version)) {
+        if (payload && ['4.1.1', '4.1.0', '4.0.4', '4.0.2'].includes(payload.schema_version)) {
           const ageSec = (Date.now() / 1000) - Number(payload.timestamp || 0);
           const isFresh = ageSec <= 8.0;
           ipcLiveConnected = isFresh;

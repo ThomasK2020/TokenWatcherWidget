@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Démon Principal TokenWatcher V4.1.0.
+Démon Principal TokenWatcher V4.1.1.
 Orchestre les 3 sondes (AmdSysfsProbe, EnginesHttpProbe, SqliteTelemetryReader)
 à un intervalle de 1.0s et écrit atomiquement l'état dans /tmp/tokenwatcher_widget_state.json.
 """
@@ -137,6 +137,7 @@ class TokenWatcherDaemon:
 
         # Injection des empreintes calculées dans les cartes moteurs
         vulkan_card = {
+            "online": bool(vulkan_data.get("online", False)),
             "badge": vulkan_data["badge"],
             "model": vulkan_data["model"],
             "host": vulkan_data["host"],
@@ -158,6 +159,7 @@ class TokenWatcherDaemon:
 
         ow_reqs = sqlite_data.get("openwebui", {}).get("requests") or []
         rocm_card = {
+            "online": bool(vllm_data.get("online", False)),
             "badge": vllm_data["badge"],
             "model": vllm_data["model"],
             "host": vllm_data["host"],
@@ -257,7 +259,7 @@ class TokenWatcherDaemon:
         cloud_model_name = str(hm_cloud_sess.get("model") or "gemini-4-hydrogen")
 
         return {
-            "schema_version": "4.1.0",
+            "schema_version": "4.1.1",
             "timestamp": round(time.time(), 3),
             "active_topology": active_topology,
             "timeframe": "SESSION",
@@ -374,7 +376,7 @@ async def _run_once(daemon: TokenWatcherDaemon) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.1.0")
+    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.1.1")
     parser.add_argument("--once", action="store_true", help="Exécute un cycle de collecte unique puis quitte.")
     args = parser.parse_args()
 

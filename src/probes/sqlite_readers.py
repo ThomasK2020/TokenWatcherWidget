@@ -395,13 +395,13 @@ class SqliteTelemetryReader:
         tpm_free = max(0, self.tpm_ceiling - tpm_60s)
         if tpm_pct >= 85:
             q_status = "CRIT"
-            q_label = f"CRIT : OUT OF QUOTA IMMINENT ({tpm_pct}%)"
+            q_label = f"CRITIQUE · {tpm_pct}% · Quota Cloud Saturé"
         elif tpm_pct >= 70:
             q_status = "WARN"
-            q_label = f"WARN : RISQUE OUT OF QUOTA ({tpm_pct}%)"
+            q_label = f"ALERTE · {tpm_pct}% · Alerte Quota Cloud"
         else:
             q_status = "OK"
-            q_label = f"OK : QUOTA CLOUD NOMINAL ({tpm_pct}%)"
+            q_label = f"OK · {tpm_pct}% · Nominal Cloud Quota"
 
         in_tot = hm["cloud_in_total"]
         cached_tot = hm["cloud_cached_total"]
