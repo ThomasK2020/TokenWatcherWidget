@@ -375,6 +375,7 @@ class SqliteTelemetryReader:
                 loc_kind, target_info = self.classify_session(model_clean, provider=provider_id)
 
                 tool_cnt = 0
+                last_prompt_oc = ""
                 if idx < max_sessions:
                     try:
                         tool_cnt = int(
@@ -386,6 +387,29 @@ class SqliteTelemetryReader:
                         )
                     except sqlite3.Error:
                         tool_cnt = 0
+                    try:
+                        p_rows = cur.execute(
+                            """
+                            SELECT json_extract(p.data, '$.text')
+                            FROM message m
+                            JOIN part p ON p.message_id = m.id
+                            WHERE m.session_id = ?
+                              AND json_extract(m.data, '$.role') = 'user'
+                              AND json_extract(p.data, '$.type') = 'text'
+                            ORDER BY m.time_created DESC, p.time_created DESC
+                            LIMIT 5
+                            """,
+                            (sid,),
+                        ).fetchall()
+                        for (raw_txt,) in p_rows:
+                            if not raw_txt or str(raw_txt).lstrip().startswith("Continue if you have next steps"):
+                                continue
+                            cleaned = self._clean_prompt_text(raw_txt)
+                            if cleaned:
+                                last_prompt_oc = cleaned
+                                break
+                    except sqlite3.Error:
+                        last_prompt_oc = ""
 
                 if loc_kind == "local":
                     sess_obj = {
@@ -405,6 +429,7 @@ class SqliteTelemetryReader:
                         "tokens_rsn": int(t_rsn or 0),
                         "tokens_cache_read": int(t_cr or 0),
                         "tokens_total": tok_sum,
+                        "last_prompt": last_prompt_oc,
                         "updated_at": ts,
                         "age_sec": round(age),
                         "status": "ACTIVE" if age <= active_window_sec else "ENDED",
@@ -447,7 +472,7 @@ class SqliteTelemetryReader:
                             "tokens_rsn": int(t_rsn or 0),
                             "tokens_cache_read": int(t_cr or 0),
                             "tokens_total": tok_sum,
-                            "last_prompt": "",
+                            "last_prompt": last_prompt_oc,
                             "updated_at": ts,
                             "age_sec": round(age),
                         })
@@ -745,6 +770,7 @@ class SqliteTelemetryReader:
                                 result["cloud_rsn_total"] += rsn_v
                                 result["cloud_cached_total"] += cr_v
                     else:
+                        db_by_sid[str(sid)] = db_path
                         loc_entry = {
                             "id": str(sid),
                             "parent_id": str(parent_sid) if parent_sid else None,
@@ -763,6 +789,7 @@ class SqliteTelemetryReader:
                             "tokens_cache_read": cr_v,
                             "tokens_total": tok_sum,
                             "provider": provider or target_info or "local",
+                            "last_prompt": "",
                             "updated_at": ts,
                             "age_sec": round(age),
                             "status": sess_status,
@@ -823,8 +850,11 @@ class SqliteTelemetryReader:
         cloud_sessions_all.sort(key=lambda s: (status_rank.get(s["status"], 9), -float(s["updated_at"])))
         top_cloud = cloud_sessions_all[:max_sessions]
 
+        local_sessions_all.sort(key=lambda s: (status_rank.get(s["status"], 9), -float(s["updated_at"])))
+        top_local = local_sessions_all[:max_sessions]
+
         by_db: Dict[Path, List[Dict[str, Any]]] = {}
-        for s_item in top_cloud:
+        for s_item in top_cloud + top_local:
             dbp = db_by_sid.get(s_item["id"])
             if dbp is not None:
                 by_db.setdefault(dbp, []).append(s_item)
@@ -849,9 +879,8 @@ class SqliteTelemetryReader:
             finally:
                 conn.close()
 
-        local_sessions_all.sort(key=lambda s: (status_rank.get(s["status"], 9), -float(s["updated_at"])))
         result["cloud_sessions"] = top_cloud
-        result["local_sessions"] = local_sessions_all[:max_sessions]
+        result["local_sessions"] = top_local
 
         by_model_list: List[Dict[str, Any]] = []
         for m_name, ms in model_stats.items():

@@ -491,17 +491,11 @@
         <!-- Rendu dynamique par renderCloudModelsBar() -->
       </div>
 
-      <!-- Tâche active & Dernière requête Cloud -->
-      <div class="mt-3 pt-3 border-t border-white/5 flex flex-col gap-1.5 text-xs">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-slate-300 font-medium" data-i18n="cloud.active_task_label">Tâche active :</span>
-          <span id="cloud-active-task-title" class="bg-black/40 px-2 py-0.5 rounded text-slate-200 border border-white/5 font-mono text-[11px]">--</span>
-          <span id="cloud-agent-mode" class="text-[11px] text-slate-400 font-mono font-medium">[HERMES · 0 tools · 0 req]</span>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-slate-400 font-medium" data-i18n="cloud.last_prompt_label">Dernière requête :</span>
-          <span id="cloud-last-prompt-text" class="bg-black/30 px-2 py-0.5 rounded text-cyan-200 border border-white/5 font-mono text-[11px] truncate max-w-full">--</span>
-        </div>
+      <!-- Tâche active Cloud (la requête est rattachée directement à la session active ci-dessous) -->
+      <div class="mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center gap-2 text-xs">
+        <span class="text-slate-300 font-medium" data-i18n="cloud.active_task_label">Tâche active :</span>
+        <span id="cloud-active-task-title" class="bg-black/40 px-2 py-0.5 rounded text-slate-200 border border-white/5 font-mono text-[11px]">--</span>
+        <span id="cloud-agent-mode" class="text-[11px] text-slate-400 font-mono font-medium">[HERMES · 0 tools · 0 req]</span>
       </div>
 
       <!-- Tiroir Multi-Sessions Cloud & Sous-agents (<= 3 visibles par défaut + Voir +) -->
@@ -1830,7 +1824,7 @@
       }
 
       const visible = (filtered.length > 3 && !showAllCloudSessions) ? filtered.slice(0, 3) : filtered;
-      listEl.innerHTML = visible.map(s => {
+      listEl.innerHTML = visible.map((s, idx) => {
         const st = s.status || 'ENDED';
         const dotCls = st === 'ACTIVE'
           ? 'heartbeat-dot'
@@ -1849,20 +1843,27 @@
           ? `<span class="text-slate-400 text-[9.5px] shrink-0">[${srcTag} · ${escapeHtml(s.target_info)}]</span>`
           : `<span class="text-slate-400 text-[9.5px] shrink-0">[${escapeHtml(s.profile || 'default')}]</span>`;
         const promptHint = s.last_prompt ? `title="${escapeHtml(s.last_prompt)}"` : '';
+        const showInlinePrompt = Boolean(s.last_prompt) && (st === 'ACTIVE' || idx === 0);
+        const promptRow = showInlinePrompt
+          ? `<div class="mt-1 pl-3 border-l-2 border-amber-400/40 text-[10px] text-cyan-200/90 truncate" title="${escapeHtml(s.last_prompt)}">↳ &ldquo;${escapeHtml(s.last_prompt)}&rdquo;</div>`
+          : '';
         return `
-          <div class="flex flex-wrap items-center justify-between gap-2 bg-[#0D111A] border border-[#1A2234] px-2 py-1 rounded" ${promptHint}>
-            <div class="flex items-center gap-1.5 min-w-0 flex-1">
-              <span class="${dotCls} shrink-0"></span>
-              <span class="text-[9.5px] ${stTxtCls} shrink-0">${escapeHtml(stLbl)}</span>
-              <span class="px-1.5 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-cyan-200 text-[9px] shrink-0">${escapeHtml(s.model)}</span>
-              ${tgtBadge}
-              <span class="text-slate-500 text-[9.5px] shrink-0">(${escapeHtml(s.profile || 'default')})</span>
-              ${subBadge}
-              <span class="text-slate-200 truncate">${escapeHtml(s.title || '--')}</span>
+          <div class="bg-[#0D111A] border border-[#1A2234] px-2 py-1.5 rounded flex flex-col" ${promptHint}>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                <span class="${dotCls} shrink-0"></span>
+                <span class="text-[9.5px] ${stTxtCls} shrink-0">${escapeHtml(stLbl)}</span>
+                <span class="px-1.5 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-cyan-200 text-[9px] shrink-0">${escapeHtml(s.model)}</span>
+                ${tgtBadge}
+                <span class="text-slate-500 text-[9.5px] shrink-0">(${escapeHtml(s.profile || 'default')})</span>
+                ${subBadge}
+                <span class="text-slate-200 truncate">${escapeHtml(s.title || '--')}</span>
+              </div>
+              <div class="text-[#94A3B8] shrink-0 tabular-nums text-[9.5px]">
+                ${Number(s.tool_calls || 0)} tools · ${Number(s.api_calls || 0)} req · ${formatCompactTokens(s.tokens_total)} · ${formatAgeSec(s.age_sec)}
+              </div>
             </div>
-            <div class="text-[#94A3B8] shrink-0 tabular-nums text-[9.5px]">
-              ${Number(s.tool_calls || 0)} tools · ${Number(s.api_calls || 0)} req · ${formatCompactTokens(s.tokens_total)} · ${formatAgeSec(s.age_sec)}
-            </div>
+            ${promptRow}
           </div>`;
       }).join('');
 
@@ -1915,7 +1916,7 @@
       }
 
       const visible = (combined.length > 3 && !showAllLocalSessions) ? combined.slice(0, 3) : combined;
-      listEl.innerHTML = visible.map(s => {
+      listEl.innerHTML = visible.map((s, idx) => {
         const st = s.status || 'ENDED';
         const dotCls = st === 'ACTIVE'
           ? 'heartbeat-dot'
@@ -1927,19 +1928,27 @@
         const subBadge = s.is_subagent
           ? `<span class="px-1 py-0.2 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[9px] shrink-0">↳ subagent</span>`
           : '';
+        const promptHint = s.last_prompt ? `title="${escapeHtml(s.last_prompt)}"` : '';
+        const showInlinePrompt = Boolean(s.last_prompt) && (st === 'ACTIVE' || idx === 0);
+        const promptRow = showInlinePrompt
+          ? `<div class="mt-1 pl-3 border-l-2 border-cyan-400/40 text-[10px] text-cyan-200/90 truncate" title="${escapeHtml(s.last_prompt)}">↳ &ldquo;${escapeHtml(s.last_prompt)}&rdquo;</div>`
+          : '';
         return `
-          <div class="flex flex-wrap items-center justify-between gap-2 bg-[#0D111A] border border-[#1A2234] px-2 py-1 rounded">
-            <div class="flex items-center gap-1.5 min-w-0 flex-1">
-              <span class="${dotCls} shrink-0"></span>
-              <span class="px-1.5 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-cyan-300 text-[9px] shrink-0">${srcBadge}</span>
-              ${tgtTag}
-              <span class="text-slate-300 text-[9.5px] shrink-0">${escapeHtml(s.model || '--')}</span>
-              ${subBadge}
-              <span class="text-slate-200 truncate">${escapeHtml(s.title || '--')}</span>
+          <div class="bg-[#0D111A] border border-[#1A2234] px-2 py-1.5 rounded flex flex-col" ${promptHint}>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                <span class="${dotCls} shrink-0"></span>
+                <span class="px-1.5 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-cyan-300 text-[9px] shrink-0">${srcBadge}</span>
+                ${tgtTag}
+                <span class="text-slate-300 text-[9.5px] shrink-0">${escapeHtml(s.model || '--')}</span>
+                ${subBadge}
+                <span class="text-slate-200 truncate">${escapeHtml(s.title || '--')}</span>
+              </div>
+              <div class="text-[#94A3B8] shrink-0 tabular-nums text-[9.5px]">
+                ${Number(s.tool_calls || 0)} tools · ${formatCompactTokens(s.tokens_total)} · ${formatAgeSec(s.age_sec)}
+              </div>
             </div>
-            <div class="text-[#94A3B8] shrink-0 tabular-nums text-[9.5px]">
-              ${Number(s.tool_calls || 0)} tools · ${formatCompactTokens(s.tokens_total)} · ${formatAgeSec(s.age_sec)}
-            </div>
+            ${promptRow}
           </div>`;
       }).join('');
 
@@ -2736,11 +2745,6 @@
         if (cModeEl) {
           const prof = cq.profile_name ? ` (${cq.profile_name})` : '';
           cModeEl.textContent = `[HERMES${prof} · ${cq.tool_calls ?? 0} tools · ${cq.api_calls ?? 0} req]`;
-        }
-        const cPromptEl = document.getElementById('cloud-last-prompt-text');
-        if (cPromptEl) {
-          cPromptEl.textContent = cq.last_user_prompt ? `"${cq.last_user_prompt}"` : '--';
-          cPromptEl.title = cq.last_user_prompt || '';
         }
       }
 
