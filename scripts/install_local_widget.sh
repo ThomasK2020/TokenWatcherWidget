@@ -13,7 +13,7 @@ cp -f "${WIDGET_DIR}/systemd/tokenwatcher-widget.service" "${USER_SYSTEMD_DIR}/t
 cat > "${DESKTOP_DIR}/tokenwatcher-widget.desktop" <<EOF
 [Desktop Entry]
 Type=Application
-Name=TokenWatcher Cockpit V4.0.2
+Name=TokenWatcher Cockpit V4.0.4
 Comment=Monitoring Multi-Engine LLM & AMD Strix Halo
 Exec=${WIDGET_DIR}/scripts/start_widget.sh
 Terminal=false

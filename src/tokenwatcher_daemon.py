@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Démon Principal TokenWatcher V4.0.2 (SOW Lot 1).
+Démon Principal TokenWatcher V4.0.4.
 Orchestre les 3 sondes (AmdSysfsProbe, EnginesHttpProbe, SqliteTelemetryReader)
 à un intervalle de 1.0s et écrit atomiquement l'état dans /tmp/tokenwatcher_widget_state.json.
 """
@@ -252,11 +252,12 @@ class TokenWatcherDaemon:
         else:
             ttft_sub = reuse_txt
 
-        provider_name = str(hm_sess.get("provider") or "gemini").upper()
-        cloud_model_name = str(hm_sess.get("model") or "gemini-4-hydrogen")
+        hm_cloud_sess = sqlite_data.get("hermes", {}).get("latest_cloud_session") or hm_sess
+        provider_name = str(hm_cloud_sess.get("provider") or "gemini").upper()
+        cloud_model_name = str(hm_cloud_sess.get("model") or "gemini-4-hydrogen")
 
         return {
-            "schema_version": "4.0.2",
+            "schema_version": "4.0.4",
             "timestamp": round(time.time(), 3),
             "active_topology": active_topology,
             "timeframe": "SESSION",
@@ -373,7 +374,7 @@ async def _run_once(daemon: TokenWatcherDaemon) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.0.2")
+    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.0.4")
     parser.add_argument("--once", action="store_true", help="Exécute un cycle de collecte unique puis quitte.")
     args = parser.parse_args()
 

@@ -9,6 +9,7 @@ Calcule les fenêtres temporelles (SESSION, 1H, 24H, 7J, TOTAL) et le TPM/RPM/RP
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import time
 from pathlib import Path
@@ -147,6 +148,8 @@ class SqliteTelemetryReader:
             "available": False,
             "latest_ts": 0.0,
             "latest_session": None,
+            "latest_cloud_ts": 0.0,
+            "latest_cloud_session": None,
             "latest_local_ts": 0.0,
             "latest_local_session": None,
             "windows": {"SESSION": 0, "1H": 0, "24H": 0, "7J": 0, "TOTAL": 0},
@@ -159,22 +162,26 @@ class SqliteTelemetryReader:
             "cloud_rsn_total": 0,
             "cloud_cached_total": 0,
         }
+        best_cloud_db: Optional[Path] = None
+        best_cloud_sid: Optional[str] = None
         dbs = self._iter_hermes_dbs()
         for db_path in dbs:
             conn = self._connect_ro(db_path)
             if conn is None:
                 continue
+            prof_default = db_path.parent.name if db_path.parent.parent.name == "profiles" else "default"
             try:
                 cur = conn.cursor()
                 cols = {r[1] for r in cur.execute("PRAGMA table_info(sessions)").fetchall()}
                 if not cols:
                     continue
                 result["available"] = True
+                prof_sel = "profile_name" if "profile_name" in cols else "NULL AS profile_name"
                 rows = cur.execute(
-                    """
+                    f"""
                     SELECT id, model, title, tool_call_count, input_tokens, output_tokens,
                            cache_read_tokens, reasoning_tokens, last_activity_at, started_at,
-                           cwd, billing_provider, api_call_count
+                           cwd, billing_provider, api_call_count, {prof_sel}
                     FROM sessions
                     ORDER BY COALESCE(last_activity_at, started_at) DESC
                     LIMIT 200
@@ -184,7 +191,7 @@ class SqliteTelemetryReader:
                 for r in rows:
                     (
                         sid, model, title, tools_cnt, t_in, t_out, t_cr, t_rsn,
-                        last_act, started, cwd, provider, api_calls,
+                        last_act, started, cwd, provider, api_calls, prof_name,
                     ) = r
                     ts = self._norm_ts(last_act or started)
                     in_v = int(t_in or 0)
@@ -192,6 +199,7 @@ class SqliteTelemetryReader:
                     cr_v = int(t_cr or 0)
                     rsn_v = int(t_rsn or 0)
                     tok_sum = in_v + out_v + rsn_v + cr_v
+                    prof_label = str(prof_name or prof_default)
 
                     if ts > result["latest_ts"]:
                         result["latest_ts"] = ts
@@ -200,6 +208,8 @@ class SqliteTelemetryReader:
                             "model": model or "Cloud Model",
                             "title": title or "Hermes Session",
                             "tool_calls": int(tools_cnt or 0),
+                            "api_calls": int(api_calls or 0),
+                            "profile": prof_label,
                             "tokens_in": in_v,
                             "tokens_out": out_v,
                             "tokens_rsn": rsn_v,
@@ -223,6 +233,22 @@ class SqliteTelemetryReader:
                     prov_low = str(provider or "").lower()
                     is_cloud = prov_low not in {"local", "lemonade", "llamacpp", "vllm"}
                     if is_cloud:
+                        if ts > result["latest_cloud_ts"]:
+                            result["latest_cloud_ts"] = ts
+                            best_cloud_db = db_path
+                            best_cloud_sid = str(sid)
+                            result["latest_cloud_session"] = {
+                                "id": sid,
+                                "model": model or "Cloud Model",
+                                "title": title or "Hermes Cloud Session",
+                                "tool_calls": int(tools_cnt or 0),
+                                "api_calls": int(api_calls or 0),
+                                "profile": prof_label,
+                                "cwd": cwd or "",
+                                "provider": provider or "cloud",
+                                "last_prompt": "",
+                                "updated_at": ts,
+                            }
                         if age <= 86400:
                             result["cloud_rpd_24h"] += int(api_calls or 1)
                             result["cloud_in_total"] += in_v
@@ -282,6 +308,27 @@ class SqliteTelemetryReader:
                 pass
             finally:
                 conn.close()
+
+        # Dernière requête utilisateur réelle de la session Cloud gagnante
+        if best_cloud_db is not None and best_cloud_sid and result["latest_cloud_session"]:
+            conn = self._connect_ro(best_cloud_db)
+            if conn is not None:
+                try:
+                    row = conn.execute(
+                        "SELECT content FROM messages WHERE session_id = ? AND role = 'user' ORDER BY timestamp DESC, id DESC LIMIT 1",
+                        (best_cloud_sid,),
+                    ).fetchone()
+                    if row and row[0]:
+                        txt = str(row[0]).split("--- Attached Context ---")[0]
+                        txt = re.sub(r"@file:\S+\s*", "", txt)
+                        txt = re.sub(r"\s+", " ", txt).strip()
+                        if len(txt) > 115:
+                            txt = txt[:112].rstrip() + "..."
+                        result["latest_cloud_session"]["last_prompt"] = txt
+                except sqlite3.Error:
+                    pass
+                finally:
+                    conn.close()
         return result
 
     def _read_openwebui_db(self) -> Dict[str, Any]:
@@ -371,6 +418,8 @@ class SqliteTelemetryReader:
             for k in ("SESSION", "1H", "24H", "7J", "TOTAL")
         }
 
+        cloud_sess = hm.get("latest_cloud_session") or hm.get("latest_session") or {}
+
         return {
             "active_topology": active_topology,
             "opencode": oc,
@@ -394,5 +443,11 @@ class SqliteTelemetryReader:
                 "total_in_tokens": in_tot,
                 "total_out_tokens": hm["cloud_out_total"],
                 "total_rsn_tokens": hm["cloud_rsn_total"],
+                "active_task_title": cloud_sess.get("title") or "Session Cloud active",
+                "last_user_prompt": cloud_sess.get("last_prompt") or "",
+                "tool_calls": int(cloud_sess.get("tool_calls", 0)),
+                "api_calls": int(cloud_sess.get("api_calls", 0)),
+                "profile_name": cloud_sess.get("profile") or "default",
+                "cwd": cloud_sess.get("cwd") or "",
             },
         }

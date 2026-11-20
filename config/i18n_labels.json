@@ -1,7 +1,7 @@
 {
   "fr": {
     "header.title": "TOKENWATCHER",
-    "header.version_badge": "V4.0.2 MULTI-ENGINE",
+    "header.version_badge": "V4.0.4 MULTI-ENGINE",
     "header.live_badge": "LIVE",
     "nav.session": "SESSION",
     "nav.1h": "1H",
@@ -108,11 +108,13 @@
     "cloud.metrics.headroom": "Headroom libre",
     "cloud.metrics.rpd_quota": "Quota Journalier (RPD)",
     "cloud.limits.tier1_ceiling": "Plafond Tier 1",
-    "cloud.alert.sliding_window_desc": "Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted"
+    "cloud.alert.sliding_window_desc": "Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted",
+    "cloud.active_task_label": "Tâche active :",
+    "cloud.last_prompt_label": "Dernière requête :"
   },
   "en": {
     "header.title": "TOKENWATCHER",
-    "header.version_badge": "V4.0.2 MULTI-ENGINE",
+    "header.version_badge": "V4.0.4 MULTI-ENGINE",
     "header.live_badge": "LIVE",
     "nav.session": "SESSION",
     "nav.1h": "1H",
@@ -219,6 +221,8 @@
     "cloud.metrics.headroom": "Free Headroom",
     "cloud.metrics.rpd_quota": "Daily Quota (RPD)",
     "cloud.limits.tier1_ceiling": "Tier 1 Ceiling",
-    "cloud.alert.sliding_window_desc": "Active 60s sliding window monitoring to prevent HTTP 429 Resource Exhausted errors"
+    "cloud.alert.sliding_window_desc": "Active 60s sliding window monitoring to prevent HTTP 429 Resource Exhausted errors",
+    "cloud.active_task_label": "Active task:",
+    "cloud.last_prompt_label": "Latest request:"
   }
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TokenWatcher V4.0.2 MULTI-ENGINE — Next-Gen AI Telemetry & Dynamic Pipeline Cockpit</title>
+  <title>TokenWatcher V4.0.4 MULTI-ENGINE — Next-Gen AI Telemetry & Dynamic Pipeline Cockpit</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome 6 icons -->
@@ -238,7 +238,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-sm md:text-base font-bold tracking-wider text-white" data-i18n="header.title">TOKENWATCHER</h1>
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/25" data-i18n="header.version_badge">V4.0.2 MULTI-ENGINE</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/25" data-i18n="header.version_badge">V4.0.4 MULTI-ENGINE</span>
             <span id="header-i18n-saved-pill" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25">I18N Dynamic Ready</span>
           </div>
           <div class="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
@@ -445,6 +445,99 @@
             <i class="fa-solid fa-shuffle"></i>
             <span data-i18n="testbench.btn_topo">Changer Topologie Active</span>
           </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 2B. RADAR QUOTAS & FLUX CLOUD (DIRECTEMENT SOUS CHAINES D'EXÉCUTION - V4.0.4) ==================== -->
+    <section id="section-cloud" class="glass-card rounded-2xl p-4 md:p-5 border border-amber-500/25 relative overflow-hidden transition-all duration-300">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base">
+            <i class="fa-solid fa-cloud-bolt"></i>
+          </div>
+          <div>
+            <div class="flex items-center flex-wrap gap-2">
+              <span class="text-xs font-bold text-white tracking-wider" data-i18n="cloud.section_title">INFOS ET QUOTAS D'UTILISATION DU SERVICE CLOUD BASED</span>
+              <span class="px-2 py-0.2 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30" id="cloud-provider-label">Google AI Studio · Tier 1</span>
+              <span class="px-2 py-0.2 rounded text-[10px] font-mono bg-white/5 text-cyan-300 border border-cyan-500/20" id="cloud-model-label">GEMINI 4 ARGON</span>
+            </div>
+            <div class="text-[11px] text-slate-400" data-i18n="cloud.alert.sliding_window_desc">
+              Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted
+            </div>
+          </div>
+        </div>
+
+        <!-- Out of Quota Smart Alert Pill (RENOMMÉ : WARN : RISQUE OUT OF QUOTA) -->
+        <div class="flex items-center gap-2.5">
+          <div id="alert-429-badge" class="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping" id="alert-429-dot"></span>
+            <span id="alert-429-text">WARN : RISQUE OUT OF QUOTA (71%)</span>
+          </div>
+          <button onclick="compressCloudContext()" class="px-3 py-1.5 text-xs font-mono rounded-xl bg-white/5 hover:bg-white/15 text-slate-200 border border-white/10 transition flex items-center gap-1.5" title="Exécuter /compress dans Hermes pour réduire le TPM">
+            <i class="fa-solid fa-compress text-[11px] text-cyan-400"></i>
+            <span>/compress</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tâche active & Dernière requête Cloud (V4.0.4) -->
+      <div class="mt-3 pt-3 border-t border-white/5 flex flex-col gap-1.5 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-amber-400 font-medium" data-i18n="cloud.active_task_label">Tâche active :</span>
+          <span id="cloud-active-task-title" class="bg-black/40 px-2 py-0.5 rounded text-slate-200 border border-white/5 font-mono text-[11px]">Session Cloud active</span>
+          <span id="cloud-agent-mode" class="text-[11px] text-amber-300 font-mono font-medium">[HERMES · 0 tools · 0 req]</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-slate-400 font-medium" data-i18n="cloud.last_prompt_label">Dernière requête :</span>
+          <span id="cloud-last-prompt-text" class="bg-black/30 px-2 py-0.5 rounded text-cyan-200 border border-white/5 font-mono text-[11px] truncate max-w-full">--</span>
+        </div>
+      </div>
+
+      <!-- Cloud Metrics Grid (AVEC JAUGE 10 CARRÉS SUR TPM GLISSANT) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 mt-3 border-t border-white/5">
+        <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-2">
+          <div class="bg-[#0A0D14] border border-[#1B2436] rounded-lg px-2.5 py-2 flex flex-wrap items-center justify-between gap-2 font-mono">
+            <div class="flex items-center gap-2">
+              <span class="text-[10.5px] text-[#94A3B8] font-semibold" data-i18n="cloud.metrics.tpm_sliding">TPM Glissant (60s)</span>
+              <div id="cloud-tpm-squares-10" class="sq-10-grid" title="Occupation du Quota TPM Glissant 60s (1 carré = 10%)"></div>
+            </div>
+            <div class="flex items-center tabular-nums">
+              <span class="text-[10.5px] text-[#94A3B8] font-semibold" id="cloud-tpm-text">1.42M / 2.00M</span>
+              <span class="text-[11px] text-amber-300 font-bold ml-1" id="cloud-tpm-pct">(71%)</span>
+            </div>
+          </div>
+          <div class="flex justify-between text-[10px] font-mono text-slate-400">
+            <span><span data-i18n="cloud.metrics.headroom">Headroom libre</span>: <strong class="text-emerald-400 tabular-nums" id="cloud-tpm-free">580k tok/min</strong></span>
+            <span class="text-slate-500"><span data-i18n="cloud.limits.tier1_ceiling">Plafond Tier 1</span>: <span id="cloud-tpm-ceiling">2.0M</span></span>
+          </div>
+        </div>
+
+        <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
+          <div class="text-[11px] font-mono text-slate-400 flex justify-between">
+            <span><span data-i18n="cloud.metrics.rpm">Requêtes RPM</span> [■□□□□]</span>
+            <span class="text-white font-mono font-bold tabular-nums" id="cloud-rpm-val">18 / 1 000 req/min</span>
+          </div>
+          <div class="text-[11px] font-mono text-slate-400 flex justify-between pt-0.5">
+            <span data-i18n="cloud.metrics.rpd_quota">Quota Journalier (RPD)</span>
+            <span id="cloud-rpd-val" class="text-white font-mono font-bold tabular-nums">482 / 10 000 req/j</span>
+          </div>
+          <div class="text-[10px] text-slate-500 pt-0.5 font-mono">
+            Moy/Req: <strong id="cloud-avg-req" class="text-slate-300 tabular-nums">58.0k tok</strong> (Historique + tools)
+          </div>
+        </div>
+
+        <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-slate-400" data-i18n="cloud.cache_hit_label">Cache Cloud Hit</span>
+            <span id="cloud-cache-hit-val" class="text-cyan-400 font-bold tabular-nums">60% (110k tok)</span>
+          </div>
+          <div class="text-[11px] font-mono text-slate-300">
+            <span data-i18n="cloud.metrics.total_tokens">Cumul Cloud</span>: <span id="cloud-cumul-val" class="text-white tabular-nums">IN: 184.0k · OUT: 6.4k · RSN: 2.1k</span>
+          </div>
+          <div class="text-[10px] text-emerald-400 font-mono">
+            Source: usageMetadata.cachedContentTokenCount · Switch Cloud ⇄ Local 100%
+          </div>
         </div>
       </div>
     </section>
@@ -968,86 +1061,6 @@
       </section>
     </div>
 
-    <!-- ==================== 6. RADAR QUOTAS & FLUX CLOUD (VARIABILISÉ) ==================== -->
-    <section id="section-cloud" class="glass-card rounded-2xl p-4 md:p-5 border border-amber-500/25 relative overflow-hidden transition-all duration-300">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base">
-            <i class="fa-solid fa-cloud-bolt"></i>
-          </div>
-          <div>
-            <div class="flex items-center flex-wrap gap-2">
-              <span class="text-xs font-bold text-white tracking-wider" data-i18n="cloud.section_title">INFOS ET QUOTAS D'UTILISATION DU SERVICE CLOUD BASED</span>
-              <span class="px-2 py-0.2 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30" id="cloud-provider-label">Google AI Studio · Tier 1</span>
-              <span class="px-2 py-0.2 rounded text-[10px] font-mono bg-white/5 text-cyan-300 border border-cyan-500/20" id="cloud-model-label">GEMINI 4 ARGON</span>
-            </div>
-            <div class="text-[11px] text-slate-400" data-i18n="cloud.alert.sliding_window_desc">
-              Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted
-            </div>
-          </div>
-        </div>
-
-        <!-- Out of Quota Smart Alert Pill (RENOMMÉ : WARN : RISQUE OUT OF QUOTA) -->
-        <div class="flex items-center gap-2.5">
-          <div id="alert-429-badge" class="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping" id="alert-429-dot"></span>
-            <span id="alert-429-text">WARN : RISQUE OUT OF QUOTA (71%)</span>
-          </div>
-          <button onclick="compressCloudContext()" class="px-3 py-1.5 text-xs font-mono rounded-xl bg-white/5 hover:bg-white/15 text-slate-200 border border-white/10 transition flex items-center gap-1.5" title="Exécuter /compress dans Hermes pour réduire le TPM">
-            <i class="fa-solid fa-compress text-[11px] text-cyan-400"></i>
-            <span>/compress</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Cloud Metrics Grid (AVEC JAUGE 10 CARRÉS SUR TPM GLISSANT) -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 mt-3 border-t border-white/5">
-        <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-2">
-          <div class="bg-[#0A0D14] border border-[#1B2436] rounded-lg px-2.5 py-2 flex flex-wrap items-center justify-between gap-2 font-mono">
-            <div class="flex items-center gap-2">
-              <span class="text-[10.5px] text-[#94A3B8] font-semibold" data-i18n="cloud.metrics.tpm_sliding">TPM Glissant (60s)</span>
-              <div id="cloud-tpm-squares-10" class="sq-10-grid" title="Occupation du Quota TPM Glissant 60s (1 carré = 10%)"></div>
-            </div>
-            <div class="flex items-center tabular-nums">
-              <span class="text-[10.5px] text-[#94A3B8] font-semibold" id="cloud-tpm-text">1.42M / 2.00M</span>
-              <span class="text-[11px] text-amber-300 font-bold ml-1" id="cloud-tpm-pct">(71%)</span>
-            </div>
-          </div>
-          <div class="flex justify-between text-[10px] font-mono text-slate-400">
-            <span><span data-i18n="cloud.metrics.headroom">Headroom libre</span>: <strong class="text-emerald-400 tabular-nums" id="cloud-tpm-free">580k tok/min</strong></span>
-            <span class="text-slate-500"><span data-i18n="cloud.limits.tier1_ceiling">Plafond Tier 1</span>: <span id="cloud-tpm-ceiling">2.0M</span></span>
-          </div>
-        </div>
-
-        <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
-          <div class="text-[11px] font-mono text-slate-400 flex justify-between">
-            <span><span data-i18n="cloud.metrics.rpm">Requêtes RPM</span> [■□□□□]</span>
-            <span class="text-white font-mono font-bold tabular-nums" id="cloud-rpm-val">18 / 1 000 req/min</span>
-          </div>
-          <div class="text-[11px] font-mono text-slate-400 flex justify-between pt-0.5">
-            <span data-i18n="cloud.metrics.rpd_quota">Quota Journalier (RPD)</span>
-            <span id="cloud-rpd-val" class="text-white font-mono font-bold tabular-nums">482 / 10 000 req/j</span>
-          </div>
-          <div class="text-[10px] text-slate-500 pt-0.5 font-mono">
-            Moy/Req: <strong id="cloud-avg-req" class="text-slate-300 tabular-nums">58.0k tok</strong> (Historique + tools)
-          </div>
-        </div>
-
-        <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
-          <div class="flex items-center justify-between text-xs font-mono">
-            <span class="text-slate-400" data-i18n="cloud.cache_hit_label">Cache Cloud Hit</span>
-            <span id="cloud-cache-hit-val" class="text-cyan-400 font-bold tabular-nums">60% (110k tok)</span>
-          </div>
-          <div class="text-[11px] font-mono text-slate-300">
-            <span data-i18n="cloud.metrics.total_tokens">Cumul Cloud</span>: <span id="cloud-cumul-val" class="text-white tabular-nums">IN: 184.0k · OUT: 6.4k · RSN: 2.1k</span>
-          </div>
-          <div class="text-[10px] text-emerald-400 font-mono">
-            Source: usageMetadata.cachedContentTokenCount · Switch Cloud ⇄ Local 100%
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- FOOTER STATUS -->
     <footer class="flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-500 px-2 pt-1 gap-2">
       <div class="flex items-center gap-2">
@@ -1068,13 +1081,13 @@
     <span id="toast-msg">Action effectuée</span>
   </div>
 
-  <!-- ==================== JAVASCRIPT ROBUSTE V4.0.2 ==================== -->
+  <!-- ==================== JAVASCRIPT ROBUSTE V4.0.4 ==================== -->
   <script>
     // 1. DICTIONNAIRE I18N COMPLET SANS CODE EN DUR
     const DEFAULT_I18N = {
       fr: {
         "header.title": "TOKENWATCHER",
-        "header.version_badge": "V4.0.2 MULTI-ENGINE",
+        "header.version_badge": "V4.0.4 MULTI-ENGINE",
         "header.live_badge": "LIVE",
         "nav.session": "SESSION",
         "nav.1h": "1H",
@@ -1186,11 +1199,13 @@
         "cloud.metrics.headroom": "Headroom libre",
         "cloud.metrics.rpd_quota": "Quota Journalier (RPD)",
         "cloud.limits.tier1_ceiling": "Plafond Tier 1",
-        "cloud.alert.sliding_window_desc": "Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted"
+        "cloud.alert.sliding_window_desc": "Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted",
+        "cloud.active_task_label": "Tâche active :",
+        "cloud.last_prompt_label": "Dernière requête :"
       },
       en: {
         "header.title": "TOKENWATCHER",
-        "header.version_badge": "V4.0.2 MULTI-ENGINE",
+        "header.version_badge": "V4.0.4 MULTI-ENGINE",
         "header.live_badge": "LIVE",
         "nav.session": "SESSION",
         "nav.1h": "1H",
@@ -1302,7 +1317,9 @@
         "cloud.metrics.headroom": "Free Headroom",
         "cloud.metrics.rpd_quota": "Daily Quota (RPD)",
         "cloud.limits.tier1_ceiling": "Tier 1 Ceiling",
-        "cloud.alert.sliding_window_desc": "Active 60s sliding window monitoring to prevent HTTP 429 Resource Exhausted errors"
+        "cloud.alert.sliding_window_desc": "Active 60s sliding window monitoring to prevent HTTP 429 Resource Exhausted errors",
+        "cloud.active_task_label": "Active task:",
+        "cloud.last_prompt_label": "Latest request:"
       }
     };
 
@@ -2337,6 +2354,19 @@
         if (chEl) chEl.textContent = `${cq.cache_hit_pct ?? 0}% (${formatCompactTokens(cq.cached_tokens)} tok)`;
         const cumEl = document.getElementById('cloud-cumul-val');
         if (cumEl) cumEl.textContent = `IN: ${formatCompactTokens(cq.total_in_tokens)} · OUT: ${formatCompactTokens(cq.total_out_tokens)} · RSN: ${formatCompactTokens(cq.total_rsn_tokens)}`;
+
+        const cTaskEl = document.getElementById('cloud-active-task-title');
+        if (cTaskEl && cq.active_task_title) cTaskEl.textContent = cq.active_task_title;
+        const cModeEl = document.getElementById('cloud-agent-mode');
+        if (cModeEl) {
+          const prof = cq.profile_name ? ` (${cq.profile_name})` : '';
+          cModeEl.textContent = `[HERMES${prof} · ${cq.tool_calls ?? 0} tools · ${cq.api_calls ?? 0} req]`;
+        }
+        const cPromptEl = document.getElementById('cloud-last-prompt-text');
+        if (cPromptEl) {
+          cPromptEl.textContent = cq.last_user_prompt ? `"${cq.last_user_prompt}"` : '--';
+          cPromptEl.title = cq.last_user_prompt || '';
+        }
       }
 
       setTopology(Number(data.active_topology || 1), { silent: true });
@@ -2487,7 +2517,7 @@
         const resp = await fetch(`file:///tmp/tokenwatcher_widget_state.json?t=${Date.now()}`, { cache: 'no-store' });
         if (!resp.ok && resp.status !== 0) throw new Error(`HTTP ${resp.status}`);
         const payload = await resp.json();
-        if (payload && payload.schema_version === '4.0.2') {
+        if (payload && (payload.schema_version === '4.0.4' || payload.schema_version === '4.0.2')) {
           ipcLiveConnected = true;
           applyIpcPayload(payload);
           return;
