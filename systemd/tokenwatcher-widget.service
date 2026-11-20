@@ -1,15 +1,16 @@
+# Template systemd utilisateur (install_local_widget.sh génère le chemin exact du poste)
 [Unit]
-Description=TokenWatcher GTK4 Cockpit Widget V4.0.4
+Description=TokenWatcher GTK4 Cockpit Widget V4.1.0
 After=graphical-session.target tokenwatcher-daemon.service
 Wants=tokenwatcher-daemon.service
 PartOf=graphical-session.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/thomas/data/AI-workspace/TokenWatcherWidget/Widget
+WorkingDirectory=%h/Projects/TokenWatcherWidget
 PassEnvironment=WAYLAND_DISPLAY DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
-Environment=GI_TYPELIB_PATH=/home/thomas/.local/lib/girepository-1.0
-ExecStart=/home/thomas/data/AI-workspace/TokenWatcherWidget/Widget/.venv/bin/python3 src/widget_runner.py
+Environment=GI_TYPELIB_PATH=%h/.local/lib/girepository-1.0
+ExecStart=%h/Projects/TokenWatcherWidget/.venv/bin/python3 src/widget_runner.py
 Restart=on-failure
 RestartSec=3s
 

@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WIDGET_DIR="${HOME}/data/AI-workspace/TokenWatcherWidget/Widget"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WIDGET_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PYTHON_BIN="${WIDGET_DIR}/.venv/bin/python3"
+if [ ! -x "${PYTHON_BIN}" ]; then
+    PYTHON_BIN="/usr/bin/python3"
+fi
 STATE_FILE="/tmp/tokenwatcher_widget_state.json"
 LOCAL_TYPELIB="${HOME}/.local/lib/girepository-1.0"
-
-if [ ! -x "${PYTHON_BIN}" ]; then
-    echo "Erreur : environnement virtuel introuvable (${PYTHON_BIN})" >&2
-    exit 1
-fi
 
 if [ -d "${LOCAL_TYPELIB}" ]; then
     export GI_TYPELIB_PATH="${LOCAL_TYPELIB}${GI_TYPELIB_PATH:+:${GI_TYPELIB_PATH}}"
@@ -36,4 +35,4 @@ if ! systemctl --user is-active --quiet tokenwatcher-daemon.service 2>/dev/null;
     done
 fi
 
-"${PYTHON_BIN}" "${WIDGET_DIR}/src/widget_runner.py"
+exec "${PYTHON_BIN}" "${WIDGET_DIR}/src/widget_runner.py" "$@"

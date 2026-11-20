@@ -1,8 +1,12 @@
 #!/usr/bin/python3
 """
 TokenWatcher Desktop Runner (GTK4 + WebKitGTK 6.0).
-Charge l'interface ui/index.html (V4.0.2 MULTI-ENGINE).
+Charge l'interface ui/index.html (V4.1.0 MULTI-ENGINE).
+Modes CLI :
+  - défaut (sans argument) : mode production (sans contrôles de test/topologie)
+  - --preprod              : affiche les pastilles de prévisualisation des topologies
 """
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -35,13 +39,16 @@ from gi.repository import Gtk, WebKit  # type: ignore[import-untyped]
 
 
 class TokenWatcherApp(Gtk.Application):
-    def __init__(self) -> None:
-        super().__init__(application_id='io.thomas.tokenwatcher.widget')
+    def __init__(self, preprod: bool = False) -> None:
+        app_id = 'io.thomas.tokenwatcher.widget.preprod' if preprod else 'io.thomas.tokenwatcher.widget'
+        super().__init__(application_id=app_id)
+        self.preprod = preprod
 
     def do_activate(self) -> None:
+        title = "TokenWatcher Cockpit V4.1.0 [PREPROD]" if self.preprod else "TokenWatcher Cockpit V4.1.0"
         win = Gtk.ApplicationWindow(
             application=self,
-            title="TokenWatcher Cockpit V4.0.2"
+            title=title
         )
         win.set_default_size(980, 920)
 
@@ -51,12 +58,20 @@ class TokenWatcherApp(Gtk.Application):
         settings.set_allow_universal_access_from_file_urls(True)
 
         ui_path = Path(__file__).resolve().parent.parent / "ui" / "index.html"
-        webview.load_uri(f"file://{ui_path}")
+        uri = f"file://{ui_path}?mode=preprod" if self.preprod else f"file://{ui_path}"
+        webview.load_uri(uri)
 
         win.set_child(webview)
         win.present()
 
 
 if __name__ == "__main__":
-    app = TokenWatcherApp()
-    sys.exit(app.run(sys.argv))
+    parser = argparse.ArgumentParser(description="TokenWatcher GTK4 Cockpit V4.1.0")
+    parser.add_argument(
+        "--preprod",
+        action="store_true",
+        help="Active le mode préproduction (affiche les pastilles de sélection de topologie).",
+    )
+    args, gtk_args = parser.parse_known_args()
+    app = TokenWatcherApp(preprod=args.preprod)
+    sys.exit(app.run([sys.argv[0], *gtk_args]))

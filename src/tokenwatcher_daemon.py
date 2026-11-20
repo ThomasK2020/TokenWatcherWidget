@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Démon Principal TokenWatcher V4.0.4.
+Démon Principal TokenWatcher V4.1.0.
 Orchestre les 3 sondes (AmdSysfsProbe, EnginesHttpProbe, SqliteTelemetryReader)
 à un intervalle de 1.0s et écrit atomiquement l'état dans /tmp/tokenwatcher_widget_state.json.
 """
@@ -257,7 +257,7 @@ class TokenWatcherDaemon:
         cloud_model_name = str(hm_cloud_sess.get("model") or "gemini-4-hydrogen")
 
         return {
-            "schema_version": "4.0.4",
+            "schema_version": "4.1.0",
             "timestamp": round(time.time(), 3),
             "active_topology": active_topology,
             "timeframe": "SESSION",
@@ -374,7 +374,7 @@ async def _run_once(daemon: TokenWatcherDaemon) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.0.4")
+    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.1.0")
     parser.add_argument("--once", action="store_true", help="Exécute un cycle de collecte unique puis quitte.")
     args = parser.parse_args()
 

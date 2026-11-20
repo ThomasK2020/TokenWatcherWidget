@@ -1,11 +1,12 @@
+# Template systemd utilisateur (install_local_widget.sh génère le chemin exact du poste)
 [Unit]
-Description=TokenWatcher Telemetry Daemon V4.0.4 MULTI-ENGINE
+Description=TokenWatcher Telemetry Daemon V4.1.0 MULTI-ENGINE
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/thomas/data/AI-workspace/TokenWatcherWidget/Widget
-ExecStart=/home/thomas/data/AI-workspace/TokenWatcherWidget/Widget/.venv/bin/python3 src/tokenwatcher_daemon.py
+WorkingDirectory=%h/Projects/TokenWatcherWidget
+ExecStart=%h/Projects/TokenWatcherWidget/.venv/bin/python3 src/tokenwatcher_daemon.py
 Restart=always
 RestartSec=2s
 Environment=PYTHONUNBUFFERED=1
