@@ -1,4 +1,4 @@
-# Configuration dynamique des ports services pour TokenWatcher V4.0.2
+# Configuration dynamique des ports, profils Hermes et quotas par modèle — TokenWatcher V4.2.0
 services:
   proxy:
     host: "127.0.0.1"
@@ -21,7 +21,147 @@ services:
   open_webui:
     host: "127.0.0.1"
     port: 8080
+  ollama:
+    host: "127.0.0.1"
+    port: 11434
+    ps_endpoint: "/api/ps"
+
+hermes:
+  # "auto" résout automatiquement le profil le plus récemment actif (ou env HERMES_PROFILE)
+  # Mettre include_all_profiles: true pour agréger tous les profils (~/.hermes/profiles/* + default)
+  active_profile: "auto"
+  include_all_profiles: false
+  active_session_window_sec: 120
+  max_sessions: 15
+
+cloud_quotas:
+  default:
+    label: "Cloud API"
+    tpm_ceiling: 2000000
+    rpm_ceiling: 1000
+    rpd_ceiling: 10000
+  models:
+    "gemini-4-hydrogen":
+      label: "Hydrogen"
+      tpm_ceiling: 2000000
+      rpm_ceiling: 1000
+      rpd_ceiling: 10000
+    "gemini-4-argon":
+      label: "Argon"
+      tpm_ceiling: 2000000
+      rpm_ceiling: 1000
+      rpd_ceiling: 10000
+    "gemini-*-flash-lite*":
+      label: "Flash-Lite"
+      tpm_ceiling: 4000000
+      rpm_ceiling: 4000
+      rpd_ceiling: 40000
+    "gemini-flash-lite*":
+      label: "Flash-Lite"
+      tpm_ceiling: 4000000
+      rpm_ceiling: 4000
+      rpd_ceiling: 40000
+    "gemini-*-flash*":
+      label: "Flash"
+      tpm_ceiling: 4000000
+      rpm_ceiling: 2000
+      rpd_ceiling: 20000
+    "gemini-flash*":
+      label: "Flash"
+      tpm_ceiling: 4000000
+      rpm_ceiling: 2000
+      rpd_ceiling: 20000
+    "gemini-*pro*":
+      label: "Pro"
+      tpm_ceiling: 2000000
+      rpm_ceiling: 1000
+      rpd_ceiling: 10000
 
 ipc:
   state_file: "/tmp/tokenwatcher_widget_state.json"
   polling_interval_sec: 1.0
+
+inference_routing:
+  cloud_hosts:
+    - "googleapis.com"
+    - "generativelanguage.googleapis.com"
+    - "aiplatform.googleapis.com"
+    - "api.openai.com"
+    - "api.anthropic.com"
+    - "openrouter.ai"
+    - "githubcopilot.com"
+    - "api.githubcopilot.com"
+    - "copilot-proxy.githubusercontent.com"
+    - "api.mistral.ai"
+    - "api.groq.com"
+    - "api.deepseek.com"
+    - "api.x.ai"
+    - "api.together.xyz"
+    - "api.perplexity.ai"
+    - "api.fireworks.ai"
+    - "openai.azure.com"
+  local_hosts:
+    - "localhost"
+    - "127.0.0.1"
+    - "::1"
+    - "0.0.0.0"
+  cloud_providers:
+    - "gemini"
+    - "google"
+    - "vertex"
+    - "openai"
+    - "codex"
+    - "copilot"
+    - "github-copilot"
+    - "anthropic"
+    - "claude"
+    - "openrouter"
+    - "azure"
+    - "bedrock"
+    - "groq"
+    - "mistral"
+    - "deepseek"
+    - "xai"
+    - "together"
+    - "perplexity"
+    - "fireworks"
+  local_providers:
+    - "local"
+    - "lemonade"
+    - "llamacpp"
+    - "llama-cpp"
+    - "vllm"
+    - "ollama"
+    - "lmstudio"
+    - "jan"
+    - "koboldcpp"
+    - "exllamav2"
+    - "mlx"
+  cloud_model_prefixes:
+    - "gemini"
+    - "gpt-4"
+    - "gpt-5"
+    - "gpt-3.5"
+    - "o1-"
+    - "o3-"
+    - "o4-"
+    - "claude-"
+    - "copilot"
+    - "grok-"
+    - "sonar-"
+    - "command-r"
+    - "deepseek/deepseek-"
+  local_model_tokens:
+    - ".gguf"
+    - "-gguf"
+    - ":32b"
+    - ":14b"
+    - ":8b"
+    - ":7b"
+    - "awq"
+    - "gptq"
+    - "exl2"
+    - "mlx"
+    - "ollama"
+    - "lemonade"
+    - "vllm"

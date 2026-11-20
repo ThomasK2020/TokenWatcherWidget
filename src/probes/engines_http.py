@@ -245,15 +245,17 @@ class EnginesHttpProbe:
         if isinstance(slots_data, list) and slots_data and isinstance(slots_data[0], dict):
             slot0 = slots_data[0]
             n_ctx = int(slot0.get("n_ctx") or n_ctx)
-            is_processing = bool(slot0.get("is_processing", False))
-            n_past = int(slot0.get("n_past") or slot0.get("n_prompt_tokens") or 0)
+            is_processing = any(bool(s.get("is_processing", False)) for s in slots_data if isinstance(s, dict))
+            # Trouver le slot actif (ou slot0 par défaut) pour les métriques héro
+            active_slot = next((s for s in slots_data if isinstance(s, dict) and s.get("is_processing")), slot0)
+            n_past = int(active_slot.get("n_past") or active_slot.get("n_prompt_tokens") or 0)
             n_decoded = 0
-            nxt = slot0.get("next_token")
+            nxt = active_slot.get("next_token")
             if isinstance(nxt, list) and nxt and isinstance(nxt[0], dict):
                 n_decoded = int(nxt[0].get("n_decoded") or 0)
             kv_used = n_past + n_decoded
-            kv_cached = int(slot0.get("n_prompt_tokens_cache") or 0)
-            timings = slot0.get("timings")
+            kv_cached = int(active_slot.get("n_prompt_tokens_cache") or 0)
+            timings = active_slot.get("timings")
             if isinstance(timings, dict):
                 tg_tps = float(timings.get("predicted_per_second") or 0.0)
                 pp_tps = float(timings.get("prompt_per_second") or 0.0)
@@ -261,12 +263,36 @@ class EnginesHttpProbe:
                     ttft_sec = float(timings["prompt_ms"]) / 1000.0
                 if timings.get("cache_n"):
                     kv_cached = int(timings["cache_n"])
-            params = slot0.get("params")
+            params = active_slot.get("params")
             if isinstance(params, dict):
                 if isinstance(params.get("temperature"), (int, float)):
                     temp_param = round(float(params["temperature"]), 2)
                 if isinstance(params.get("repeat_penalty"), (int, float)):
                     rep_pen = round(float(params["repeat_penalty"]), 2)
+
+        parsed_slots: List[Dict[str, Any]] = []
+        if isinstance(slots_data, list):
+            for s in slots_data:
+                if not isinstance(s, dict):
+                    continue
+                s_ctx = int(s.get("n_ctx") or n_ctx or 65536)
+                s_past = int(s.get("n_past") or s.get("n_prompt_tokens") or 0)
+                s_dec = 0
+                s_nxt = s.get("next_token")
+                if isinstance(s_nxt, list) and s_nxt and isinstance(s_nxt[0], dict):
+                    s_dec = int(s_nxt[0].get("n_decoded") or 0)
+                s_used = s_past + s_dec
+                raw_tim = s.get("timings")
+                s_tim: Dict[str, Any] = raw_tim if isinstance(raw_tim, dict) else {}
+                parsed_slots.append({
+                    "id": int(s.get("id", len(parsed_slots))),
+                    "id_task": s.get("id_task"),
+                    "is_processing": bool(s.get("is_processing", False)),
+                    "n_ctx": s_ctx,
+                    "kv_used": s_used,
+                    "kv_pct": min(100, round((s_used / max(1, s_ctx)) * 100)),
+                    "tg_tps": round(float(s_tim.get("predicted_per_second") or 0.0), 1),
+                })
 
         # Fallback métriques moyennes Prometheus quand le slot est IDLE
         if tg_tps <= 0.0:
@@ -313,8 +339,13 @@ class EnginesHttpProbe:
         kv_pct = min(100, round((kv_used / n_ctx) * 100)) if n_ctx > 0 else 0
         ctx_label = f"{round(n_ctx / 1024)}k" if n_ctx >= 1024 else str(n_ctx)
 
+        active_slots_cnt = sum(1 for s in parsed_slots if s["is_processing"])
+        total_slots_cnt = len(parsed_slots)
         if not online:
             status_label = "OFFLINE"
+        elif total_slots_cnt > 1:
+            run_tag = "RUN" if (is_processing or prom.get("llamacpp:requests_processing", 0) > 0) else "IDLE"
+            status_label = f"SLOTS ({active_slots_cnt}/{total_slots_cnt}) · {run_tag}"
         elif is_processing or prom.get("llamacpp:requests_processing", 0) > 0:
             status_label = "SLOT 0 · RUN"
         else:
@@ -328,6 +359,48 @@ class EnginesHttpProbe:
         tuning_badges.extend(flags)
         tuning_badges.append("stream_options: include_usage")
 
+        extra_lemonade = []
+        if isinstance(health_data, dict):
+            loaded_list = health_data.get("all_models_loaded") or []
+            for idx, m_extra in enumerate(loaded_list[1:], 1):
+                if not isinstance(m_extra, dict):
+                    continue
+                b_url = str(m_extra.get("backend_url") or "")
+                parsed_b = urllib.parse.urlparse(b_url)
+                e_host = parsed_b.hostname or v_host
+                e_port = parsed_b.port or (v_port + idx)
+                e_slots_url = f"http://{e_host}:{e_port}{slots_ep}"
+                e_slots = await asyncio.to_thread(self._http_get_json, e_slots_url, 0.8)
+                e_ctx = int((m_extra.get("recipe_options") or {}).get("ctx_size") or 32768)
+                e_used = 0
+                e_tps = 0.0
+                if isinstance(e_slots, list) and e_slots and isinstance(e_slots[0], dict):
+                    es0 = e_slots[0]
+                    e_ctx = int(es0.get("n_ctx") or e_ctx)
+                    e_used = int(es0.get("n_past") or es0.get("n_prompt_tokens") or 0)
+                    raw_et = es0.get("timings")
+                    et: Dict[str, Any] = raw_et if isinstance(raw_et, dict) else {}
+                    e_tps = round(float(et.get("predicted_per_second") or 0.0), 1)
+                e_pid = m_extra.get("pid") if isinstance(m_extra.get("pid"), int) else None
+                e_gb = await asyncio.to_thread(self._read_fdinfo_drm_gb, e_pid)
+                e_dev = str(m_extra.get("device") or "gpu").upper()
+                extra_lemonade.append({
+                    "id": f"lemonade-{idx}-{e_port}",
+                    "online": bool(m_extra.get("backend_alive", True)),
+                    "is_busy": bool(m_extra.get("is_busy", False) or m_extra.get("is_streaming", False)),
+                    "badge": f"[LEMONADE · {e_dev}]",
+                    "model": str(m_extra.get("model_name") or f"Model :{e_port}"),
+                    "host": f"http://{e_host}",
+                    "port": e_port,
+                    "speed_tps": e_tps,
+                    "uma_alloc_gb": round(float(e_gb or 0.0), 1),
+                    "kv_used_tokens": e_used,
+                    "kv_max_tokens": e_ctx,
+                    "kv_pct": min(100, round((e_used / max(1, e_ctx)) * 100)),
+                    "flags": [f"Device {e_dev}", str(m_extra.get("recipe") or "llamacpp")],
+                    "client_name": "Lemonade",
+                })
+
         return {
             "online": online,
             "badge": "[VULKAN]",
@@ -336,6 +409,10 @@ class EnginesHttpProbe:
             "host": f"http://{v_host}",
             "port": v_port,
             "status_label": status_label,
+            "slots": parsed_slots,
+            "slots_active": active_slots_cnt,
+            "slots_total": total_slots_cnt,
+            "extra_lemonade": extra_lemonade,
             "speed_tps": round(tg_tps, 1),
             "speed_pp_tps": round(pp_tps),
             "ttft_sec": round(ttft_sec, 2),
@@ -453,3 +530,48 @@ class EnginesHttpProbe:
             "client_port": webui_port,
             "vllm_requests": [],
         }
+
+    async def poll_ollama_models(self) -> List[Dict[str, Any]]:
+        """Interroger GET /api/ps d'Ollama pour découvrir les modèles chargés en parallèle."""
+        services = self._services()
+        o_cfg = services.get("ollama", {})
+        o_host = o_cfg.get("host", "127.0.0.1")
+        o_port = int(o_cfg.get("port", 11434))
+        ps_ep = o_cfg.get("ps_endpoint", "/api/ps")
+        ps_url = f"http://{o_host}:{o_port}{ps_ep}"
+
+        data = await asyncio.to_thread(self._http_get_json, ps_url, 0.8)
+        if not isinstance(data, dict):
+            return []
+        models = data.get("models") or []
+        instances: List[Dict[str, Any]] = []
+        for idx, m in enumerate(models):
+            if not isinstance(m, dict):
+                continue
+            name = str(m.get("name") or m.get("model") or f"ollama-{idx}")
+            size_vram = float(m.get("size_vram") or m.get("size") or 0.0)
+            ctx_len = int(m.get("context_length") or 32768)
+            raw_details = m.get("details")
+            details: Dict[str, Any] = raw_details if isinstance(raw_details, dict) else {}
+            flags = [
+                str(details.get("format") or "gguf").upper(),
+                str(details.get("parameter_size") or ""),
+                str(details.get("quantization_level") or ""),
+            ]
+            instances.append({
+                "id": f"ollama-{idx}-{o_port}",
+                "online": True,
+                "is_busy": False,
+                "badge": "[OLLAMA]",
+                "model": name,
+                "host": f"http://{o_host}",
+                "port": o_port,
+                "speed_tps": 0.0,
+                "uma_alloc_gb": round(size_vram / (1024 ** 3), 1),
+                "kv_used_tokens": 0,
+                "kv_max_tokens": ctx_len,
+                "kv_pct": 0,
+                "flags": [f for f in flags if f],
+                "client_name": "Ollama API",
+            })
+        return instances

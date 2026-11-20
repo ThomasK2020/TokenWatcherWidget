@@ -1,7 +1,7 @@
 {
   "fr": {
     "header.title": "TOKENWATCHER",
-    "header.version_badge": "V4.1.1 MULTI-ENGINE",
+    "header.version_badge": "V4.2.0 MULTI-ENGINE",
     "header.live_badge": "LIVE",
     "header.offline_badge": "HORS LIGNE",
     "nav.session": "SESSION",
@@ -109,11 +109,19 @@
     "cloud.limits.tier1_ceiling": "Plafond Tier 1",
     "cloud.alert.sliding_window_desc": "Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted",
     "cloud.active_task_label": "Tâche active :",
-    "cloud.last_prompt_label": "Dernière requête :"
+    "cloud.last_prompt_label": "Dernière requête :",
+    "cloud.sessions_pill": "SESSIONS ({active} act · {total} réc)",
+    "cloud.no_sessions": "Aucune session Cloud récente sur ce profil",
+    "cloud.all_models_chip": "Tous ({count})",
+    "cloud.status_active": "ACTIF",
+    "cloud.status_open": "OUVERT",
+    "cloud.status_ended": "FINI",
+    "local.sessions_pill": "SESSIONS / SLOTS LOCAUX ({active} act · {total} réc)",
+    "local.no_sessions": "Aucune session ou slot local récent"
   },
   "en": {
     "header.title": "TOKENWATCHER",
-    "header.version_badge": "V4.1.1 MULTI-ENGINE",
+    "header.version_badge": "V4.2.0 MULTI-ENGINE",
     "header.live_badge": "LIVE",
     "header.offline_badge": "OFFLINE",
     "nav.session": "SESSION",
@@ -221,6 +229,14 @@
     "cloud.limits.tier1_ceiling": "Tier 1 Ceiling",
     "cloud.alert.sliding_window_desc": "Active 60s sliding window monitoring to prevent HTTP 429 Resource Exhausted errors",
     "cloud.active_task_label": "Active task:",
-    "cloud.last_prompt_label": "Latest request:"
+    "cloud.last_prompt_label": "Latest request:",
+    "cloud.sessions_pill": "SESSIONS ({active} act · {total} rec)",
+    "cloud.no_sessions": "No recent Cloud session on this profile",
+    "cloud.all_models_chip": "All ({count})",
+    "cloud.status_active": "ACTIVE",
+    "cloud.status_open": "OPEN",
+    "cloud.status_ended": "ENDED",
+    "local.sessions_pill": "LOCAL SESSIONS / SLOTS ({active} act · {total} rec)",
+    "local.no_sessions": "No recent local session or slot"
   }
 }

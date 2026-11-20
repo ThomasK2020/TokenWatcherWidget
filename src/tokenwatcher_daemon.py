@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Démon Principal TokenWatcher V4.1.1.
+Démon Principal TokenWatcher V4.2.0.
 Orchestre les 3 sondes (AmdSysfsProbe, EnginesHttpProbe, SqliteTelemetryReader)
 à un intervalle de 1.0s et écrit atomiquement l'état dans /tmp/tokenwatcher_widget_state.json.
 """
@@ -27,6 +27,17 @@ DEFAULT_PORTS_CONFIG: Dict[str, Any] = {
         "lemonade_admin": {"host": "127.0.0.1", "port": 13305, "health_endpoint": "/api/v1/health"},
         "vllm_rocm": {"host": "127.0.0.1", "port": 8000, "metrics_endpoint": "/metrics", "models_endpoint": "/v1/models"},
         "open_webui": {"host": "127.0.0.1", "port": 8080},
+        "ollama": {"host": "127.0.0.1", "port": 11434, "ps_endpoint": "/api/ps"},
+    },
+    "hermes": {
+        "active_profile": "auto",
+        "include_all_profiles": False,
+        "active_session_window_sec": 120,
+        "max_sessions": 15,
+    },
+    "cloud_quotas": {
+        "default": {"label": "Cloud API", "tpm_ceiling": 2000000, "rpm_ceiling": 1000, "rpd_ceiling": 10000},
+        "models": {},
     },
     "ipc": {
         "state_file": "/tmp/tokenwatcher_widget_state.json",
@@ -47,6 +58,11 @@ class TokenWatcherDaemon:
         """Charger config/ports.yaml avec fallback mémoire sécurisé."""
         merged = {
             "services": {k: dict(v) for k, v in DEFAULT_PORTS_CONFIG["services"].items()},
+            "hermes": dict(DEFAULT_PORTS_CONFIG["hermes"]),
+            "cloud_quotas": {
+                "default": dict(DEFAULT_PORTS_CONFIG["cloud_quotas"]["default"]),
+                "models": dict(DEFAULT_PORTS_CONFIG["cloud_quotas"]["models"]),
+            },
             "ipc": dict(DEFAULT_PORTS_CONFIG["ipc"]),
         }
         ports_file = self.config_dir / "ports.yaml"
@@ -57,27 +73,43 @@ class TokenWatcherDaemon:
                     for k, v in loaded["services"].items():
                         if isinstance(v, dict):
                             merged["services"].setdefault(k, {}).update(v)
+                if isinstance(loaded.get("hermes"), dict):
+                    merged["hermes"].update(loaded["hermes"])
+                if isinstance(loaded.get("cloud_quotas"), dict):
+                    cq = loaded["cloud_quotas"]
+                    if isinstance(cq.get("default"), dict):
+                        merged["cloud_quotas"]["default"].update(cq["default"])
+                    if isinstance(cq.get("models"), dict):
+                        merged["cloud_quotas"]["models"].update(cq["models"])
                 if isinstance(loaded.get("ipc"), dict):
                     merged["ipc"].update(loaded["ipc"])
+                if isinstance(loaded.get("inference_routing"), dict):
+                    merged["inference_routing"] = dict(loaded["inference_routing"])
             except Exception as exc:
                 print(f"Avertissement lecture ports.yaml: {exc}")
 
         self._full_config = merged
+        self.sqlite_reader.configure(
+            hermes_cfg=merged["hermes"],
+            quotas_cfg=merged["cloud_quotas"],
+            routing_cfg=merged.get("inference_routing"),
+        )
         self.engines_probe = EnginesHttpProbe(merged)
         return merged
 
     async def collect_once(self) -> Dict[str, Any]:
-        """Fusionner les données des 3 sondes dans le schéma JSON V4.0.2."""
+        """Fusionner les données des 3 sondes dans le schéma JSON V4.2.0."""
         if not self._full_config or self.engines_probe is None:
             self.load_ports_config()
 
         assert self.engines_probe is not None
 
-        sysfs_raw, sqlite_data, vulkan_data, vllm_data = await asyncio.gather(
+        sysfs_raw, sqlite_data, vulkan_data, vllm_data, ollama_instances = await asyncio.gather(
             asyncio.to_thread(self.sysfs_probe.read_metrics),
             asyncio.to_thread(self.sqlite_reader.read_active_topology_and_tokens),
             self.engines_probe.poll_vulkan_slots(),
             self.engines_probe.poll_vllm_metrics(),
+            self.engines_probe.poll_ollama_models(),
         )
 
         meta = sysfs_raw.pop("_meta", {})
@@ -143,6 +175,9 @@ class TokenWatcherDaemon:
             "host": vulkan_data["host"],
             "port": vulkan_data["port"],
             "status_label": vulkan_data["status_label"],
+            "slots": vulkan_data.get("slots") or [],
+            "slots_active": int(vulkan_data.get("slots_active", 0)),
+            "slots_total": int(vulkan_data.get("slots_total", 0)),
             "speed_tps": vulkan_data["speed_tps"],
             "uma_alloc_gb": round(vulkan_gb, 1),
             "uma_alloc_pct": vulkan_pct,
@@ -254,12 +289,20 @@ class TokenWatcherDaemon:
         else:
             ttft_sub = reuse_txt
 
+        extra_instances = list(vulkan_data.get("extra_lemonade") or []) + list(ollama_instances or [])
+        extra_gb = sum(float(x.get("uma_alloc_gb") or 0.0) for x in extra_instances)
+        if extra_gb > 0:
+            total_ai_gb = round(total_ai_gb + extra_gb, 1)
+            free_gb = round(max(0.0, apu_total_gb - total_ai_gb - os_gb), 1)
+            free_pct = pct_of_apu(free_gb)
+            total_ai_pct = pct_of_apu(total_ai_gb)
+
         hm_cloud_sess = sqlite_data.get("hermes", {}).get("latest_cloud_session") or hm_sess
         provider_name = str(hm_cloud_sess.get("provider") or "gemini").upper()
         cloud_model_name = str(hm_cloud_sess.get("model") or "gemini-4-hydrogen")
 
         return {
-            "schema_version": "4.1.1",
+            "schema_version": "4.2.0",
             "timestamp": round(time.time(), 3),
             "active_topology": active_topology,
             "timeframe": "SESSION",
@@ -269,6 +312,7 @@ class TokenWatcherDaemon:
                 "vllm": int(services["vllm_rocm"]["port"]),
                 "webui": int(services["open_webui"]["port"]),
                 "lemonade_admin": int(services["lemonade_admin"]["port"]),
+                "ollama": int(services.get("ollama", {}).get("port", 11434)),
             },
             "runtime_config": {
                 "cpu_model": meta.get("cpu_model", "AMD Ryzen AI"),
@@ -280,6 +324,8 @@ class TokenWatcherDaemon:
                 "provider_name": provider_name,
                 "provider_tier": "API",
                 "model_name": cloud_model_name,
+                "hermes_profile": sqlite_data["cloud_quotas"].get("active_profile", "default"),
+                "include_all_profiles": sqlite_data["cloud_quotas"].get("include_all_profiles", False),
             },
             "session_hero": {
                 "local_backend": local_backend,
@@ -331,9 +377,11 @@ class TokenWatcherDaemon:
             "inference_engines": {
                 "vulkan": vulkan_card,
                 "rocm": rocm_card,
+                "extra_instances": extra_instances,
             },
             "hardware_amd": sysfs_raw,
             "cloud_quotas": sqlite_data["cloud_quotas"],
+            "local_sessions": sqlite_data.get("local_sessions") or [],
             "time_windows": sqlite_data["time_windows"],
             "local_time_windows": local_windows,
         }
@@ -376,7 +424,7 @@ async def _run_once(daemon: TokenWatcherDaemon) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.1.1")
+    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.2.0")
     parser.add_argument("--once", action="store_true", help="Exécute un cycle de collecte unique puis quitte.")
     args = parser.parse_args()
 

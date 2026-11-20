@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """
 TokenWatcher Desktop Runner (GTK4 + WebKitGTK 6.0).
-Charge l'interface ui/index.html (V4.1.1 MULTI-ENGINE).
+Charge l'interface ui/index.html (V4.2.0 MULTI-ENGINE).
 Modes CLI :
   - défaut (sans argument) : mode production (sans contrôles de test/topologie)
   - --preprod              : affiche les pastilles de prévisualisation des topologies
@@ -45,7 +45,7 @@ class TokenWatcherApp(Gtk.Application):
         self.preprod = preprod
 
     def do_activate(self) -> None:
-        title = "TokenWatcher Cockpit V4.1.1 [PREPROD]" if self.preprod else "TokenWatcher Cockpit V4.1.1"
+        title = "TokenWatcher Cockpit V4.2.0 [PREPROD]" if self.preprod else "TokenWatcher Cockpit V4.2.0"
         win = Gtk.ApplicationWindow(
             application=self,
             title=title
@@ -66,7 +66,7 @@ class TokenWatcherApp(Gtk.Application):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TokenWatcher GTK4 Cockpit V4.1.1")
+    parser = argparse.ArgumentParser(description="TokenWatcher GTK4 Cockpit V4.2.0")
     parser.add_argument(
         "--preprod",
         action="store_true",

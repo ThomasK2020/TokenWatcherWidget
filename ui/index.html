@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TokenWatcher V4.1.1 MULTI-ENGINE — AI Telemetry & Dynamic Pipeline Cockpit</title>
+  <title>TokenWatcher V4.2.0 MULTI-ENGINE — AI Telemetry & Dynamic Pipeline Cockpit</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome 6 icons -->
@@ -137,6 +137,51 @@
       animation: none;
       box-shadow: none;
     }
+    @keyframes dot-blink-anim {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 8px currentColor;
+      }
+      50% {
+        opacity: 0.22;
+        transform: scale(0.8);
+        box-shadow: none;
+      }
+    }
+    .dot-blink {
+      animation: dot-blink-anim 1.1s infinite ease-in-out;
+    }
+    @keyframes icon-pulse-amber {
+      0%, 100% {
+        box-shadow: 0 0 12px rgba(251, 191, 36, 0.35);
+        border-color: rgba(251, 191, 36, 0.65);
+        background-color: rgba(245, 158, 11, 0.24);
+      }
+      50% {
+        box-shadow: none;
+        border-color: rgba(245, 158, 11, 0.25);
+        background-color: rgba(245, 158, 11, 0.10);
+      }
+    }
+    @keyframes icon-pulse-cyan {
+      0%, 100% {
+        box-shadow: 0 0 12px rgba(34, 211, 238, 0.35);
+        border-color: rgba(34, 211, 238, 0.65);
+        background-color: rgba(6, 182, 212, 0.24);
+      }
+      50% {
+        box-shadow: none;
+        border-color: rgba(6, 182, 212, 0.25);
+        background-color: rgba(6, 182, 212, 0.10);
+      }
+    }
+    .icon-active-amber {
+      animation: icon-pulse-amber 1.4s infinite ease-in-out;
+    }
+    .icon-active-cyan {
+      animation: icon-pulse-cyan 1.4s infinite ease-in-out;
+    }
     .sq-10-grid {
       display: flex;
       align-items: center;
@@ -248,7 +293,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-sm md:text-base font-bold tracking-wider text-white" data-i18n="header.title">TOKENWATCHER</h1>
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/25" data-i18n="header.version_badge">V4.1.1 MULTI-ENGINE</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/25" data-i18n="header.version_badge">V4.2.0 MULTI-ENGINE</span>
             <span id="header-preprod-badge" class="hidden text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">PREPROD</span>
             <span id="header-i18n-saved-pill" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25">I18N Ready</span>
           </div>
@@ -315,7 +360,7 @@
         Valeurs actives chargées par le démon depuis <code class="text-amber-300 font-mono bg-black/40 px-1.5 py-0.5 rounded">config/ports.yaml</code> et les sondes système. Pour modifier un port, éditez <code class="text-cyan-300 font-mono bg-black/40 px-1 py-0.5 rounded">config/ports.yaml</code> puis redémarrez <code class="text-slate-200 font-mono">tokenwatcher-daemon.service</code>.
       </p>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-xs">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 font-mono text-xs">
         <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
           <span class="text-[10px] text-amber-400 uppercase block font-semibold">Proxy OpenCode</span>
           <div id="ro-port-proxy" class="text-white font-bold tabular-nums">127.0.0.1:13306</div>
@@ -341,6 +386,11 @@
           <div id="ro-port-lemonade-admin" class="text-white font-bold tabular-nums">127.0.0.1:13305</div>
           <span class="text-[10px] text-slate-500 block">/api/v1/health</span>
         </div>
+        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
+          <span class="text-[10px] text-slate-300 uppercase block font-semibold">Ollama Local</span>
+          <div id="ro-port-ollama" class="text-white font-bold tabular-nums">127.0.0.1:11434</div>
+          <span class="text-[10px] text-slate-500 block">/api/ps</span>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-white/10 font-mono text-xs">
@@ -349,8 +399,9 @@
           <div id="ro-hw-profile" class="text-white font-semibold">--</div>
         </div>
         <div class="bg-black/40 p-3 rounded-xl border border-amber-500/25 space-y-1">
-          <div class="text-[10px] text-amber-400 uppercase font-bold">Service Cloud Actif (state.db)</div>
+          <div class="text-[10px] text-amber-400 uppercase font-bold">Profil Hermes & Quotas (state.db)</div>
           <div id="ro-cloud-profile" class="text-white font-semibold">--</div>
+          <div id="ro-hermes-profile" class="text-[10px] text-slate-400">--</div>
         </div>
       </div>
 
@@ -403,12 +454,12 @@
       </div>
     </section>
 
-    <!-- ==================== 2B. RADAR QUOTAS & FLUX CLOUD (DIRECTEMENT SOUS CHAINES D'EXÉCUTION - V4.1.1) ==================== -->
+    <!-- ==================== 2B. RADAR QUOTAS & FLUX CLOUD (DIRECTEMENT SOUS CHAINES D'EXÉCUTION - V4.2.0) ==================== -->
     <section id="section-cloud" class="glass-card rounded-2xl p-4 md:p-5 border border-amber-500/25 relative overflow-hidden transition-all duration-300">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base">
-            <i class="fa-solid fa-cloud-bolt"></i>
+          <div id="cloud-section-icon-box" class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base shrink-0 transition-all duration-300">
+            <i id="cloud-section-icon" class="fa-solid fa-cloud-bolt"></i>
           </div>
           <div>
             <div class="flex items-center flex-wrap gap-2">
@@ -422,16 +473,25 @@
           </div>
         </div>
 
-        <!-- Out of Quota Flat Status Readout (sans apparence bouton) -->
-        <div class="flex items-center gap-2.5 shrink-0">
+        <!-- Out of Quota Flat Status Readout + Collapsible Sessions Pill -->
+        <div class="flex flex-wrap items-center gap-3 shrink-0">
           <div id="alert-429-badge" class="text-xs font-mono flex items-center gap-2 text-slate-400">
             <span class="w-2 h-2 rounded-full bg-slate-500 shrink-0" id="alert-429-dot"></span>
             <span id="alert-429-text">--</span>
           </div>
+          <button type="button" id="cloud-sessions-toggle-btn" onclick="toggleCloudSessionsDrawer()" class="font-mono text-[10.5px] bg-[#090C12] hover:bg-[#111726] border border-[#243047] hover:border-amber-500/50 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 cursor-pointer transition tabular-nums">
+            <span id="cloud-sessions-pill-text" class="text-slate-300">SESSIONS (0 act · 0 réc)</span>
+            <span id="cloud-sessions-chevron" class="text-[9px] text-amber-300 ml-0.5 leading-none transition-transform duration-200 rotate-180">▼</span>
+          </button>
         </div>
       </div>
 
-      <!-- Tâche active & Dernière requête Cloud (V4.1.1) -->
+      <!-- Ventilation Quotas par Modèle (Argon / Hydrogen / Flash) -->
+      <div id="cloud-models-bar" class="hidden flex-wrap items-center gap-1.5 mt-3 pt-2.5 border-t border-white/5 font-mono text-[10px]">
+        <!-- Rendu dynamique par renderCloudModelsBar() -->
+      </div>
+
+      <!-- Tâche active & Dernière requête Cloud -->
       <div class="mt-3 pt-3 border-t border-white/5 flex flex-col gap-1.5 text-xs">
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-slate-300 font-medium" data-i18n="cloud.active_task_label">Tâche active :</span>
@@ -441,6 +501,22 @@
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-slate-400 font-medium" data-i18n="cloud.last_prompt_label">Dernière requête :</span>
           <span id="cloud-last-prompt-text" class="bg-black/30 px-2 py-0.5 rounded text-cyan-200 border border-white/5 font-mono text-[11px] truncate max-w-full">--</span>
+        </div>
+      </div>
+
+      <!-- Tiroir Multi-Sessions Cloud & Sous-agents (<= 3 visibles par défaut + Voir +) -->
+      <div id="cloud-sessions-drawer" class="mt-3 bg-[#080B11] border border-[#1E2638] rounded-lg p-2.5 font-mono text-[10px] text-[#94A3B8] flex flex-col gap-1.5">
+        <div class="flex flex-wrap items-center justify-between gap-1.5 pb-1 border-b border-[#161E2E] text-[9.5px]">
+          <span id="cloud-sessions-hdr-label">Sessions Cloud & Subagents (state.db)</span>
+          <span id="cloud-sessions-profile-badge" class="text-slate-400">Profil: --</span>
+        </div>
+        <div id="cloud-sessions-list" class="flex flex-col gap-1">
+          <!-- Rendu dynamique par renderCloudSessionsList() -->
+        </div>
+        <div id="cloud-sessions-more-wrapper" class="hidden pt-0.5 flex justify-end">
+          <button type="button" onclick="toggleShowAllCloudSessions()" id="cloud-sessions-more-btn" class="text-[10px] font-mono bg-[#121824] hover:bg-[#1A2234] text-slate-300 hover:text-white border border-[#243047] px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1">
+            Voir + (+0)
+          </button>
         </div>
       </div>
 
@@ -498,32 +574,37 @@
 
       <div class="relative z-10 space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/5 pb-4">
-          <div class="space-y-1 min-w-0">
-            <!-- Dynamic Local Inference Block Title -->
-            <div class="flex items-center gap-2 pb-0.5">
-              <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-              <span id="local-inference-block-title" class="text-[11px] font-mono font-bold tracking-wider text-cyan-400 uppercase">
-                MOTEUR D'INFÉRENCE LOCALE / LLM · (VULKAN ENGINE on LLAMA-SERVER :8001)
-              </span>
+          <div class="flex items-start space-x-3 min-w-0">
+            <div id="local-section-icon-box" class="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-base shrink-0 transition-all duration-300 mt-0.5">
+              <i id="local-section-icon" class="fa-solid fa-server"></i>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <span id="hero-backend-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
-                <i class="fa-solid fa-microchip text-[9px]"></i> VULKAN LOCAL (:8001)
-              </span>
-              <span id="active-model-title" class="text-base font-bold text-white tracking-wide font-mono">--</span>
-              <span id="active-model-quant" class="text-xs text-slate-400 font-mono">(--)</span>
-            </div>
-            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-              <span class="text-cyan-400 font-medium" data-i18n="session.active_task_label">Tâche active :</span>
-              <span id="active-task-title" class="bg-black/40 px-2 py-0.5 rounded text-slate-200 border border-white/5 font-mono text-[11px]">--</span>
-            </div>
-            <div class="flex items-center gap-2.5 pt-0.5 min-w-0">
-              <span id="active-agent-mode" class="text-[11px] text-emerald-400 font-mono font-medium shrink-0 whitespace-nowrap">[--]</span>
-              <button id="workspace-dir-btn" onclick="triggerToast('📁 Workspace : ' + (document.getElementById('workspace-dir-text')?.textContent || ''))" class="text-[11px] font-mono text-slate-400 hover:text-cyan-300 transition flex items-center gap-1.5 min-w-0">
-                <i class="fa-regular fa-folder-open text-cyan-400 shrink-0"></i>
-                <span id="workspace-dir-text" class="truncate">--</span>
-                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60 shrink-0"></i>
-              </button>
+            <div class="space-y-1 min-w-0">
+              <!-- Dynamic Local Inference Block Title -->
+              <div class="flex items-center gap-2 pb-0.5">
+                <span id="local-section-dot" class="w-2 h-2 rounded-full bg-cyan-400 text-cyan-400 shrink-0"></span>
+                <span id="local-inference-block-title" class="text-[11px] font-mono font-bold tracking-wider text-cyan-400 uppercase">
+                  MOTEUR D'INFÉRENCE LOCALE / LLM · (VULKAN ENGINE on LLAMA-SERVER :8001)
+                </span>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <span id="hero-backend-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                  <i class="fa-solid fa-microchip text-[9px]"></i> VULKAN LOCAL (:8001)
+                </span>
+                <span id="active-model-title" class="text-base font-bold text-white tracking-wide font-mono">--</span>
+                <span id="active-model-quant" class="text-xs text-slate-400 font-mono">(--)</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                <span class="text-cyan-400 font-medium" data-i18n="session.active_task_label">Tâche active :</span>
+                <span id="active-task-title" class="bg-black/40 px-2 py-0.5 rounded text-slate-200 border border-white/5 font-mono text-[11px]">--</span>
+              </div>
+              <div class="flex items-center gap-2.5 pt-0.5 min-w-0">
+                <span id="active-agent-mode" class="text-[11px] text-emerald-400 font-mono font-medium shrink-0 whitespace-nowrap">[--]</span>
+                <button id="workspace-dir-btn" onclick="triggerToast('📁 Workspace : ' + (document.getElementById('workspace-dir-text')?.textContent || ''))" class="text-[11px] font-mono text-slate-400 hover:text-cyan-300 transition flex items-center gap-1.5 min-w-0">
+                  <i class="fa-regular fa-folder-open text-cyan-400 shrink-0"></i>
+                  <span id="workspace-dir-text" class="truncate">--</span>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60 shrink-0"></i>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -624,6 +705,27 @@
               <span class="px-2 py-0.5 rounded bg-blue-500/15 text-[11px] font-mono text-blue-300 border border-blue-500/30">KV <strong class="text-white">q8_0</strong></span>
               <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-[11px] font-mono text-emerald-300 border border-emerald-500/30">FA: <strong class="text-white">ON</strong></span>
               <span class="px-2 py-0.5 rounded bg-purple-500/15 text-[11px] font-mono text-purple-300 border border-purple-500/30">stream_options: include_usage</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tiroir Multi-Sessions & Slots Locaux (<= 3 visibles par défaut + Voir +) -->
+        <div class="bg-[#080B11] border border-[#1E2638] rounded-lg p-2.5 font-mono text-[10px] text-[#94A3B8] flex flex-col gap-1.5">
+          <div class="flex flex-wrap items-center justify-between gap-1.5">
+            <button type="button" onclick="toggleLocalSessionsDrawer()" class="flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer transition">
+              <span id="local-sessions-pill-text">SESSIONS / SLOTS LOCAUX (0 act · 0 réc)</span>
+              <span id="local-sessions-chevron" class="text-[9px] text-cyan-300 leading-none transition-transform duration-200 rotate-180">▼</span>
+            </button>
+            <span id="local-sessions-source-label" class="text-[9.5px] text-slate-500">opencode.db + state.db + /slots</span>
+          </div>
+          <div id="local-sessions-drawer-body" class="flex flex-col gap-1 pt-1 border-t border-[#161E2E]">
+            <div id="local-sessions-list" class="flex flex-col gap-1">
+              <!-- Rendu dynamique par renderLocalSessionsList() -->
+            </div>
+            <div id="local-sessions-more-wrapper" class="hidden pt-0.5 flex justify-end">
+              <button type="button" onclick="toggleShowAllLocalSessions()" id="local-sessions-more-btn" class="text-[10px] font-mono bg-[#121824] hover:bg-[#1A2234] text-slate-300 hover:text-white border border-[#243047] px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1">
+                Voir + (+0)
+              </button>
             </div>
           </div>
         </div>
@@ -790,6 +892,10 @@
                 </div>
               </div>
 
+              <div id="vulkan-multi-slots-strip" class="hidden flex-wrap items-center gap-1.5 font-mono text-[10px]">
+                <!-- Rendu dynamique quand llama-server --parallel > 1 -->
+              </div>
+
               <div class="flex flex-wrap items-center justify-between gap-1.5 font-mono text-[10px] text-[#94A3B8]">
                 <div id="vulkan-flags-container" class="flex flex-wrap items-center gap-1">
                   <span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">NGL 999</span>
@@ -892,6 +998,9 @@
             </div>
           </div>
         </article>
+
+        <!-- MOTEURS LOCAUX ADDITIONNELS DÉTECTÉS DYNAMIQUEMENT (Lemonade multi-modèles / Ollama /api/ps) -->
+        <div id="extra-engines-container" class="hidden space-y-3.5"></div>
       </section>
 
       <!-- 5. SILICIUM AMD INDICATORS (VARIABILISÉ - 100% WIDTH STACKED BELOW INFERENCE ENGINES) -->
@@ -1025,7 +1134,7 @@
     <span id="toast-msg">Action effectuée</span>
   </div>
 
-  <!-- ==================== JAVASCRIPT ROBUSTE V4.1.1 ==================== -->
+  <!-- ==================== JAVASCRIPT ROBUSTE V4.2.0 ==================== -->
   <script>
     const isPreprod = new URLSearchParams(window.location.search).get('mode') === 'preprod';
 
@@ -1033,7 +1142,7 @@
     const DEFAULT_I18N = {
       fr: {
         "header.title": "TOKENWATCHER",
-        "header.version_badge": "V4.1.1 MULTI-ENGINE",
+        "header.version_badge": "V4.2.0 MULTI-ENGINE",
         "header.live_badge": "LIVE",
         "header.offline_badge": "HORS LIGNE",
         "nav.session": "SESSION",
@@ -1145,11 +1254,19 @@
         "cloud.limits.tier1_ceiling": "Plafond Tier 1",
         "cloud.alert.sliding_window_desc": "Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted",
         "cloud.active_task_label": "Tâche active :",
-        "cloud.last_prompt_label": "Dernière requête :"
+        "cloud.last_prompt_label": "Dernière requête :",
+        "cloud.sessions_pill": "SESSIONS ({active} act · {total} réc)",
+        "cloud.no_sessions": "Aucune session Cloud récente sur ce profil",
+        "cloud.all_models_chip": "Tous ({count})",
+        "cloud.status_active": "ACTIF",
+        "cloud.status_open": "OUVERT",
+        "cloud.status_ended": "FINI",
+        "local.sessions_pill": "SESSIONS / SLOTS LOCAUX ({active} act · {total} réc)",
+        "local.no_sessions": "Aucune session ou slot local récent"
       },
       en: {
         "header.title": "TOKENWATCHER",
-        "header.version_badge": "V4.1.1 MULTI-ENGINE",
+        "header.version_badge": "V4.2.0 MULTI-ENGINE",
         "header.live_badge": "LIVE",
         "header.offline_badge": "OFFLINE",
         "nav.session": "SESSION",
@@ -1261,7 +1378,15 @@
         "cloud.limits.tier1_ceiling": "Tier 1 Ceiling",
         "cloud.alert.sliding_window_desc": "Active 60s sliding window monitoring to prevent HTTP 429 Resource Exhausted errors",
         "cloud.active_task_label": "Active task:",
-        "cloud.last_prompt_label": "Latest request:"
+        "cloud.last_prompt_label": "Latest request:",
+        "cloud.sessions_pill": "SESSIONS ({active} act · {total} rec)",
+        "cloud.no_sessions": "No recent Cloud session on this profile",
+        "cloud.all_models_chip": "All ({count})",
+        "cloud.status_active": "ACTIVE",
+        "cloud.status_open": "OPEN",
+        "cloud.status_ended": "ENDED",
+        "local.sessions_pill": "LOCAL SESSIONS / SLOTS ({active} act · {total} rec)",
+        "local.no_sessions": "No recent local session or slot"
       }
     };
 
@@ -1305,13 +1430,21 @@
     };
 
     let showAllVllmRequests = false;
+    let showAllCloudSessions = false;
+    let showAllLocalSessions = false;
+    let selectedCloudModel = 'ALL';
+    let cloudSessionsCache = [];
+    let cloudByModelCache = [];
+    let localSessionsCache = [];
+    let extraEnginesCache = [];
 
     const servicePorts = {
       proxy: 13306,
       vulkan: 8001,
       vllm: 8000,
       webui: 8080,
-      lemonadeAdmin: 13305
+      lemonadeAdmin: 13305,
+      ollama: 11434
     };
 
     const DONUT_C = 2 * Math.PI * 50; // 314.159
@@ -1431,6 +1564,10 @@
       updateDynamicLabels();
       renderEndpointsConfig();
       renderVllmRequestsList();
+      renderCloudModelsBar();
+      renderCloudSessionsList();
+      renderLocalSessionsList();
+      renderExtraEngines();
       renderPipelineChain();
       updateUI();
     }
@@ -1454,7 +1591,8 @@
       const cpEl = document.getElementById('cloud-provider-label');
       if (cpEl) cpEl.textContent = t("cloud.provider");
       const cmEl = document.getElementById('cloud-model-label');
-      if (cmEl) cmEl.textContent = t("cloud.model");
+      if (cmEl && !lastIpcPayload?.cloud_quotas) cmEl.textContent = t("cloud.model");
+      else if (lastIpcPayload?.cloud_quotas) syncCloudQuotaReadout();
 
       const ftEl = document.getElementById('footer-hw-summary');
       if (ftEl) ftEl.textContent = `${runtimeConfig.gpu_model} ${runtimeConfig.gfx_arch} (Vulkan + ROCm 7.x)`;
@@ -1511,6 +1649,370 @@
     function toggleShowAllVllmRequests() {
       showAllVllmRequests = !showAllVllmRequests;
       renderVllmRequestsList();
+    }
+
+    function escapeHtml(raw) {
+      return String(raw ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function formatAgeSec(sec) {
+      const s = Math.max(0, Number(sec || 0));
+      if (s < 60) return `${Math.round(s)}s`;
+      if (s < 3600) return `${Math.round(s / 60)}m`;
+      if (s < 86400) return `${Math.round(s / 3600)}h`;
+      return `${Math.round(s / 86400)}d`;
+    }
+
+    function selectCloudModel(modelName) {
+      selectedCloudModel = modelName || 'ALL';
+      renderCloudModelsBar();
+      renderCloudSessionsList();
+      syncCloudQuotaReadout();
+      updateUI();
+    }
+
+    function toggleCloudSessionsDrawer() {
+      const drawer = document.getElementById('cloud-sessions-drawer');
+      const chev = document.getElementById('cloud-sessions-chevron');
+      if (drawer && chev) {
+        drawer.classList.toggle('hidden');
+        chev.classList.toggle('rotate-180', !drawer.classList.contains('hidden'));
+      }
+    }
+
+    function toggleShowAllCloudSessions() {
+      showAllCloudSessions = !showAllCloudSessions;
+      renderCloudSessionsList();
+    }
+
+    function toggleLocalSessionsDrawer() {
+      const body = document.getElementById('local-sessions-drawer-body');
+      const chev = document.getElementById('local-sessions-chevron');
+      if (body && chev) {
+        body.classList.toggle('hidden');
+        chev.classList.toggle('rotate-180', !body.classList.contains('hidden'));
+      }
+    }
+
+    function toggleShowAllLocalSessions() {
+      showAllLocalSessions = !showAllLocalSessions;
+      renderLocalSessionsList();
+    }
+
+    function syncCloudQuotaReadout() {
+      const cq = lastIpcPayload?.cloud_quotas;
+      if (!cq) return;
+      const byModel = Array.isArray(cq.by_model) ? cq.by_model : [];
+      const focused = selectedCloudModel !== 'ALL'
+        ? byModel.find(m => m.model === selectedCloudModel)
+        : null;
+
+      if (focused) {
+        state.cloudTpm = Number(focused.tpm_60s ?? 0);
+        state.cloudTpmMax = Number(focused.tpm_ceiling || 2000000);
+        state.cloudRpm = Number(focused.rpm_60s ?? 0);
+        state.cloudRpmMax = Number(focused.rpm_ceiling || 1000);
+        state.cloudRpdCurrent = Number(focused.rpd_24h ?? 0);
+        state.cloudRpdCeiling = Number(focused.rpd_ceiling || 10000);
+        const chEl = document.getElementById('cloud-cache-hit-val');
+        if (chEl) chEl.textContent = `${focused.cache_hit_pct ?? 0}% (${formatCompactTokens(focused.cached_24h)} tok)`;
+        const cumEl = document.getElementById('cloud-cumul-val');
+        if (cumEl) cumEl.textContent = `IN: ${formatCompactTokens(focused.in_24h)} · OUT: ${formatCompactTokens(focused.out_24h)} · RSN: ${formatCompactTokens(focused.rsn_24h)}`;
+        const avgReqEl = document.getElementById('cloud-avg-req');
+        if (avgReqEl) {
+          const rpdVal = Number(focused.rpd_24h ?? 0);
+          const totTok = Number(focused.in_24h ?? 0) + Number(focused.out_24h ?? 0) + Number(focused.rsn_24h ?? 0);
+          avgReqEl.textContent = rpdVal > 0 ? `${formatCompactTokens(Math.round(totTok / rpdVal))} tok` : '--';
+        }
+        const mLbl = document.getElementById('cloud-model-label');
+        if (mLbl) mLbl.textContent = focused.model;
+      } else {
+        state.cloudTpm = Number(cq.tpm_sliding_60s ?? 0);
+        state.cloudTpmMax = Number(cq.tpm_ceiling || 2000000);
+        state.cloudRpm = Number(cq.rpm_current ?? 0);
+        state.cloudRpmMax = Number(cq.rpm_ceiling || 1000);
+        state.cloudRpdCurrent = Number(cq.rpd_current ?? 0);
+        state.cloudRpdCeiling = Number(cq.rpd_ceiling || 10000);
+        const chEl = document.getElementById('cloud-cache-hit-val');
+        if (chEl) chEl.textContent = `${cq.cache_hit_pct ?? 0}% (${formatCompactTokens(cq.cached_tokens)} tok)`;
+        const cumEl = document.getElementById('cloud-cumul-val');
+        if (cumEl) cumEl.textContent = `IN: ${formatCompactTokens(cq.total_in_tokens)} · OUT: ${formatCompactTokens(cq.total_out_tokens)} · RSN: ${formatCompactTokens(cq.total_rsn_tokens)}`;
+        const avgReqEl = document.getElementById('cloud-avg-req');
+        if (avgReqEl) {
+          const rpdVal = Number(cq.rpd_current ?? 0);
+          const totTok = Number(cq.total_in_tokens ?? 0) + Number(cq.total_out_tokens ?? 0) + Number(cq.total_rsn_tokens ?? 0);
+          avgReqEl.textContent = rpdVal > 0 ? `${formatCompactTokens(Math.round(totTok / rpdVal))} tok` : '--';
+        }
+        const mLbl = document.getElementById('cloud-model-label');
+        if (mLbl) {
+          mLbl.textContent = byModel.length > 1
+            ? `${cq.focus_model || cq.primary_model || '--'} (+${byModel.length - 1})`
+            : (cq.primary_model || runtimeConfig.model_name || '--');
+        }
+      }
+      const ceilEl = document.getElementById('cloud-tpm-ceiling');
+      if (ceilEl) ceilEl.textContent = `${(state.cloudTpmMax / 1_000_000).toFixed(1)}M`;
+    }
+
+    function renderCloudModelsBar() {
+      const bar = document.getElementById('cloud-models-bar');
+      if (!bar) return;
+      const models = Array.isArray(cloudByModelCache) ? cloudByModelCache : [];
+      if (models.length === 0) {
+        bar.classList.add('hidden');
+        bar.classList.remove('flex');
+        return;
+      }
+      if (selectedCloudModel !== 'ALL' && !models.some(m => m.model === selectedCloudModel)) {
+        selectedCloudModel = 'ALL';
+      }
+      bar.classList.remove('hidden');
+      bar.classList.add('flex');
+
+      const allActiveCls = selectedCloudModel === 'ALL'
+        ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
+        : 'bg-[#0D111A] text-slate-400 border-[#243047] hover:text-white';
+      let html = `<button type="button" onclick="selectCloudModel('ALL')" class="px-2 py-0.5 rounded border ${allActiveCls} transition cursor-pointer">${escapeHtml(t('cloud.all_models_chip', { count: models.length }))}</button>`;
+
+      models.forEach(m => {
+        const isSel = selectedCloudModel === m.model;
+        const pct = Number(m.tpm_pct ?? 0);
+        const dotCls = pct >= 85
+          ? 'bg-rose-500 animate-pulse'
+          : (pct >= 70 ? 'bg-amber-400' : (m.active_sessions > 0 || m.tpm_60s > 0 ? 'bg-emerald-400' : 'bg-slate-500'));
+        const chipCls = isSel
+          ? 'bg-amber-500/20 text-amber-200 border-amber-500/45'
+          : 'bg-[#0D111A] text-slate-300 border-[#1E2638] hover:border-slate-500';
+        const ceilM = (Number(m.tpm_ceiling || 2000000) / 1_000_000).toFixed(1);
+        html += `
+          <button type="button" onclick="selectCloudModel('${escapeHtml(m.model)}')" class="px-2 py-0.5 rounded border ${chipCls} flex items-center gap-1.5 transition cursor-pointer tabular-nums" title="${escapeHtml(m.model)} · Plafond ${ceilM}M TPM / ${m.rpm_ceiling} RPM / ${m.rpd_ceiling} RPD">
+            <span class="w-1.5 h-1.5 rounded-full ${dotCls} shrink-0"></span>
+            <span class="font-semibold">${escapeHtml(m.label || m.model)}</span>
+            <span class="text-slate-400">${pct}%</span>
+            <span class="text-slate-500">· ${m.rpd_24h} RPD</span>
+          </button>`;
+      });
+      bar.innerHTML = html;
+    }
+
+    function renderCloudSessionsList() {
+      const listEl = document.getElementById('cloud-sessions-list');
+      const moreWrap = document.getElementById('cloud-sessions-more-wrapper');
+      const moreBtn = document.getElementById('cloud-sessions-more-btn');
+      const pillTxt = document.getElementById('cloud-sessions-pill-text');
+      const profBadge = document.getElementById('cloud-sessions-profile-badge');
+      if (!listEl) return;
+
+      const allSess = Array.isArray(cloudSessionsCache) ? cloudSessionsCache : [];
+      const filtered = selectedCloudModel === 'ALL'
+        ? allSess
+        : allSess.filter(s => s.model === selectedCloudModel);
+
+      const actCount = filtered.filter(s => s.status === 'ACTIVE').length;
+      if (pillTxt) {
+        pillTxt.textContent = t('cloud.sessions_pill', { active: actCount, total: filtered.length });
+      }
+      if (profBadge && lastIpcPayload?.cloud_quotas) {
+        const cq = lastIpcPayload.cloud_quotas;
+        profBadge.textContent = cq.include_all_profiles
+          ? `Profils: ALL (${(cq.available_profiles || []).length})`
+          : `Profil: ${cq.active_profile || 'default'}`;
+      }
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="text-[10px] text-slate-500 bg-[#0D111A] border border-[#1A2234] px-2.5 py-1.5 rounded">${escapeHtml(t('cloud.no_sessions'))}</div>`;
+        if (moreWrap) moreWrap.classList.add('hidden');
+        return;
+      }
+
+      const visible = (filtered.length > 3 && !showAllCloudSessions) ? filtered.slice(0, 3) : filtered;
+      listEl.innerHTML = visible.map(s => {
+        const st = s.status || 'ENDED';
+        const dotCls = st === 'ACTIVE'
+          ? 'heartbeat-dot'
+          : (st === 'OPEN' ? 'heartbeat-dot idle' : 'heartbeat-dot inactive');
+        const stLbl = st === 'ACTIVE'
+          ? t('cloud.status_active')
+          : (st === 'OPEN' ? t('cloud.status_open') : t('cloud.status_ended'));
+        const stTxtCls = st === 'ACTIVE'
+          ? 'text-emerald-400 font-semibold'
+          : (st === 'OPEN' ? 'text-cyan-300' : 'text-slate-500');
+        const subBadge = s.is_subagent
+          ? `<span class="px-1 py-0.2 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[9px] shrink-0">↳ subagent</span>`
+          : '';
+        const srcTag = escapeHtml(String(s.source || 'hermes').toUpperCase());
+        const tgtBadge = s.target_info
+          ? `<span class="text-slate-400 text-[9.5px] shrink-0">[${srcTag} · ${escapeHtml(s.target_info)}]</span>`
+          : `<span class="text-slate-400 text-[9.5px] shrink-0">[${escapeHtml(s.profile || 'default')}]</span>`;
+        const promptHint = s.last_prompt ? `title="${escapeHtml(s.last_prompt)}"` : '';
+        return `
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-[#0D111A] border border-[#1A2234] px-2 py-1 rounded" ${promptHint}>
+            <div class="flex items-center gap-1.5 min-w-0 flex-1">
+              <span class="${dotCls} shrink-0"></span>
+              <span class="text-[9.5px] ${stTxtCls} shrink-0">${escapeHtml(stLbl)}</span>
+              <span class="px-1.5 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-cyan-200 text-[9px] shrink-0">${escapeHtml(s.model)}</span>
+              ${tgtBadge}
+              <span class="text-slate-500 text-[9.5px] shrink-0">(${escapeHtml(s.profile || 'default')})</span>
+              ${subBadge}
+              <span class="text-slate-200 truncate">${escapeHtml(s.title || '--')}</span>
+            </div>
+            <div class="text-[#94A3B8] shrink-0 tabular-nums text-[9.5px]">
+              ${Number(s.tool_calls || 0)} tools · ${Number(s.api_calls || 0)} req · ${formatCompactTokens(s.tokens_total)} · ${formatAgeSec(s.age_sec)}
+            </div>
+          </div>`;
+      }).join('');
+
+      if (moreWrap && moreBtn) {
+        if (filtered.length > 3) {
+          moreWrap.classList.remove('hidden');
+          const extra = filtered.length - 3;
+          moreBtn.textContent = showAllCloudSessions
+            ? t('engines.show_less_reqs')
+            : t('engines.show_more_reqs', { extra });
+        } else {
+          moreWrap.classList.add('hidden');
+        }
+      }
+    }
+
+    function renderLocalSessionsList() {
+      const listEl = document.getElementById('local-sessions-list');
+      const moreWrap = document.getElementById('local-sessions-more-wrapper');
+      const moreBtn = document.getElementById('local-sessions-more-btn');
+      const pillTxt = document.getElementById('local-sessions-pill-text');
+      if (!listEl) return;
+
+      const vkSlots = Array.isArray(lastIpcPayload?.inference_engines?.vulkan?.slots)
+        ? lastIpcPayload.inference_engines.vulkan.slots
+        : [];
+      const activeSlotRows = vkSlots
+        .filter(sl => sl.is_processing)
+        .map(sl => ({
+          status: 'ACTIVE',
+          source: `SLOT ${sl.id}`,
+          model: lastIpcPayload?.inference_engines?.vulkan?.model || 'llama-server',
+          is_subagent: false,
+          title: `Task #${sl.id_task ?? '--'} (${sl.kv_pct}% KV · ${sl.tg_tps} t/s)`,
+          tool_calls: 0,
+          tokens_total: sl.kv_used || 0,
+          age_sec: 0,
+        }));
+
+      const combined = [...activeSlotRows, ...(Array.isArray(localSessionsCache) ? localSessionsCache : [])];
+      const actCount = combined.filter(s => s.status === 'ACTIVE').length;
+      if (pillTxt) {
+        pillTxt.textContent = t('local.sessions_pill', { active: actCount, total: combined.length });
+      }
+
+      if (combined.length === 0) {
+        listEl.innerHTML = `<div class="text-[10px] text-slate-500 bg-[#0D111A] border border-[#1A2234] px-2.5 py-1.5 rounded">${escapeHtml(t('local.no_sessions'))}</div>`;
+        if (moreWrap) moreWrap.classList.add('hidden');
+        return;
+      }
+
+      const visible = (combined.length > 3 && !showAllLocalSessions) ? combined.slice(0, 3) : combined;
+      listEl.innerHTML = visible.map(s => {
+        const st = s.status || 'ENDED';
+        const dotCls = st === 'ACTIVE'
+          ? 'heartbeat-dot'
+          : (st === 'OPEN' ? 'heartbeat-dot idle' : 'heartbeat-dot inactive');
+        const srcBadge = escapeHtml(String(s.source || 'local').toUpperCase());
+        const tgtTag = s.target_info
+          ? `<span class="text-slate-400 text-[9px] shrink-0">[${escapeHtml(s.target_info)}]</span>`
+          : '';
+        const subBadge = s.is_subagent
+          ? `<span class="px-1 py-0.2 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[9px] shrink-0">↳ subagent</span>`
+          : '';
+        return `
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-[#0D111A] border border-[#1A2234] px-2 py-1 rounded">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1">
+              <span class="${dotCls} shrink-0"></span>
+              <span class="px-1.5 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-cyan-300 text-[9px] shrink-0">${srcBadge}</span>
+              ${tgtTag}
+              <span class="text-slate-300 text-[9.5px] shrink-0">${escapeHtml(s.model || '--')}</span>
+              ${subBadge}
+              <span class="text-slate-200 truncate">${escapeHtml(s.title || '--')}</span>
+            </div>
+            <div class="text-[#94A3B8] shrink-0 tabular-nums text-[9.5px]">
+              ${Number(s.tool_calls || 0)} tools · ${formatCompactTokens(s.tokens_total)} · ${formatAgeSec(s.age_sec)}
+            </div>
+          </div>`;
+      }).join('');
+
+      if (moreWrap && moreBtn) {
+        if (combined.length > 3) {
+          moreWrap.classList.remove('hidden');
+          const extra = combined.length - 3;
+          moreBtn.textContent = showAllLocalSessions
+            ? t('engines.show_less_reqs')
+            : t('engines.show_more_reqs', { extra });
+        } else {
+          moreWrap.classList.add('hidden');
+        }
+      }
+    }
+
+    function renderVulkanMultiSlots(slots) {
+      const strip = document.getElementById('vulkan-multi-slots-strip');
+      if (!strip) return;
+      if (!Array.isArray(slots) || slots.length <= 1) {
+        strip.classList.add('hidden');
+        strip.classList.remove('flex');
+        strip.innerHTML = '';
+        return;
+      }
+      strip.classList.remove('hidden');
+      strip.classList.add('flex');
+      strip.innerHTML = slots.map(sl => {
+        const busy = Boolean(sl.is_processing);
+        const dotCls = busy ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500';
+        const stateTxt = busy ? `RUN ${sl.tg_tps} t/s` : 'IDLE';
+        return `<span class="px-2 py-0.5 rounded bg-[#0D111A] border border-[#243047] text-slate-300 flex items-center gap-1.5 tabular-nums"><span class="w-1.5 h-1.5 rounded-full ${dotCls}"></span>SLOT ${sl.id} · ${stateTxt} (${sl.kv_pct}%)</span>`;
+      }).join('');
+    }
+
+    function renderExtraEngines() {
+      const container = document.getElementById('extra-engines-container');
+      if (!container) return;
+      const list = Array.isArray(extraEnginesCache) ? extraEnginesCache : [];
+      if (list.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+      }
+      container.classList.remove('hidden');
+      container.innerHTML = list.map(eng => {
+        const isOnline = eng.online !== false;
+        const isBusy = Boolean(eng.is_busy);
+        const dotCls = !isOnline ? 'heartbeat-dot inactive' : (isBusy ? 'heartbeat-dot' : 'heartbeat-dot idle');
+        const kvPct = Math.max(0, Math.min(100, Number(eng.kv_pct || 0)));
+        const pctCls = !isOnline ? 'text-slate-400' : (kvPct >= 85 ? 'text-rose-400' : (kvPct >= 70 ? 'text-amber-300' : 'text-emerald-400'));
+        const flagsHtml = (eng.flags || []).map(f => `<span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">${escapeHtml(f)}</span>`).join('');
+        return `
+          <article class="tw-card-v34 tw-card-vulkan">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div class="flex items-center gap-2 flex-wrap font-mono">
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">${escapeHtml(eng.badge || '[ENGINE]')}</span>
+                <h3 class="text-xs font-bold text-white">${escapeHtml(eng.model || '--')}</h3>
+                <span class="text-[10px] text-[#94A3B8] bg-[#192132] px-1.5 py-0.5 rounded tabular-nums">:${Number(eng.port || 0)}</span>
+                <span class="text-[10px] text-slate-300 font-semibold">${Number(eng.uma_alloc_gb || 0).toFixed(1)} Go</span>
+              </div>
+              <div class="flex items-center gap-2 font-mono text-[10.5px]">
+                <span class="${dotCls}"></span>
+                <span class="text-slate-300">${Number(eng.speed_tps || 0).toFixed(1)} t/s</span>
+                <span class="${pctCls} font-bold">KV ${kvPct}%</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-1.5 mt-2 font-mono text-[10px] text-[#94A3B8]">
+              <div class="flex flex-wrap items-center gap-1">${flagsHtml}</div>
+              <div>Client: <strong class="text-cyan-300">${escapeHtml(eng.client_name || 'Local')}</strong></div>
+            </div>
+          </article>`;
+      }).join('');
     }
 
     // Rendu dynamique du bloc Inference Engines (URLs, Ports, Flags & I18N)
@@ -1786,6 +2288,7 @@
         if (vKvGb) vKvGb.textContent = `KV: ${Number(vEng.kv_alloc_gb || 0).toFixed(2)} Go`;
         const vSlotLbl = document.getElementById('vulkan-slot-label');
         if (vSlotLbl) vSlotLbl.textContent = vEng.status_label || 'SLOT 0 · IDLE';
+        renderVulkanMultiSlots(vEng.slots || []);
       }
 
       const rEng = enginesData?.rocm;
@@ -2017,7 +2520,7 @@
       return `${n}`;
     }
 
-    // Hydratation complète depuis le payload IPC JSON V4.1.1 (/tmp/tokenwatcher_widget_state.json)
+    // Hydratation complète depuis le payload IPC JSON V4.2.0 (/tmp/tokenwatcher_widget_state.json)
     function applyIpcPayload(data) {
       if (!data || typeof data !== 'object') return;
       lastIpcPayload = data;
@@ -2029,12 +2532,14 @@
         servicePorts.vllm = Number(sp.vllm || servicePorts.vllm);
         servicePorts.webui = Number(sp.webui || servicePorts.webui);
         servicePorts.lemonadeAdmin = Number(sp.lemonade_admin || servicePorts.lemonadeAdmin);
+        servicePorts.ollama = Number(sp.ollama || servicePorts.ollama);
         const roPorts = {
           'ro-port-proxy': `127.0.0.1:${servicePorts.proxy}`,
           'ro-port-vulkan': `127.0.0.1:${servicePorts.vulkan}`,
           'ro-port-vllm': `127.0.0.1:${servicePorts.vllm}`,
           'ro-port-webui': `127.0.0.1:${servicePorts.webui}`,
           'ro-port-lemonade-admin': `127.0.0.1:${servicePorts.lemonadeAdmin}`,
+          'ro-port-ollama': `127.0.0.1:${servicePorts.ollama}`,
         };
         for (const [id, val] of Object.entries(roPorts)) {
           const el = document.getElementById(id);
@@ -2062,6 +2567,11 @@
         if (roHw) roHw.textContent = `${runtimeConfig.cpu_model} · ${runtimeConfig.gpu_model} (${runtimeConfig.gfx_arch})`;
         const roCloud = document.getElementById('ro-cloud-profile');
         if (roCloud) roCloud.textContent = `${runtimeConfig.provider_name} · ${runtimeConfig.model_name}`;
+        const roHermes = document.getElementById('ro-hermes-profile');
+        if (roHermes) {
+          const modeStr = rc.include_all_profiles ? 'Tous profils' : `Profil actif: ${rc.hermes_profile || 'default'}`;
+          roHermes.textContent = `${modeStr} · Quotas par modèle configurés dans ports.yaml`;
+        }
       }
 
       if (data.inference_engines?.vulkan) {
@@ -2076,6 +2586,10 @@
         if (Array.isArray(rcEng.flags) && rcEng.flags.length) runtimeConfig.engines.rocm.flags = rcEng.flags;
         activeVllmRequests = Array.isArray(rcEng.vllm_requests) ? rcEng.vllm_requests : [];
       }
+      extraEnginesCache = Array.isArray(data.inference_engines?.extra_instances)
+        ? data.inference_engines.extra_instances
+        : [];
+      localSessionsCache = Array.isArray(data.local_sessions) ? data.local_sessions : [];
 
       if (data.time_windows && typeof data.time_windows === 'object') {
         liveTimeWindows = data.time_windows;
@@ -2210,25 +2724,11 @@
 
       if (data.cloud_quotas) {
         const cq = data.cloud_quotas;
-        state.cloudTpm = Number(cq.tpm_sliding_60s ?? 0);
-        state.cloudTpmMax = Number(cq.tpm_ceiling || 2000000);
-        state.cloudRpm = Number(cq.rpm_current ?? 0);
-        state.cloudRpmMax = Number(cq.rpm_ceiling || 1000);
-        state.cloudRpdCurrent = Number(cq.rpd_current ?? 0);
-        state.cloudRpdCeiling = Number(cq.rpd_ceiling || 10000);
-
-        const ceilEl = document.getElementById('cloud-tpm-ceiling');
-        if (ceilEl) ceilEl.textContent = `${(state.cloudTpmMax / 1_000_000).toFixed(1)}M`;
-        const avgReqEl = document.getElementById('cloud-avg-req');
-        if (avgReqEl) {
-          const rpdVal = Number(cq.rpd_current ?? 0);
-          const totTok = Number(cq.total_in_tokens ?? 0) + Number(cq.total_out_tokens ?? 0) + Number(cq.total_rsn_tokens ?? 0);
-          avgReqEl.textContent = rpdVal > 0 ? `${formatCompactTokens(Math.round(totTok / rpdVal))} tok` : '--';
-        }
-        const chEl = document.getElementById('cloud-cache-hit-val');
-        if (chEl) chEl.textContent = `${cq.cache_hit_pct ?? 0}% (${formatCompactTokens(cq.cached_tokens)} tok)`;
-        const cumEl = document.getElementById('cloud-cumul-val');
-        if (cumEl) cumEl.textContent = `IN: ${formatCompactTokens(cq.total_in_tokens)} · OUT: ${formatCompactTokens(cq.total_out_tokens)} · RSN: ${formatCompactTokens(cq.total_rsn_tokens)}`;
+        cloudByModelCache = Array.isArray(cq.by_model) ? cq.by_model : [];
+        cloudSessionsCache = Array.isArray(cq.sessions) ? cq.sessions : [];
+        syncCloudQuotaReadout();
+        renderCloudModelsBar();
+        renderCloudSessionsList();
 
         const cTaskEl = document.getElementById('cloud-active-task-title');
         if (cTaskEl && cq.active_task_title) cTaskEl.textContent = cq.active_task_title;
@@ -2257,6 +2757,8 @@
           heroBadge.innerHTML = lbl;
         }
       }
+      renderLocalSessionsList();
+      renderExtraEngines();
       renderEndpointsConfig();
       updateUI();
     }
@@ -2323,20 +2825,63 @@
         rpdEl.textContent = `${state.cloudRpdCurrent.toLocaleString(numLoc)} / ${state.cloudRpdCeiling.toLocaleString(numLoc)} ${t('cloud.metrics.rpd_unit')}`;
       }
 
+      const cloudSessScoped = selectedCloudModel === 'ALL'
+        ? cloudSessionsCache
+        : cloudSessionsCache.filter(s => s.model === selectedCloudModel);
+      const cloudHasActive = ipcLiveConnected && (
+        cloudSessionsCache.some(s => s.status === 'ACTIVE')
+        || Number(lastIpcPayload?.cloud_quotas?.global_rpm_60s || state.cloudRpm || 0) > 0
+      );
+      const cloudScopedActive = ipcLiveConnected && (
+        cloudSessScoped.some(s => s.status === 'ACTIVE')
+        || state.cloudRpm > 0
+      );
+
+      const cloudIconBox = document.getElementById('cloud-section-icon-box');
+      if (cloudIconBox) {
+        cloudIconBox.className = cloudHasActive
+          ? 'w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base shrink-0 transition-all duration-300 icon-active-amber'
+          : 'w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base shrink-0 transition-all duration-300';
+      }
+
+      const vkInfo = lastIpcPayload?.inference_engines?.vulkan;
+      const rcInfo = lastIpcPayload?.inference_engines?.rocm;
+      const localHasActive = ipcLiveConnected && (
+        localSessionsCache.some(s => s.status === 'ACTIVE')
+        || Number(vkInfo?.slots_active || 0) > 0
+        || String(vkInfo?.status_label || '').includes('RUN')
+        || Number(rcInfo?.running_reqs || 0) > 0
+        || extraEnginesCache.some(e => Boolean(e.is_busy))
+      );
+
+      const localIconBox = document.getElementById('local-section-icon-box');
+      if (localIconBox) {
+        localIconBox.className = localHasActive
+          ? 'w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-base shrink-0 transition-all duration-300 mt-0.5 icon-active-cyan'
+          : 'w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-base shrink-0 transition-all duration-300 mt-0.5';
+      }
+      const localDot = document.getElementById('local-section-dot');
+      if (localDot) {
+        localDot.className = localHasActive
+          ? 'w-2 h-2 rounded-full bg-cyan-400 text-cyan-400 shrink-0 dot-blink'
+          : 'w-2 h-2 rounded-full bg-cyan-400 text-cyan-400 shrink-0';
+      }
+
       const badge429 = document.getElementById('alert-429-badge');
       const dot429 = document.getElementById('alert-429-dot');
       const text429 = document.getElementById('alert-429-text');
+      const blinkCls = (tpmPct >= 85 || cloudScopedActive) ? ' dot-blink' : '';
       if (tpmPct >= 85) {
         badge429.className = 'text-xs font-mono flex items-center gap-2 text-rose-400 font-semibold';
-        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-pulse';
+        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-rose-500 text-rose-500 shrink-0' + blinkCls;
         text429.textContent = t('cloud.alert_crit_text', { pct: tpmPct });
       } else if (tpmPct >= 70) {
         badge429.className = 'text-xs font-mono flex items-center gap-2 text-amber-300 font-semibold';
-        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-amber-400 shrink-0';
+        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-amber-400 text-amber-400 shrink-0' + blinkCls;
         text429.textContent = t('cloud.alert_warn_text', { pct: tpmPct });
       } else {
         badge429.className = 'text-xs font-mono flex items-center gap-2 text-emerald-400 font-medium';
-        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0';
+        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-emerald-400 text-emerald-400 shrink-0' + blinkCls;
         text429.textContent = t('cloud.alert_ok_text', { pct: tpmPct });
       }
 
@@ -2350,7 +2895,7 @@
         const resp = await fetch(`file:///tmp/tokenwatcher_widget_state.json?t=${Date.now()}`, { cache: 'no-store' });
         if (!resp.ok && resp.status !== 0) throw new Error(`HTTP ${resp.status}`);
         const payload = await resp.json();
-        if (payload && ['4.1.1', '4.1.0', '4.0.4', '4.0.2'].includes(payload.schema_version)) {
+        if (payload && ['4.2.0', '4.1.1', '4.1.0', '4.0.4', '4.0.2'].includes(payload.schema_version)) {
           const ageSec = (Date.now() / 1000) - Number(payload.timestamp || 0);
           const isFresh = ageSec <= 8.0;
           ipcLiveConnected = isFresh;
