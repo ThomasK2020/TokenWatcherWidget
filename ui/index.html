@@ -1373,6 +1373,7 @@
     let ipcLiveConnected = false;
     let demoOverrideUntil = 0;
     let liveTimeWindows = null;
+    let liveLocalTimeWindows = null;
     let lastIpcPayload = null;
     let activeVllmRequests = ALL_VLLM_REQUESTS.slice();
 
@@ -1960,13 +1961,15 @@
         const chain = `HERMES CLI ──► ${runtimeConfig.provider_name.toUpperCase()} ${runtimeConfig.provider_tier.toUpperCase()} (${runtimeConfig.model_name})`;
         chainTextEl.textContent = chain;
         pillChainEl.textContent = chain;
-        heroBadge.innerHTML = `<i class="fa-solid fa-cloud text-[9px]"></i> CLOUD FRONTIER (${runtimeConfig.provider_tier.toUpperCase()})`;
         if (!silent) {
+          heroBadge.innerHTML = `<i class="fa-solid fa-cloud text-[9px]"></i> CLOUD FRONTIER (${runtimeConfig.provider_tier.toUpperCase()})`;
           heroModel.textContent = `${runtimeConfig.model_name} (Cloud API)`;
           heroQuant.textContent = '(Contexte >1M · Context Caching 60% Hit · Zéro perte de contexte)';
           heroTask.textContent = 'Cadrage Architecture Multi-Backends & Génération SOW-02';
           state.tgSpeed = 84.5;
           state.ppSpeed = 3200;
+        } else {
+          heroBadge.innerHTML = `<i class="fa-solid fa-microchip text-[9px]"></i> VULKAN LOCAL (:${servicePorts.vulkan})`;
         }
       }
 
@@ -2191,6 +2194,9 @@
       if (data.time_windows && typeof data.time_windows === 'object') {
         liveTimeWindows = data.time_windows;
       }
+      if (data.local_time_windows && typeof data.local_time_windows === 'object') {
+        liveLocalTimeWindows = data.local_time_windows;
+      }
 
       if (data.session_hero) {
         const sh = data.session_hero;
@@ -2211,6 +2217,8 @@
         if (wsTxt && sh.workspace_dir) wsTxt.textContent = sh.workspace_dir;
         const pillModel = document.getElementById('pill-model-name');
         if (pillModel && sh.active_model_title) pillModel.textContent = sh.active_model_title;
+        const ttftSub = document.getElementById('speed-ttft-sub');
+        if (ttftSub && sh.ttft_sub) ttftSub.textContent = sh.ttft_sub;
 
         const badgesEl = document.getElementById('hero-tuning-badges');
         if (badgesEl && Array.isArray(sh.tuning_flags) && sh.tuning_flags.length) {
@@ -2332,14 +2340,27 @@
       }
 
       setTopology(Number(data.active_topology || 1), { silent: true });
+      if (data.session_hero) {
+        const sh = data.session_hero;
+        const heroBadge = document.getElementById('hero-backend-badge');
+        if (heroBadge) {
+          const isLocalRocm = sh.local_backend === 'rocm';
+          const portLabel = sh.local_port || (isLocalRocm ? servicePorts.vllm : servicePorts.vulkan);
+          const lbl = isLocalRocm
+            ? `<i class="fa-solid fa-layer-group text-[9px]"></i> ROCm 7.x vLLM (:${portLabel})`
+            : `<i class="fa-solid fa-microchip text-[9px]"></i> VULKAN LOCAL (:${portLabel})`;
+          heroBadge.innerHTML = lbl;
+        }
+      }
       renderEndpointsConfig();
       updateUI();
     }
 
     // Mise à jour de l'UI
     function updateUI() {
-      const liveWinVal = (ipcLiveConnected && liveTimeWindows && liveTimeWindows[state.timeframe] !== undefined)
-        ? Number(liveTimeWindows[state.timeframe])
+      const activeWinMap = liveLocalTimeWindows || liveTimeWindows;
+      const liveWinVal = (ipcLiveConnected && activeWinMap && activeWinMap[state.timeframe] !== undefined)
+        ? Number(activeWinMap[state.timeframe])
         : null;
       const effectiveTokens = liveWinVal !== null
         ? liveWinVal

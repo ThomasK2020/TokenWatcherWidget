@@ -18,6 +18,10 @@ from typing import Any, Dict, List, Optional
 class EnginesHttpProbe:
     def __init__(self, ports_config: Dict[str, Any]) -> None:
         self.ports_config = ports_config
+        self._last_vulkan_ttft_sec: float = 0.0
+        self._last_vulkan_ttft_source: str = "idle"
+        self._prev_vulkan_prompt_sec: Optional[float] = None
+        self._prev_vulkan_prompt_tok: Optional[float] = None
 
     def _services(self) -> Dict[str, Any]:
         if "services" in self.ports_config and isinstance(self.ports_config["services"], dict):
@@ -283,6 +287,29 @@ class EnginesHttpProbe:
         local_cached_tok = int(prom.get("llamacpp:prompt_tokens_cached_total", 0))
         local_served_tok = local_gen_tok + local_prompt_tok + local_cached_tok
 
+        p_sec_tot = float(prom.get("llamacpp:prompt_seconds_total", 0.0))
+        p_tok_tot = float(prom.get("llamacpp:prompt_tokens_total", 0.0))
+        if ttft_sec > 0.0:
+            self._last_vulkan_ttft_sec = ttft_sec
+            self._last_vulkan_ttft_source = "live"
+            ttft_source = "live"
+        else:
+            if self._prev_vulkan_prompt_sec is not None and p_sec_tot > self._prev_vulkan_prompt_sec:
+                delta_sec = round(p_sec_tot - self._prev_vulkan_prompt_sec, 3)
+                if delta_sec > 0.0:
+                    self._last_vulkan_ttft_sec = delta_sec
+                    self._last_vulkan_ttft_source = "last_run"
+            if self._last_vulkan_ttft_sec > 0.0:
+                ttft_sec = self._last_vulkan_ttft_sec
+                ttft_source = self._last_vulkan_ttft_source
+            elif pp_tps > 0.0 and p_sec_tot > 0.0:
+                ttft_sec = round(min(max(1, kv_used or 512), 512) / pp_tps, 2)
+                ttft_source = "est"
+            else:
+                ttft_source = "idle"
+        self._prev_vulkan_prompt_sec = p_sec_tot
+        self._prev_vulkan_prompt_tok = p_tok_tot
+
         kv_pct = min(100, round((kv_used / n_ctx) * 100)) if n_ctx > 0 else 0
         ctx_label = f"{round(n_ctx / 1024)}k" if n_ctx >= 1024 else str(n_ctx)
 
@@ -312,6 +339,7 @@ class EnginesHttpProbe:
             "speed_tps": round(tg_tps, 1),
             "speed_pp_tps": round(pp_tps),
             "ttft_sec": round(ttft_sec, 2),
+            "ttft_source": ttft_source,
             "uma_alloc_gb": fdinfo_gb,
             "kv_alloc_gb": round((kv_used / max(1, n_ctx)) * 2.0, 2) if online else 0.0,
             "ctx_label": ctx_label,

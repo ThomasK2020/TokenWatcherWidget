@@ -72,9 +72,10 @@ class SqliteTelemetryReader:
                 return result
             result["available"] = True
             rows = cur.execute(
-                """
+                f"""
                 SELECT id, title, directory, time_created, time_updated, model,
-                       tokens_input, tokens_output, tokens_reasoning, tokens_cache_read, tokens_cache_write
+                       tokens_input, tokens_output, tokens_reasoning, tokens_cache_read, tokens_cache_write,
+                       {'agent' if 'agent' in cols else "'build' AS agent"}
                 FROM session
                 ORDER BY COALESCE(time_updated, time_created) DESC
                 LIMIT 200
@@ -82,16 +83,29 @@ class SqliteTelemetryReader:
             ).fetchall()
 
             for idx, r in enumerate(rows):
-                sid, title, directory, t_cre, t_upd, model_raw, t_in, t_out, t_rsn, t_cr, t_cw = r
+                sid, title, directory, t_cre, t_upd, model_raw, t_in, t_out, t_rsn, t_cr, t_cw, agent_raw = r
                 ts = self._norm_ts(t_upd or t_cre)
                 tok_sum = int(t_in or 0) + int(t_out or 0) + int(t_rsn or 0) + int(t_cr or 0)
                 if idx == 0:
+                    tool_cnt = 0
+                    try:
+                        tool_cnt = int(
+                            cur.execute(
+                                "SELECT COUNT(*) FROM part WHERE session_id = ? AND json_extract(data, '$.type') = 'tool'",
+                                (sid,),
+                            ).fetchone()[0]
+                            or 0
+                        )
+                    except sqlite3.Error:
+                        tool_cnt = 0
                     result["latest_ts"] = ts
                     result["latest_session"] = {
                         "id": sid,
                         "title": title or "OpenCode Session",
                         "directory": directory or "",
                         "model": self._parse_opencode_model(model_raw),
+                        "agent": str(agent_raw or "build").upper(),
+                        "tool_calls": tool_cnt,
                         "tokens_in": int(t_in or 0),
                         "tokens_out": int(t_out or 0),
                         "tokens_rsn": int(t_rsn or 0),
@@ -133,7 +147,10 @@ class SqliteTelemetryReader:
             "available": False,
             "latest_ts": 0.0,
             "latest_session": None,
+            "latest_local_ts": 0.0,
+            "latest_local_session": None,
             "windows": {"SESSION": 0, "1H": 0, "24H": 0, "7J": 0, "TOTAL": 0},
+            "local_windows": {"SESSION": 0, "1H": 0, "24H": 0, "7J": 0, "TOTAL": 0},
             "cloud_tpm_60s": 0,
             "cloud_rpm_60s": 0,
             "cloud_rpd_24h": 0,
@@ -212,6 +229,32 @@ class SqliteTelemetryReader:
                             result["cloud_out_total"] += out_v
                             result["cloud_rsn_total"] += rsn_v
                             result["cloud_cached_total"] += cr_v
+                    else:
+                        if ts > result["latest_local_ts"]:
+                            result["latest_local_ts"] = ts
+                            result["latest_local_session"] = {
+                                "id": sid,
+                                "model": model or "Local Model",
+                                "title": title or "Hermes Local Session",
+                                "tool_calls": int(tools_cnt or 0),
+                                "tokens_in": in_v,
+                                "tokens_out": out_v,
+                                "tokens_rsn": rsn_v,
+                                "tokens_cache_read": cr_v,
+                                "tokens_total": tok_sum,
+                                "cwd": cwd or "",
+                                "provider": provider or "local",
+                                "agent": "HERMES LOCAL",
+                                "updated_at": ts,
+                            }
+                            result["local_windows"]["SESSION"] = tok_sum
+                        if age <= 3600:
+                            result["local_windows"]["1H"] += tok_sum
+                        if age <= 86400:
+                            result["local_windows"]["24H"] += tok_sum
+                        if age <= 7 * 86400:
+                            result["local_windows"]["7J"] += tok_sum
+                        result["local_windows"]["TOTAL"] += tok_sum
 
                 # Calcul glissant strict 60s sur les messages récents des sessions cloud
                 msg_cols = {r[1] for r in cur.execute("PRAGMA table_info(messages)").fetchall()}
@@ -318,9 +361,13 @@ class SqliteTelemetryReader:
         denom = in_tot + cached_tot
         cache_hit_pct = round((cached_tot / denom) * 100) if denom > 0 else 0
 
-        # Fenêtres combinées
+        # Fenêtres combinées (global) + fenêtres strictement locales (OpenCode + Hermes local)
         combined_windows = {
             k: int(oc["windows"][k]) + int(hm["windows"][k])
+            for k in ("SESSION", "1H", "24H", "7J", "TOTAL")
+        }
+        local_windows = {
+            k: int(oc["windows"][k]) + int(hm["local_windows"][k])
             for k in ("SESSION", "1H", "24H", "7J", "TOTAL")
         }
 
@@ -330,6 +377,7 @@ class SqliteTelemetryReader:
             "hermes": hm,
             "openwebui": ow,
             "time_windows": combined_windows,
+            "local_time_windows": local_windows,
             "cloud_quotas": {
                 "status": q_status,
                 "status_label": q_label,

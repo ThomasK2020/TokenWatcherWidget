@@ -178,42 +178,79 @@ class TokenWatcherDaemon:
             "vllm_requests": vllm_data["vllm_requests"] or (ow_reqs if vllm_data["online"] else []),
         }
 
-        # Context DNA & Session Hero (arbitrage live SQLite + /slots)
+        # Context DNA & Session Hero : STRICTEMENT verrouillés sur le dernier / actif LLM LOCAL
+        # (Ne jamais injecter de modèle/compteurs Cloud Gemini dans le cadre Inférence Locale)
         oc_sess = sqlite_data.get("opencode", {}).get("latest_session") or {}
         hm_sess = sqlite_data.get("hermes", {}).get("latest_session") or {}
+        hm_local_sess = sqlite_data.get("hermes", {}).get("latest_local_session") or {}
+        local_windows = sqlite_data.get("local_time_windows") or {"SESSION": 0, "1H": 0, "24H": 0, "7J": 0, "TOTAL": 0}
 
-        if active_topology == 4 and hm_sess:
-            active_title = hm_sess.get("title", "Hermes Session")
-            workspace_dir = hm_sess.get("cwd") or str(Path(__file__).resolve().parent.parent)
-            tools_cnt = hm_sess.get("tool_calls", 0)
-            active_model = hm_sess.get("model", "Cloud Model")
-            active_quant = "(Cloud Frontier)"
-            tokens_session = hm_sess.get("tokens_total", 0)
-            prompt_tot = hm_sess.get("tokens_in", 0)
-            out_tok = hm_sess.get("tokens_out", 0)
-            rsn_tok = hm_sess.get("tokens_rsn", 0)
-            kv_cached = hm_sess.get("tokens_cache_read", 0)
+        if is_rocm:
+            local_backend = "rocm"
+            local_port = int(rocm_card["port"])
+            local_status = f"BATCH ({vllm_data.get('running_reqs', 0)} req)"
+            first_req = ow_reqs[0] if ow_reqs else {}
+            active_title = first_req.get("prompt") or "Session vLLM ROCm / OpenWebUI"
+            workspace_dir = str(Path(__file__).resolve().parent.parent)
+            tools_cnt = int(vllm_data.get("running_reqs", 0))
+            agent_label = "vLLM BATCH"
+            active_model = vllm_data.get("model", "vLLM Model")
+            active_quant = "(ROCm 7.x · PagedAttention)"
+            tokens_session = local_windows.get("SESSION", 0) or int(vulkan_data.get("local_served_tokens", 0))
+            prompt_tot = 0
+            out_tok = 0
+            rsn_tok = 0
+            kv_cached = 0
+            ctx_used = 0
+            ctx_max = 65536
+            ctx_pct = int(vllm_data.get("paged_cache_pct", 0))
+            ctx_free = ctx_max
+            ttft_source = "live"
+            hero_flags = rocm_card.get("flags", [])
         else:
-            active_title = oc_sess.get("title") or hm_sess.get("title") or "Session Active"
-            workspace_dir = oc_sess.get("directory") or hm_sess.get("cwd") or str(Path(__file__).resolve().parent.parent)
-            tools_cnt = hm_sess.get("tool_calls", 0)
-            active_model = vulkan_data["model"] if vulkan_data.get("online") else oc_sess.get("model", "Aucun modèle")
-            q_label = vulkan_data.get("quant") or "GGUF"
-            active_quant = f"({q_label} · {vulkan_data['kv_max_tokens']:,} ctx)".replace(",", " ")
-            tokens_session = sqlite_data.get("time_windows", {}).get("SESSION", 0) or vulkan_data.get("local_served_tokens", 0)
-            prompt_tot = oc_sess.get("tokens_in", 0) or vulkan_data.get("local_prompt_tokens", 0)
-            out_tok = oc_sess.get("tokens_out", 0) or vulkan_data.get("local_generated_tokens", 0)
-            rsn_tok = oc_sess.get("tokens_rsn", 0)
-            kv_cached = vulkan_data.get("kv_cached_tokens", 0) or oc_sess.get("tokens_cache_read", 0)
+            local_backend = "vulkan"
+            local_port = int(vulkan_card["port"])
+            local_status = str(vulkan_data.get("status_label") or "OFFLINE")
+            oc_ts_val = float(oc_sess.get("updated_at") or 0.0)
+            hm_loc_ts_val = float(hm_local_sess.get("updated_at") or 0.0)
+            local_sess = hm_local_sess if (hm_loc_ts_val > oc_ts_val and hm_local_sess) else oc_sess
 
-        ctx_used = vulkan_data.get("kv_used_tokens", 0)
-        ctx_max = vulkan_data.get("kv_max_tokens", 65536)
-        ctx_pct = vulkan_data.get("kv_pct", 0)
-        ctx_free = max(0, ctx_max - ctx_used)
+            active_title = local_sess.get("title") or "Session Locale (Prête)"
+            workspace_dir = (
+                local_sess.get("directory")
+                or local_sess.get("cwd")
+                or str(Path(__file__).resolve().parent.parent)
+            )
+            tools_cnt = int(local_sess.get("tool_calls", 0))
+            agent_label = str(local_sess.get("agent") or "BUILD").upper()
+            active_model = vulkan_data["model"] if vulkan_data.get("online") else local_sess.get("model", "Aucun modèle local")
+            q_label = vulkan_data.get("quant") or "GGUF"
+            active_quant = f"({q_label} · {vulkan_data['kv_max_tokens']:,} ctx · {local_status})".replace(",", " ")
+            tokens_session = local_windows.get("SESSION", 0) or int(vulkan_data.get("local_served_tokens", 0))
+            prompt_tot = int(local_sess.get("tokens_in", 0) or vulkan_data.get("local_prompt_tokens", 0))
+            out_tok = int(local_sess.get("tokens_out", 0) or vulkan_data.get("local_generated_tokens", 0))
+            rsn_tok = int(local_sess.get("tokens_rsn", 0))
+            kv_cached = int(local_sess.get("tokens_cache_read", 0) or vulkan_data.get("kv_cached_tokens", 0))
+            ctx_used = int(vulkan_data.get("kv_used_tokens", 0))
+            ctx_max = int(vulkan_data.get("kv_max_tokens", 65536))
+            ctx_pct = int(vulkan_data.get("kv_pct", 0))
+            ctx_free = max(0, ctx_max - ctx_used)
+            ttft_source = str(vulkan_data.get("ttft_source") or "idle")
+            hero_flags = vulkan_data.get("tuning_badges", [])
+
         kv_denom = prompt_tot + kv_cached
         kv_hit_pct = round((kv_cached / kv_denom) * 100.0, 1) if kv_denom > 0 else 0.0
         rsn_ratio_pct = round((rsn_tok / max(1, out_tok + rsn_tok)) * 100) if (out_tok + rsn_tok) > 0 else 0
         loop_status = "WARN" if rsn_ratio_pct > 75 else "OK"
+
+        reuse_flag = next((f for f in vulkan_data.get("flags", []) if f.startswith("Reuse ")), "")
+        reuse_txt = f"--cache-reuse {reuse_flag.split()[-1]} actif" if reuse_flag else "Prefill local"
+        if ttft_source == "est":
+            ttft_sub = f"{reuse_txt} · est. batch"
+        elif ttft_source == "last_run":
+            ttft_sub = f"{reuse_txt} · dernier run"
+        else:
+            ttft_sub = reuse_txt
 
         provider_name = str(hm_sess.get("provider") or "gemini").upper()
         cloud_model_name = str(hm_sess.get("model") or "gemini-4-hydrogen")
@@ -242,16 +279,21 @@ class TokenWatcherDaemon:
                 "model_name": cloud_model_name,
             },
             "session_hero": {
+                "local_backend": local_backend,
+                "local_port": local_port,
+                "local_status": local_status,
                 "active_model_title": active_model,
                 "active_model_quant": active_quant,
                 "active_task_title": active_title,
-                "agent_mode": f"[BUILD MODE · {tools_cnt} tools]",
+                "agent_mode": f"[{agent_label} MODE · {tools_cnt} tools]",
                 "workspace_dir": workspace_dir,
                 "tokens_total_session": tokens_session,
                 "speed_tg_tps": tg_speed,
                 "speed_pp_tps": pp_speed,
                 "ttft_sec": ttft_sec,
-                "tuning_flags": vulkan_data.get("tuning_badges", []),
+                "ttft_source": ttft_source,
+                "ttft_sub": ttft_sub,
+                "tuning_flags": hero_flags,
             },
             "context_dna": {
                 "ctx_used": ctx_used,
@@ -290,6 +332,7 @@ class TokenWatcherDaemon:
             "hardware_amd": sysfs_raw,
             "cloud_quotas": sqlite_data["cloud_quotas"],
             "time_windows": sqlite_data["time_windows"],
+            "local_time_windows": local_windows,
         }
 
     def write_ipc_atomic(self, payload: Dict[str, Any]) -> None:
