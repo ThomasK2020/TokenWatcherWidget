@@ -390,7 +390,7 @@
           <div>
             <div class="flex items-center gap-2">
               <h2 class="text-xs md:text-sm font-bold text-white tracking-wider uppercase" data-i18n="pipeline.section_title">CHAINES D'EXÉCUTION</h2>
-              <span class="text-[11px] font-mono px-2 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" data-i18n="pipeline.badge_auto">Auto-Détection Active</span>
+              <span id="pipeline-auto-badge" class="text-[11px] font-mono px-2 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" data-i18n="pipeline.badge_auto">Auto-Détection Active</span>
             </div>
             <p class="text-[12px] text-slate-400" data-i18n="pipeline.subtitle">Topologies d'orchestration des noeuds d'execution</p>
           </div>
@@ -417,8 +417,8 @@
         </div>
       </div>
 
-      <!-- DYNAMIC VISUAL NODE CHAIN CONTAINER (HORIZONTAL) -->
-      <div id="pipeline-nodes-chain" class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 pt-1 min-h-[82px]">
+      <!-- DYNAMIC VISUAL NODE CHAIN CONTAINER (MULTI-CHAIN STACKED) -->
+      <div id="pipeline-nodes-chain" class="flex flex-col gap-2.5 pt-1 min-h-[82px]">
         <!-- Rendu dynamique via JS -->
       </div>
     </section>
@@ -465,7 +465,9 @@
             <span id="cloud-sessions-pill-text">SESSIONS CLOUD & SUBAGENTS (0 act · 0 réc)</span>
             <span id="cloud-sessions-chevron" class="text-[10px] text-amber-300 leading-none transition-transform duration-200 rotate-180">▼</span>
           </button>
-          <span id="cloud-sessions-profile-badge" class="text-[10.5px] text-slate-500">state.db · Profil: --</span>
+          <div id="cloud-sessions-profile-pills" class="flex flex-wrap items-center gap-1 text-[10.5px]">
+            <span id="cloud-sessions-profile-badge" class="text-[10.5px] text-slate-500">state.db · Profil: --</span>
+          </div>
         </div>
         <div id="cloud-sessions-drawer-body" class="flex flex-col gap-1 pt-1 border-t border-[#161E2E]">
           <div id="cloud-sessions-list" class="flex flex-col gap-1">
@@ -1209,6 +1211,9 @@
         "view.hud": "Pill HUD",
         "pipeline.section_title": "CHAINES D'EXÉCUTION",
         "pipeline.badge_auto": "Auto-Détection Active",
+        "pipeline.badge_multi": "Parallèle · {count} Chaînes",
+        "pipeline.state_live": "LIVE",
+        "pipeline.state_ready": "PRÊT",
         "pipeline.subtitle": "Topologies d'orchestration des noeuds d'execution",
         "pipeline.topo1": "1. Hermes ➔ OpenCode ➔ Proxy ➔ Vulkan",
         "pipeline.topo2": "2. OpenCode CLI Direct (Sans Hermes)",
@@ -1317,6 +1322,8 @@
         "cloud.sessions_pill": "SESSIONS CLOUD & SUBAGENTS ({active} act · {total} réc)",
         "cloud.no_sessions": "Aucune session Cloud récente sur ce profil",
         "cloud.all_models_chip": "Tous ({count})",
+        "cloud.profile_all": "Tous",
+        "cloud.profile_filter_title": "Filtrer l'affichage par profil Hermes (sans purger les autres profils ni le Local LLM)",
         "cloud.status_active": "ACTIF",
         "cloud.status_open": "OUVERT",
         "cloud.status_ended": "FINI",
@@ -1382,6 +1389,9 @@
         "view.hud": "Pill HUD",
         "pipeline.section_title": "DYNAMIC EXECUTION SEQUENCES",
         "pipeline.badge_auto": "Auto-Detection Active",
+        "pipeline.badge_multi": "Parallel · {count} Chains",
+        "pipeline.state_live": "LIVE",
+        "pipeline.state_ready": "READY",
         "pipeline.subtitle": "Orchestration topologies and Execution Nodes",
         "pipeline.topo1": "1. Hermes ➔ OpenCode ➔ Proxy ➔ Vulkan",
         "pipeline.topo2": "2. OpenCode CLI Direct (No Hermes)",
@@ -1490,6 +1500,8 @@
         "cloud.sessions_pill": "CLOUD SESSIONS & SUBAGENTS ({active} act · {total} rec)",
         "cloud.no_sessions": "No recent Cloud session on this profile",
         "cloud.all_models_chip": "All ({count})",
+        "cloud.profile_all": "All",
+        "cloud.profile_filter_title": "Filter view by Hermes profile (without clearing other profiles or Local LLM)",
         "cloud.status_active": "ACTIVE",
         "cloud.status_open": "OPEN",
         "cloud.status_ended": "ENDED",
@@ -1827,6 +1839,14 @@
 
     let cloudCumulWindow = '24H';
     let localCumulWindow = '24H';
+    let selectedCloudProfile = 'ALL';
+    let preprodManualTopo = null;
+
+    function selectCloudProfile(prof) {
+      selectedCloudProfile = prof || 'ALL';
+      showAllCloudSessions = false;
+      renderCloudSessionsList();
+    }
 
     function setCloudCumulWindow(win) {
       if (['1H', '4H', '24H'].includes(win)) {
@@ -2181,23 +2201,73 @@
       const moreWrap = document.getElementById('cloud-sessions-more-wrapper');
       const moreBtn = document.getElementById('cloud-sessions-more-btn');
       const pillTxt = document.getElementById('cloud-sessions-pill-text');
-      const profBadge = document.getElementById('cloud-sessions-profile-badge');
+      const profPillsEl = document.getElementById('cloud-sessions-profile-pills');
       if (!listEl) return;
 
       const allSess = Array.isArray(cloudSessionsCache) ? cloudSessionsCache : [];
-      const filtered = selectedCloudModel === 'ALL'
-        ? allSess
-        : allSess.filter(s => s.model === selectedCloudModel);
+      const cq = lastIpcPayload?.cloud_quotas || null;
+      const byProfileRaw = Array.isArray(cq?.by_profile) ? cq.by_profile : [];
+
+      // Construire la liste des profils disposant de sessions (ou signalés par le démon)
+      const profMap = new Map();
+      byProfileRaw.forEach(p => {
+        if (p && p.profile) {
+          profMap.set(String(p.profile), {
+            profile: String(p.profile),
+            active: Number(p.active_sessions || 0),
+            count: 0,
+          });
+        }
+      });
+      allSess.forEach(s => {
+        const pk = String(s.profile || (s.source === 'opencode' ? 'opencode' : 'default'));
+        if (!profMap.has(pk)) {
+          profMap.set(pk, { profile: pk, active: 0, count: 0 });
+        }
+        const entry = profMap.get(pk);
+        entry.count += 1;
+        if (s.status === 'ACTIVE') entry.active += 1;
+      });
+      const profEntries = Array.from(profMap.values()).filter(p => p.count > 0 || p.active > 0);
+      if (selectedCloudProfile !== 'ALL' && !profEntries.some(p => p.profile === selectedCloudProfile)) {
+        selectedCloudProfile = 'ALL';
+      }
+
+      if (profPillsEl) {
+        if (profEntries.length === 0) {
+          profPillsEl.innerHTML = `<span class="text-[10.5px] text-slate-500">state.db · ${escapeHtml(t('cloud.profile_all'))}</span>`;
+        } else {
+          const tip = escapeHtml(t('cloud.profile_filter_title'));
+          const allCls = selectedCloudProfile === 'ALL'
+            ? 'bg-amber-500/20 text-amber-200 border-amber-500/40 font-semibold'
+            : 'bg-[#0D111A] text-slate-400 border-[#243047] hover:text-white';
+          let pHtml = `<span class="text-slate-500 mr-0.5">Profils:</span>`;
+          pHtml += `<button type="button" onclick="selectCloudProfile('ALL')" title="${tip}" class="px-1.5 py-0.2 rounded border ${allCls} transition cursor-pointer">${escapeHtml(t('cloud.profile_all'))}</button>`;
+          profEntries.forEach(pe => {
+            const isSel = selectedCloudProfile === pe.profile;
+            const cls = isSel
+              ? 'bg-amber-500/20 text-amber-200 border-amber-500/40 font-semibold'
+              : 'bg-[#0D111A] text-slate-400 border-[#243047] hover:text-white';
+            const actDot = pe.active > 0
+              ? `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 text-emerald-400 dot-blink mr-1"></span>`
+              : '';
+            const pEsc = escapeHtml(pe.profile);
+            pHtml += `<button type="button" onclick="selectCloudProfile('${pEsc}')" title="${tip}" class="px-1.5 py-0.2 rounded border ${cls} transition cursor-pointer flex items-center">${actDot}${pEsc} <span class="text-slate-500 ml-1">(${pe.count})</span></button>`;
+          });
+          profPillsEl.innerHTML = pHtml;
+        }
+      }
+
+      const filtered = allSess.filter(s => {
+        const matchModel = selectedCloudModel === 'ALL' || s.model === selectedCloudModel;
+        const sProf = String(s.profile || (s.source === 'opencode' ? 'opencode' : 'default'));
+        const matchProf = selectedCloudProfile === 'ALL' || sProf === selectedCloudProfile;
+        return matchModel && matchProf;
+      });
 
       const actCount = filtered.filter(s => s.status === 'ACTIVE').length;
       if (pillTxt) {
         pillTxt.textContent = t('cloud.sessions_pill', { active: actCount, total: filtered.length });
-      }
-      if (profBadge && lastIpcPayload?.cloud_quotas) {
-        const cq = lastIpcPayload.cloud_quotas;
-        profBadge.textContent = cq.include_all_profiles
-          ? `state.db · Profils: ALL (${(cq.available_profiles || []).length})`
-          : `state.db · Profil: ${cq.active_profile || 'default'}`;
       }
 
       if (filtered.length === 0) {
@@ -2774,7 +2844,7 @@
       }
     }
 
-    // 4. RENDU DE LA CHAÎNE HORIZONTALE COMPACTE
+    // 4. RENDU MULTI-CHAÎNES D'EXÉCUTION PARALLÈLES (CLOUD + VULKAN + ROCM + EXTRA)
     function renderPipelineChain() {
       const container = document.getElementById('pipeline-nodes-chain');
       if (!container) return;
@@ -2792,23 +2862,23 @@
 
       const topologies = {
         1: [
-          { key: 'hermes', icon: 'fa-terminal', color: 'cyan', name: t('pipeline.hermes.name'), sub: t('pipeline.hermes.sub'), meta: hermesMode, status: 'ACTIF' },
-          { key: 'opencode', icon: 'fa-code', color: 'purple', name: t('pipeline.opencode.name'), sub: t('pipeline.opencode.sub'), meta: t('pipeline.opencode.meta'), status: vkEng?.online ? 'LOCAL' : 'IDLE' },
-          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'amber', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM' },
-          { key: 'vulkan', icon: 'fa-microchip', color: 'emerald', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: runtimeConfig.engines.vulkan.modelName, meta: `KV ${vkKvPct}% · ${vkSpeed} t/s`, status: vkStatus }
+          { key: 'hermes', icon: 'fa-terminal', color: 'cyan', name: t('pipeline.hermes.name'), sub: t('pipeline.hermes.sub'), meta: hermesMode, status: 'ACTIF', live: true },
+          { key: 'opencode', icon: 'fa-code', color: 'purple', name: t('pipeline.opencode.name'), sub: t('pipeline.opencode.sub'), meta: t('pipeline.opencode.meta'), status: vkEng?.online ? 'LOCAL' : 'IDLE', live: Boolean(vkEng?.online) },
+          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'amber', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM', live: true },
+          { key: 'vulkan', icon: 'fa-microchip', color: 'emerald', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: runtimeConfig.engines.vulkan.modelName, meta: `KV ${vkKvPct}% · ${vkSpeed} t/s`, status: vkStatus, live: String(vkStatus).includes('RUN') }
         ],
         2: [
-          { key: 'opencode', icon: 'fa-code', color: 'purple', name: 'OPENCODE CLI (DIRECT)', sub: 'Session TUI Autonome', meta: t('pipeline.opencode.meta'), status: vkEng?.online ? 'LOCAL' : 'IDLE' },
-          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'amber', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM' },
-          { key: 'vulkan', icon: 'fa-microchip', color: 'emerald', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: runtimeConfig.engines.vulkan.modelName, meta: `KV ${vkKvPct}% · ${vkSpeed} t/s`, status: vkStatus }
+          { key: 'opencode', icon: 'fa-code', color: 'purple', name: 'OPENCODE CLI (DIRECT)', sub: 'Session TUI Autonome', meta: t('pipeline.opencode.meta'), status: vkEng?.online ? 'LOCAL' : 'IDLE', live: Boolean(vkEng?.online) },
+          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'amber', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM', live: true },
+          { key: 'vulkan', icon: 'fa-microchip', color: 'emerald', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: runtimeConfig.engines.vulkan.modelName, meta: `KV ${vkKvPct}% · ${vkSpeed} t/s`, status: vkStatus, live: String(vkStatus).includes('RUN') }
         ],
         3: [
-          { key: 'webui', icon: 'fa-globe', color: 'emerald', name: t('pipeline.webui.name', { port: servicePorts.webui }), sub: t('pipeline.webui.sub'), meta: t('pipeline.webui.meta'), status: rcEng?.running_reqs ? `${rcEng.running_reqs} REQ` : 'IDLE' },
-          { key: 'vllm', icon: 'fa-layer-group', color: 'rose', name: t('pipeline.vllm.name', { port: servicePorts.vllm }), sub: runtimeConfig.engines.rocm.modelName, meta: `Paged ${rcPaged}% · ${rcSpeed} t/s`, status: rcStatus }
+          { key: 'webui', icon: 'fa-globe', color: 'emerald', name: t('pipeline.webui.name', { port: servicePorts.webui }), sub: t('pipeline.webui.sub'), meta: t('pipeline.webui.meta'), status: rcEng?.running_reqs ? `${rcEng.running_reqs} REQ` : 'IDLE', live: Boolean(rcEng?.running_reqs) },
+          { key: 'vllm', icon: 'fa-layer-group', color: 'rose', name: t('pipeline.vllm.name', { port: servicePorts.vllm }), sub: runtimeConfig.engines.rocm.modelName, meta: `Paged ${rcPaged}% · ${rcSpeed} t/s`, status: rcStatus, live: Boolean(rcEng?.running_reqs) }
         ],
         4: [
-          { key: 'hermes', icon: 'fa-terminal', color: 'cyan', name: t('pipeline.hermes.name'), sub: t('pipeline.hermes.sub'), meta: hermesMode, status: 'ACTIF' },
-          { key: 'cloud', icon: 'fa-cloud', color: 'amber', name: `${runtimeConfig.provider_name.toUpperCase()} (${runtimeConfig.provider_tier.toUpperCase()})`, sub: runtimeConfig.model_name, meta: `TPM ${(state.cloudTpm/1e6).toFixed(2)}M / ${tpmMaxM}M`, status: ipcLiveConnected ? 'CLOUD' : 'OFFLINE' }
+          { key: 'hermes', icon: 'fa-terminal', color: 'cyan', name: t('pipeline.hermes.name'), sub: t('pipeline.hermes.sub'), meta: hermesMode, status: 'ACTIF', live: true },
+          { key: 'cloud', icon: 'fa-cloud', color: 'amber', name: `${runtimeConfig.provider_name.toUpperCase()} (${runtimeConfig.provider_tier.toUpperCase()})`, sub: runtimeConfig.model_name, meta: `TPM ${(state.cloudTpm/1e6).toFixed(2)}M / ${tpmMaxM}M`, status: ipcLiveConnected ? 'CLOUD' : 'OFFLINE', live: ipcLiveConnected }
         ]
       };
 
@@ -2820,43 +2890,103 @@
         rose: 'border-rose-500/40 bg-rose-950/25 text-rose-300'
       };
 
-      const nodes = topologies[activeTopology] || topologies[1];
-      let html = '';
+      const ipcChains = Array.isArray(lastIpcPayload?.active_chains) ? lastIpcPayload.active_chains : [];
+      const chainsToRender = (isPreprod && preprodManualTopo !== null)
+        ? [{ id: `preprod_${preprodManualTopo}`, state: 'LIVE', nodes: topologies[preprodManualTopo] || topologies[1] }]
+        : (ipcChains.length > 0
+            ? ipcChains
+            : [{ id: `fallback_${activeTopology}`, state: 'READY', nodes: topologies[activeTopology] || topologies[1] }]);
 
-      nodes.forEach((node, idx) => {
-        html += `
-          <div class="flex-1 rounded-xl p-3 border ${colorStyles[node.color]} transition-all duration-200 space-y-1 relative">
-            <div class="flex items-center justify-between">
-              <span class="font-mono text-xs font-bold flex items-center gap-1.5 text-white">
-                <i class="fa-solid ${node.icon} text-xs"></i>
-                <span>${node.name}</span>
-              </span>
-              <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-black/50 border border-white/10">${node.status}</span>
-            </div>
-            <div class="text-[12px] font-mono text-slate-200 font-medium">${node.sub}</div>
-            <div class="text-[11px] font-mono text-slate-400 pt-0.5">${node.meta}</div>
-          </div>
-        `;
-
-        if (idx < nodes.length - 1) {
-          html += `
-            <div class="hidden md:flex flex-col items-center justify-center px-1 w-14">
-              <div class="w-full h-1 bg-slate-800 rounded-full relative overflow-hidden">
-                <span class="absolute top-0 h-1 w-3 rounded-full bg-cyan-400 animate-particle"></span>
-              </div>
-              <span class="text-[10px] font-mono text-cyan-400 mt-1">──►</span>
-            </div>
-            <div class="flex md:hidden items-center justify-center py-0.5 text-cyan-400 text-xs font-mono">▼</div>
-          `;
+      const autoBadgeEl = document.getElementById('pipeline-auto-badge');
+      if (autoBadgeEl) {
+        if (chainsToRender.length >= 2) {
+          autoBadgeEl.removeAttribute('data-i18n');
+          autoBadgeEl.textContent = t('pipeline.badge_multi', { count: chainsToRender.length });
+          autoBadgeEl.className = 'text-[11px] font-mono px-2 py-0.2 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-400/40 font-semibold';
+        } else {
+          autoBadgeEl.setAttribute('data-i18n', 'pipeline.badge_auto');
+          autoBadgeEl.textContent = t('pipeline.badge_auto');
+          autoBadgeEl.className = 'text-[11px] font-mono px-2 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
         }
-      });
+      }
 
-      container.innerHTML = html;
+      const pillChainEl = document.getElementById('pill-chain-label');
+      const chainTextEl = document.getElementById('header-chain');
+      if (ipcChains.length >= 2 && !(isPreprod && preprodManualTopo !== null)) {
+        const multiSummary = ipcChains.map(c => c.short_label || c.id).join('  +  ');
+        if (pillChainEl) pillChainEl.textContent = multiSummary;
+        if (chainTextEl) chainTextEl.textContent = multiSummary;
+      } else if (ipcChains.length === 1 && ipcChains[0].label && !(isPreprod && preprodManualTopo !== null)) {
+        if (pillChainEl) pillChainEl.textContent = ipcChains[0].label;
+        if (chainTextEl) chainTextEl.textContent = ipcChains[0].label;
+      }
+
+      const showMultiTag = chainsToRender.length >= 2;
+      const rowsHtml = chainsToRender.map(chain => {
+        const isLiveChain = chain.state === 'LIVE';
+        const nodes = Array.isArray(chain.nodes) ? chain.nodes : [];
+        const rowWrapCls = showMultiTag
+          ? (isLiveChain
+              ? 'bg-[#0A0E17] border border-cyan-500/25 rounded-xl p-2 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2'
+              : 'bg-black/25 border border-white/5 rounded-xl p-2 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 opacity-95')
+          : 'flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2';
+
+        const statePillHtml = showMultiTag
+          ? `<div class="flex md:flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg bg-black/50 border ${isLiveChain ? 'border-emerald-500/35 text-emerald-300' : 'border-slate-700 text-slate-400'} font-mono text-[10px] font-bold shrink-0 md:w-16">
+               <span class="w-2 h-2 rounded-full ${isLiveChain ? 'bg-emerald-400 text-emerald-400 dot-blink' : 'bg-cyan-400/70'}"></span>
+               <span>${escapeHtml(t(isLiveChain ? 'pipeline.state_live' : 'pipeline.state_ready'))}</span>
+             </div>`
+          : '';
+
+        let innerHtml = statePillHtml;
+        nodes.forEach((node, idx) => {
+          const cStyle = colorStyles[node.color] || colorStyles.cyan;
+          const stBadgeCls = (isLiveChain && node.live !== false)
+            ? 'bg-emerald-500/15 border-emerald-400/35 text-emerald-200'
+            : 'bg-black/50 border-white/10 text-slate-300';
+          innerHtml += `
+            <div class="flex-1 rounded-xl p-2.5 md:p-3 border ${cStyle} transition-all duration-200 space-y-1 relative min-w-0">
+              <div class="flex items-center justify-between gap-1.5">
+                <span class="font-mono text-xs font-bold flex items-center gap-1.5 text-white truncate">
+                  <i class="fa-solid ${escapeHtml(node.icon || 'fa-circle-nodes')} text-xs shrink-0"></i>
+                  <span class="truncate">${escapeHtml(node.name || '--')}</span>
+                </span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold border shrink-0 ${stBadgeCls}">${escapeHtml(node.status || 'IDLE')}</span>
+              </div>
+              <div class="text-[12px] font-mono text-slate-200 font-medium truncate">${escapeHtml(node.sub || '--')}</div>
+              <div class="text-[11px] font-mono text-slate-400 pt-0.5 truncate">${escapeHtml(node.meta || '')}</div>
+            </div>
+          `;
+
+          if (idx < nodes.length - 1) {
+            const particleSpan = isLiveChain
+              ? `<span class="absolute top-0 h-1 w-3 rounded-full bg-cyan-400 animate-particle"></span>`
+              : '';
+            const arrowCls = isLiveChain ? 'text-cyan-400' : 'text-slate-500';
+            innerHtml += `
+              <div class="hidden md:flex flex-col items-center justify-center px-0.5 w-11 shrink-0">
+                <div class="w-full h-1 bg-slate-800 rounded-full relative overflow-hidden">
+                  ${particleSpan}
+                </div>
+                <span class="text-[10px] font-mono ${arrowCls} mt-1">──►</span>
+              </div>
+              <div class="flex md:hidden items-center justify-center py-0.5 ${arrowCls} text-xs font-mono">▼</div>
+            `;
+          }
+        });
+
+        return `<div class="pipeline-row ${rowWrapCls}">${innerHtml}</div>`;
+      }).join('');
+
+      container.innerHTML = rowsHtml;
     }
 
     function setTopology(topoNum, opts = {}) {
       const silent = Boolean(opts && opts.silent);
       if (!silent && !isPreprod) return;
+      if (!silent && isPreprod) {
+        preprodManualTopo = preprodManualTopo === topoNum ? null : topoNum;
+      }
       activeTopology = topoNum;
       document.querySelectorAll('.topo-btn').forEach(btn => {
         btn.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/40', 'font-semibold');

@@ -600,16 +600,18 @@ class SqliteTelemetryReader:
         return candidates
 
     def _resolve_hermes_targets(self) -> Tuple[str, bool, List[str], List[Tuple[str, Path]]]:
-        """Résoudre le profil actif ou la liste complète selon config/env."""
+        """Résoudre le profil le plus récent tout en agrégeant tous les profils par défaut."""
         all_dbs = self._iter_all_hermes_dbs()
         avail_names = [name for name, _ in all_dbs]
         if not all_dbs:
-            return "default", False, [], []
+            return "default", True, [], []
 
-        include_all = bool(self.hermes_cfg.get("include_all_profiles", False))
+        include_all = bool(self.hermes_cfg.get("include_all_profiles", True))
         env_all = os.environ.get("TOKENWATCHER_HERMES_ALL_PROFILES", "").strip().lower()
         if env_all in {"1", "true", "yes"}:
             include_all = True
+        elif env_all in {"0", "false", "no"}:
+            include_all = False
 
         requested = (
             os.environ.get("TOKENWATCHER_HERMES_PROFILE")
@@ -653,6 +655,8 @@ class SqliteTelemetryReader:
 
     def _read_hermes_dbs(self, now: float, active_window_sec: float, max_sessions: int) -> Dict[str, Any]:
         resolved_profile, include_all, avail_profiles, target_dbs = self._resolve_hermes_targets()
+        all_dbs = self._iter_all_hermes_dbs()
+        cloud_allowed_profiles = {n for n, _ in target_dbs}
         result: Dict[str, Any] = {
             "available": False,
             "active_profile": resolved_profile,
@@ -680,6 +684,7 @@ class SqliteTelemetryReader:
             "cloud_rsn_total": 0,
             "cloud_cached_total": 0,
             "by_model": [],
+            "by_profile": [],
         }
 
         cloud_sessions_all: List[Dict[str, Any]] = []
@@ -687,7 +692,8 @@ class SqliteTelemetryReader:
         recent_cloud_for_win: List[Tuple[Path, str, float, float, int]] = []
         recent_local_for_win: List[Tuple[Path, str, float, float, int]] = []
         model_stats: Dict[str, Dict[str, Any]] = {}
-        db_by_sid: Dict[str, Path] = {}
+        profile_stats: Dict[str, Dict[str, Any]] = {}
+        db_by_sid: Dict[Tuple[str, str], Path] = {}
 
         def _ensure_model(m_name: str) -> Dict[str, Any]:
             if m_name not in model_stats:
@@ -711,7 +717,7 @@ class SqliteTelemetryReader:
                 }
             return model_stats[m_name]
 
-        for prof_default, db_path in target_dbs:
+        for prof_default, db_path in all_dbs:
             conn = self._connect_ro(db_path)
             if conn is None:
                 continue
@@ -774,7 +780,7 @@ class SqliteTelemetryReader:
                     tools_v = int(tools_cnt or 0)
                     api_v = int(api_calls or 0)
                     msgs_v = int(msg_cnt or 0)
-                    prof_label = str(prof_name or prof_default)
+                    prof_label = prof_default if prof_default != "default" else str(prof_name or "default")
                     model_str = str(model or "Unknown")
                     loc_kind, target_info = self.classify_session(
                         model_str,
@@ -783,6 +789,8 @@ class SqliteTelemetryReader:
                         model_config_raw=model_cfg_raw,
                     )
                     is_local = loc_kind == "local"
+                    if not is_local and not include_all and prof_default not in cloud_allowed_profiles:
+                        continue
                     age = max(0.0, now - ts)
 
                     if ended_at is not None or age > 86400:
@@ -826,10 +834,27 @@ class SqliteTelemetryReader:
                     result["windows"]["TOTAL"] += tok_sum
 
                     if not is_local:
-                        db_by_sid[str(sid)] = db_path
+                        db_by_sid[(prof_label, str(sid))] = db_path
                         started_ts = self._norm_ts(started) or ts
                         if age <= 86400 and tok_sum > 0:
                             recent_cloud_for_win.append((db_path, str(sid), ts, started_ts, tok_sum))
+                        p_stat = profile_stats.setdefault(
+                            prof_label,
+                            {
+                                "profile": prof_label,
+                                "active_sessions": 0,
+                                "open_sessions": 0,
+                                "total_sessions": 0,
+                                "latest_ts": 0.0,
+                            },
+                        )
+                        p_stat["total_sessions"] += 1
+                        if ts > p_stat["latest_ts"]:
+                            p_stat["latest_ts"] = ts
+                        if sess_status == "ACTIVE":
+                            p_stat["active_sessions"] += 1
+                        elif sess_status == "OPEN":
+                            p_stat["open_sessions"] += 1
                         q_meta = self._resolve_model_quota(model_str)
                         s_entry = {
                             "id": str(sid),
@@ -885,7 +910,7 @@ class SqliteTelemetryReader:
                                 result["cloud_rsn_total"] += rsn_v
                                 result["cloud_cached_total"] += cr_v
                     else:
-                        db_by_sid[str(sid)] = db_path
+                        db_by_sid[(prof_label, str(sid))] = db_path
                         started_ts_loc = self._norm_ts(started) or ts
                         if age <= 86400 and tok_sum > 0:
                             recent_local_for_win.append((db_path, str(sid), ts, started_ts_loc, tok_sum))
@@ -893,6 +918,7 @@ class SqliteTelemetryReader:
                             "id": str(sid),
                             "parent_id": str(parent_sid) if parent_sid else None,
                             "is_subagent": bool(parent_sid),
+                            "profile": prof_label,
                             "source": "hermes",
                             "target": "LOCAL",
                             "target_info": target_info,
@@ -969,14 +995,34 @@ class SqliteTelemetryReader:
 
         status_rank = {"ACTIVE": 0, "OPEN": 1, "ENDED": 1}
         cloud_sessions_all.sort(key=lambda s: (status_rank.get(s["status"], 9), -float(s["updated_at"])))
-        top_cloud = cloud_sessions_all[:max_sessions]
+        top_cloud_list: List[Dict[str, Any]] = []
+        seen_cloud_keys: set = set()
+        # Garantir au moins les 3 sessions les plus récentes par profil, puis compléter jusqu'à max_sessions
+        per_prof_counts: Dict[str, int] = {}
+        for s_item in cloud_sessions_all:
+            pk = str(s_item.get("profile") or "default")
+            if per_prof_counts.get(pk, 0) < 3:
+                per_prof_counts[pk] = per_prof_counts.get(pk, 0) + 1
+                s_key = (pk, str(s_item.get("id") or ""))
+                seen_cloud_keys.add(s_key)
+                top_cloud_list.append(s_item)
+        for s_item in cloud_sessions_all:
+            if len(top_cloud_list) >= max(max_sessions, len(top_cloud_list)):
+                break
+            pk = str(s_item.get("profile") or "default")
+            s_key = (pk, str(s_item.get("id") or ""))
+            if s_key not in seen_cloud_keys:
+                seen_cloud_keys.add(s_key)
+                top_cloud_list.append(s_item)
+        top_cloud_list.sort(key=lambda s: (status_rank.get(s["status"], 9), -float(s["updated_at"])))
+        top_cloud = top_cloud_list
 
         local_sessions_all.sort(key=lambda s: (status_rank.get(s["status"], 9), -float(s["updated_at"])))
         top_local = local_sessions_all[:max_sessions]
 
         by_db: Dict[Path, List[Dict[str, Any]]] = {}
         for s_item in top_cloud + top_local:
-            dbp = db_by_sid.get(s_item["id"])
+            dbp = db_by_sid.get((str(s_item.get("profile") or "default"), str(s_item["id"])))
             if dbp is not None:
                 by_db.setdefault(dbp, []).append(s_item)
 
@@ -1079,6 +1125,9 @@ class SqliteTelemetryReader:
 
         result["cloud_sessions"] = top_cloud
         result["local_sessions"] = top_local
+        by_prof_list = list(profile_stats.values())
+        by_prof_list.sort(key=lambda p: (-int(p["active_sessions"] > 0), -float(p["latest_ts"])))
+        result["by_profile"] = by_prof_list
 
         by_model_list: List[Dict[str, Any]] = []
         for m_name, ms in model_stats.items():
@@ -1174,18 +1223,22 @@ class SqliteTelemetryReader:
         hm = self._read_hermes_dbs(now, active_window_sec, max_sessions)
         ow = self._read_openwebui_db()
 
-        oc_ts = oc["latest_ts"]
-        hm_ts = hm["latest_ts"]
-        ow_ts = ow["latest_ts"]
+        oc_ts = float(oc["latest_ts"] or 0.0)
+        hm_cloud_ts = float(hm.get("latest_cloud_ts") or 0.0)
+        hm_local_ts = float(hm.get("latest_local_ts") or 0.0)
+        ow_ts = float(ow["latest_ts"] or 0.0)
+        local_best_ts = max(oc_ts, hm_local_ts)
 
-        if ow_ts > max(oc_ts, hm_ts) and ow["requests"]:
+        if ow_ts > max(local_best_ts, hm_cloud_ts) and ow["requests"]:
             active_topology = 3
-        elif oc_ts > 0 and hm_ts > 0 and abs(hm_ts - oc_ts) < 900:
-            active_topology = 1
-        elif oc_ts > hm_ts:
-            active_topology = 2
-        elif hm_ts > 0:
+        elif hm_cloud_ts >= local_best_ts and hm_cloud_ts > 0:
             active_topology = 4
+        elif oc_ts > 0 and hm_local_ts > 0 and abs(hm_local_ts - oc_ts) < 900:
+            active_topology = 1
+        elif oc_ts > hm_local_ts and oc_ts > 0:
+            active_topology = 2
+        elif hm_local_ts > 0:
+            active_topology = 1
         else:
             active_topology = 1
 
@@ -1302,8 +1355,9 @@ class SqliteTelemetryReader:
                 "focus_model": focus_model,
                 "primary_model": primary_model,
                 "active_profile": hm.get("active_profile", "default"),
-                "include_all_profiles": bool(hm.get("include_all_profiles", False)),
+                "include_all_profiles": bool(hm.get("include_all_profiles", True)),
                 "available_profiles": hm.get("available_profiles", []),
+                "by_profile": hm.get("by_profile", []),
                 "tpm_sliding_60s": tpm_60s,
                 "tpm_ceiling": tpm_ceil,
                 "tpm_pct": tpm_pct,

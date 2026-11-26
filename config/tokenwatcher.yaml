@@ -28,11 +28,11 @@ services:
 
 hermes:
   # "auto" résout automatiquement le profil le plus récemment actif (ou env HERMES_PROFILE)
-  # Mettre include_all_profiles: true pour agréger tous les profils (~/.hermes/profiles/* + default)
+  # include_all_profiles: true agrège tous les profils (~/.hermes/profiles/* + default) sans perte inter-profils
   active_profile: "auto"
-  include_all_profiles: false
+  include_all_profiles: true
   active_session_window_sec: 120
-  max_sessions: 15
+  max_sessions: 25
 
 cloud_quotas:
   default:

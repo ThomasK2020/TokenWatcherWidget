@@ -31,9 +31,9 @@ DEFAULT_PORTS_CONFIG: Dict[str, Any] = {
     },
     "hermes": {
         "active_profile": "auto",
-        "include_all_profiles": False,
+        "include_all_profiles": True,
         "active_session_window_sec": 120,
-        "max_sessions": 15,
+        "max_sessions": 25,
     },
     "cloud_quotas": {
         "default": {"label": "Cloud API", "tpm_ceiling": 2000000, "rpm_ceiling": 1000, "rpd_ceiling": 10000},
@@ -424,10 +424,23 @@ class TokenWatcherDaemon:
         provider_name = str(hm_cloud_sess.get("provider") or "gemini").upper()
         cloud_model_name = str(hm_cloud_sess.get("model") or "gemini-4-hydrogen")
 
+        active_chains = self._build_active_chains(
+            services=services,
+            sqlite_data=sqlite_data,
+            vulkan_card=vulkan_card,
+            rocm_card=rocm_card,
+            extra_instances=extra_instances,
+            provider_name=provider_name,
+            cloud_model_name=cloud_model_name,
+        )
+        if active_chains:
+            active_topology = int(active_chains[0].get("topo_num") or active_topology)
+
         return {
             "schema_version": "4.2.4",
             "timestamp": round(time.time(), 3),
             "active_topology": active_topology,
+            "active_chains": active_chains,
             "timeframe": "SESSION",
             "service_ports": {
                 "proxy": int(services["proxy"]["port"]),
@@ -515,6 +528,331 @@ class TokenWatcherDaemon:
             "time_windows": sqlite_data["time_windows"],
             "local_time_windows": local_windows,
         }
+
+    def _build_active_chains(
+        self,
+        services: Dict[str, Any],
+        sqlite_data: Dict[str, Any],
+        vulkan_card: Dict[str, Any],
+        rocm_card: Dict[str, Any],
+        extra_instances: List[Dict[str, Any]],
+        provider_name: str,
+        cloud_model_name: str,
+    ) -> List[Dict[str, Any]]:
+        """Construire dynamiquement toutes les chaînes d'exécution actives ou chaudes en parallèle."""
+        chains: List[Dict[str, Any]] = []
+        proxy_port = int(services["proxy"]["port"])
+        vk_port = int(services["vulkan"]["port"])
+        vllm_port = int(services["vllm_rocm"]["port"])
+        webui_port = int(services["open_webui"]["port"])
+
+        # 1. Filière Cloud API (Hermes multi-profils / OpenCode Cloud)
+        cq = sqlite_data.get("cloud_quotas") or {}
+        c_sessions = list(cq.get("sessions") or [])
+        active_c = [s for s in c_sessions if s.get("status") == "ACTIVE"]
+        warm_c = [s for s in c_sessions if s.get("status") == "OPEN" and float(s.get("age_sec") or 999999) <= 7200]
+        recent_c = [s for s in c_sessions if float(s.get("age_sec") or 999999) <= 1800]
+        tpm_60s = int(cq.get("tpm_sliding_60s") or 0)
+        tpm_ceil = max(1, int(cq.get("tpm_ceiling") or 2_000_000))
+        tpm_pct = int(cq.get("tpm_pct") or 0)
+        cloud_live = bool(active_c or tpm_60s > 0)
+        cloud_ready = bool(not cloud_live and (warm_c or recent_c))
+
+        if cloud_live or cloud_ready:
+            rel_c = list(active_c) + [s for s in warm_c if s not in active_c]
+            if not rel_c:
+                rel_c = recent_c or c_sessions[:1]
+            hermes_profs: List[str] = []
+            models_c: List[str] = []
+            has_oc_cloud = False
+            for s in rel_c:
+                if s.get("source") == "opencode":
+                    has_oc_cloud = True
+                else:
+                    p_lbl = str(s.get("profile") or "default")
+                    if p_lbl not in hermes_profs:
+                        hermes_profs.append(p_lbl)
+                m_lbl = str(s.get("model") or "")
+                if m_lbl and m_lbl not in models_c:
+                    models_c.append(m_lbl)
+
+            if hermes_profs and has_oc_cloud:
+                c_client_name = "HERMES + OPENCODE"
+                c_client_sub = f"Profils: {' · '.join(hermes_profs[:3])}"
+                c_client_icon = "fa-terminal"
+            elif has_oc_cloud:
+                c_client_name = "OPENCODE CLI"
+                c_client_sub = "Session Cloud Directe"
+                c_client_icon = "fa-code"
+            else:
+                c_client_name = "HERMES CLI"
+                p_prefix = "Profils" if len(hermes_profs) > 1 else "Profil"
+                c_client_sub = f"{p_prefix}: {' · '.join(hermes_profs[:3]) or 'default'}"
+                c_client_icon = "fa-terminal"
+
+            tot_tools_c = sum(int(s.get("tool_calls") or 0) for s in rel_c)
+            c_client_meta = f"{tot_tools_c} tools · {len(rel_c)} session{'s' if len(rel_c) > 1 else ''}"
+            prov_raw = str((rel_c[0].get("provider") if rel_c else "") or provider_name or "CLOUD")
+            prov_clean = prov_raw.split(":")[0].split("/")[0].upper()
+            mod_sub = (
+                models_c[0]
+                if len(models_c) == 1
+                else (f"{models_c[0]} +{len(models_c) - 1}" if models_c else cloud_model_name)
+            )
+            c_state = "LIVE" if cloud_live else "READY"
+            chains.append(
+                {
+                    "id": "cloud_api",
+                    "topo_num": 4,
+                    "state": c_state,
+                    "short_label": f"CLOUD {prov_clean}",
+                    "label": f"{c_client_name} ({'·'.join(hermes_profs[:2]) or 'cloud'}) ──► {prov_clean} API ({mod_sub})",
+                    "nodes": [
+                        {
+                            "key": "hermes_cloud",
+                            "icon": c_client_icon,
+                            "color": "cyan",
+                            "name": c_client_name,
+                            "sub": c_client_sub,
+                            "meta": c_client_meta,
+                            "status": "ACTIF" if cloud_live else "OUVERT",
+                            "live": cloud_live,
+                        },
+                        {
+                            "key": "cloud",
+                            "icon": "fa-cloud",
+                            "color": "amber",
+                            "name": f"{prov_clean} (API)",
+                            "sub": mod_sub,
+                            "meta": f"TPM {tpm_60s / 1e6:.2f}M / {tpm_ceil / 1e6:.1f}M ({tpm_pct}%)",
+                            "status": "CLOUD · RUN" if cloud_live else "CLOUD · READY",
+                            "live": cloud_live,
+                        },
+                    ],
+                }
+            )
+
+        # 2. Filière Locale Vulkan / Lemonade (:13306 -> :8001)
+        vk_online = bool(vulkan_card.get("online", False))
+        vk_status = str(vulkan_card.get("status_label") or "OFFLINE")
+        vk_running = vk_online and ("RUN" in vk_status.upper())
+        l_sessions = list(sqlite_data.get("local_sessions") or [])
+        active_l = [s for s in l_sessions if s.get("status") == "ACTIVE"]
+        warm_l = [s for s in l_sessions if s.get("status") == "OPEN" and float(s.get("age_sec") or 999999) <= 3600]
+        vk_live = bool(vk_running or active_l)
+        vk_ready = bool(not vk_live and (vk_online or warm_l))
+
+        if vk_live or vk_ready:
+            recent_l = active_l or warm_l or [s for s in l_sessions if float(s.get("age_sec") or 999999) <= 3600] or l_sessions[:1]
+            hm_loc = [s for s in recent_l if s.get("source") == "hermes"]
+            oc_loc = [s for s in recent_l if s.get("source") == "opencode"]
+            vk_nodes: List[Dict[str, Any]] = []
+            vk_topo = 1
+            chain_head_lbl = "CLIENT LOCAL"
+
+            if hm_loc and oc_loc:
+                profs_l = list(dict.fromkeys(str(s.get("profile") or "default") for s in hm_loc))
+                tools_hm = sum(int(s.get("tool_calls") or 0) for s in hm_loc)
+                tools_oc = sum(int(s.get("tool_calls") or 0) for s in oc_loc)
+                chain_head_lbl = f"HERMES ({'·'.join(profs_l[:2])}) ──► OPENCODE"
+                vk_nodes.append(
+                    {
+                        "key": "hermes_local",
+                        "icon": "fa-terminal",
+                        "color": "cyan",
+                        "name": "HERMES CLI",
+                        "sub": f"Profil: {' · '.join(profs_l[:2])}",
+                        "meta": f"{tools_hm} tools · Orchestrateur",
+                        "status": "ACTIF" if vk_live else "PRÊT",
+                        "live": vk_live,
+                    }
+                )
+                vk_nodes.append(
+                    {
+                        "key": "opencode_local",
+                        "icon": "fa-code",
+                        "color": "purple",
+                        "name": "OPENCODE",
+                        "sub": "Agent Build / Code",
+                        "meta": f"{tools_oc} tools · Local",
+                        "status": "LOCAL" if vk_live else "IDLE",
+                        "live": vk_live,
+                    }
+                )
+            elif hm_loc:
+                profs_l = list(dict.fromkeys(str(s.get("profile") or "default") for s in hm_loc))
+                tools_hm = sum(int(s.get("tool_calls") or 0) for s in hm_loc)
+                chain_head_lbl = f"HERMES ({'·'.join(profs_l[:2])})"
+                vk_nodes.append(
+                    {
+                        "key": "hermes_local",
+                        "icon": "fa-terminal",
+                        "color": "cyan",
+                        "name": "HERMES CLI",
+                        "sub": f"Profil: {' · '.join(profs_l[:2])}",
+                        "meta": f"{tools_hm} tools · Session Locale",
+                        "status": "ACTIF" if vk_live else "OUVERT",
+                        "live": vk_live,
+                    }
+                )
+            elif oc_loc:
+                vk_topo = 2
+                tools_oc = sum(int(s.get("tool_calls") or 0) for s in oc_loc)
+                chain_head_lbl = "OPENCODE CLI"
+                vk_nodes.append(
+                    {
+                        "key": "opencode_direct",
+                        "icon": "fa-code",
+                        "color": "purple",
+                        "name": "OPENCODE CLI",
+                        "sub": "Session TUI Autonome",
+                        "meta": f"{tools_oc} tools · Direct",
+                        "status": "ACTIF" if vk_live else "IDLE",
+                        "live": vk_live,
+                    }
+                )
+            else:
+                chain_head_lbl = "ENDPOINT LOCAL"
+                vk_nodes.append(
+                    {
+                        "key": "local_client",
+                        "icon": "fa-terminal",
+                        "color": "cyan",
+                        "name": "CLIENT LOCAL",
+                        "sub": "OpenAI-compat API",
+                        "meta": "Moteur chargé en mémoire",
+                        "status": "VEILLE",
+                        "live": False,
+                    }
+                )
+
+            vk_kv_pct = int(vulkan_card.get("kv_pct") or 0)
+            vk_spd = float(vulkan_card.get("speed_tps") or 0.0)
+            vk_mod = str(vulkan_card.get("model") or "Modèle Vulkan")
+            vk_nodes.append(
+                {
+                    "key": "proxy",
+                    "icon": "fa-arrows-left-right-to-line",
+                    "color": "amber",
+                    "name": f"PROXY :{proxy_port}",
+                    "sub": "Lemonade Router",
+                    "meta": "SSE Stream · OpenAI v1",
+                    "status": "STREAM" if vk_live else "READY",
+                    "live": vk_live,
+                }
+            )
+            vk_nodes.append(
+                {
+                    "key": "vulkan",
+                    "icon": "fa-microchip",
+                    "color": "emerald",
+                    "name": f"VULKAN :{vk_port}",
+                    "sub": vk_mod,
+                    "meta": f"KV {vk_kv_pct}% · {vk_spd:.1f} t/s",
+                    "status": vk_status if vk_online else "OFFLINE",
+                    "live": vk_live,
+                }
+            )
+            chains.append(
+                {
+                    "id": "local_vulkan",
+                    "topo_num": vk_topo,
+                    "state": "LIVE" if vk_live else "READY",
+                    "short_label": f"VULKAN :{vk_port}",
+                    "label": f"{chain_head_lbl} ──► PROXY :{proxy_port} ──► VULKAN :{vk_port} ({vk_mod})",
+                    "nodes": vk_nodes,
+                }
+            )
+
+        # 3. Filière Locale ROCm / vLLM (:8080 -> :8000)
+        rc_online = bool(rocm_card.get("online", False))
+        rc_reqs = int(rocm_card.get("running_reqs") or 0)
+        rc_live = bool(rc_online and rc_reqs > 0)
+        rc_ready = bool(rc_online and not rc_live)
+
+        if rc_live or rc_ready:
+            rc_paged = int(rocm_card.get("paged_cache_pct") or 0)
+            rc_spd = float(rocm_card.get("speed_tps") or 0.0)
+            rc_mod = str(rocm_card.get("model") or "vLLM ROCm")
+            chains.append(
+                {
+                    "id": "local_rocm",
+                    "topo_num": 3,
+                    "state": "LIVE" if rc_live else "READY",
+                    "short_label": f"ROCM :{vllm_port}",
+                    "label": f"OPENWEBUI :{webui_port} ──► VLLM ROCM :{vllm_port} ({rc_mod})",
+                    "nodes": [
+                        {
+                            "key": "webui",
+                            "icon": "fa-globe",
+                            "color": "emerald",
+                            "name": f"OPEN WEBUI :{webui_port}",
+                            "sub": "Portail Multi-Users",
+                            "meta": f"{len(rocm_card.get('vllm_requests') or [])} session(s) Web",
+                            "status": f"{rc_reqs} REQ" if rc_live else "READY",
+                            "live": rc_live,
+                        },
+                        {
+                            "key": "vllm",
+                            "icon": "fa-layer-group",
+                            "color": "rose",
+                            "name": f"VLLM ROCM :{vllm_port}",
+                            "sub": rc_mod,
+                            "meta": f"Paged {rc_paged}% · {rc_spd:.1f} t/s",
+                            "status": f"BATCH ({rc_reqs} req)" if rc_live else "IDLE",
+                            "live": rc_live,
+                        },
+                    ],
+                }
+            )
+
+        # 4. Filières Moteurs Additionnels (Ollama / instances Lemonade supplémentaires chargées)
+        for inst in extra_instances:
+            if not inst.get("online", True):
+                continue
+            alloc_gb = float(inst.get("uma_alloc_gb") or 0.0)
+            st_raw = str(inst.get("status") or "IDLE").upper()
+            e_live = "RUN" in st_raw or "ACTIVE" in st_raw
+            if alloc_gb <= 0.0 and not e_live:
+                continue
+            e_port = inst.get("port") or 11434
+            e_eng = str(inst.get("engine") or "ENGINE").upper()
+            e_mod = str(inst.get("model") or "Modèle Local")
+            chains.append(
+                {
+                    "id": f"extra_{e_port}",
+                    "topo_num": 2,
+                    "state": "LIVE" if e_live else "READY",
+                    "short_label": f"{e_eng} :{e_port}",
+                    "label": f"CLIENT LOCAL ──► {e_eng} :{e_port} ({e_mod})",
+                    "nodes": [
+                        {
+                            "key": f"client_{e_port}",
+                            "icon": "fa-terminal",
+                            "color": "purple",
+                            "name": "CLIENT LOCAL",
+                            "sub": "API Locale Directe",
+                            "meta": "Requête HTTP locale",
+                            "status": "ACTIF" if e_live else "PRÊT",
+                            "live": e_live,
+                        },
+                        {
+                            "key": f"extra_{e_port}",
+                            "icon": "fa-server",
+                            "color": "cyan",
+                            "name": f"{e_eng} :{e_port}",
+                            "sub": e_mod,
+                            "meta": f"UMA {alloc_gb:.1f} Go",
+                            "status": st_raw,
+                            "live": e_live,
+                        },
+                    ],
+                }
+            )
+
+        # Trier : chaînes LIVE en tête, puis READY
+        chains.sort(key=lambda c: 0 if c.get("state") == "LIVE" else 1)
+        return chains
 
     def write_ipc_atomic(self, payload: Dict[str, Any]) -> None:
         """Écrire via fichier temporaire + os.replace vers /tmp/tokenwatcher_widget_state.json."""
