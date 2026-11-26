@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TokenWatcher V4.2.4 MULTI-ENGINE — AI Telemetry & Dynamic Pipeline Cockpit</title>
+  <title>TokenWatcher V4.2.5 MULTI-ENGINE — AI Telemetry & Dynamic Pipeline Cockpit</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome 6 icons -->
@@ -39,6 +39,7 @@
             'pulse-subtle': 'pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             'flow': 'flowPulse 2s infinite ease-in-out',
             'particle': 'particleMove 1.6s linear infinite',
+            'particle-slow': 'particleMove 3.2s linear infinite',
           },
           keyframes: {
             flowPulse: {
@@ -97,10 +98,13 @@
       transition: all 0.25s ease;
     }
     .tw-card-vulkan {
-      border-left: 4px solid #06B6D4;
+      border-left: 4px solid #38BDF8;
     }
     .tw-card-rocm {
-      border-left: 4px solid #F43F5E;
+      border-left: 4px solid #EC4899;
+    }
+    .tw-card-extra {
+      border-left: 4px solid #8B5CF6;
     }
     .svg-ring-anim {
       transition: stroke-dasharray 0.5s cubic-bezier(0.22, 1, 0.36, 1),
@@ -111,7 +115,7 @@
       0%, 100% {
         opacity: 1;
         transform: scale(1);
-        box-shadow: 0 0 7px #10B981;
+        box-shadow: 0 0 7px currentColor;
       }
       50% {
         opacity: 0.32;
@@ -123,19 +127,34 @@
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background-color: #10B981;
+      color: #38BDF8;
+      background-color: currentColor;
       display: inline-block;
       animation: pulse-heartbeat 1.25s infinite ease-in-out;
     }
+    .heartbeat-dot.hb-amber {
+      color: #F59E0B;
+    }
+    .heartbeat-dot.hb-sky {
+      color: #38BDF8;
+    }
+    .heartbeat-dot.hb-fuchsia {
+      color: #EC4899;
+    }
+    .heartbeat-dot.hb-violet {
+      color: #8B5CF6;
+    }
     .heartbeat-dot.idle {
-      background-color: #10B981;
       animation: none;
       box-shadow: none;
+      opacity: 0.78;
     }
     .heartbeat-dot.inactive {
+      color: #64748B;
       background-color: #64748B;
       animation: none;
       box-shadow: none;
+      opacity: 1;
     }
     @keyframes dot-blink-anim {
       0%, 100% {
@@ -195,29 +214,61 @@
       border: 1px solid #232F46;
       transition: background-color 0.2s ease, border-color 0.2s ease;
     }
-    .sq-cell.filled-blue {
-      background-color: rgba(37, 99, 235, 0.52);
-      border-color: rgba(96, 165, 250, 0.9);
+    /* Camaïeu 4 niveaux Local / Vulkan (Bleu) */
+    .sq-cell.filled-blue,
+    .sq-cell.filled-blue-1 {
+      background-color: rgba(29, 78, 216, 0.58);
+      border-color: rgba(59, 130, 246, 0.92);
     }
-    .sq-cell.filled-cyan {
-      background-color: rgba(6, 182, 212, 0.45);
-      border-color: rgba(34, 211, 238, 0.88);
+    .sq-cell.filled-cyan,
+    .sq-cell.filled-blue-2 {
+      background-color: rgba(14, 165, 233, 0.52);
+      border-color: rgba(56, 189, 248, 0.92);
+    }
+    .sq-cell.filled-blue-3 {
+      background-color: rgba(56, 189, 248, 0.65);
+      border-color: rgba(125, 211, 252, 0.96);
+    }
+    .sq-cell.filled-blue-4 {
+      background-color: rgba(186, 230, 253, 0.72);
+      border-color: rgba(224, 242, 254, 0.98);
+    }
+    /* Camaïeu 4 niveaux Cloud Tier LLM (Ambre / Or) */
+    .sq-cell.filled-amber-1 {
+      background-color: rgba(180, 83, 9, 0.56);
+      border-color: rgba(217, 119, 6, 0.90);
+    }
+    .sq-cell.filled-amber,
+    .sq-cell.filled-amber-2 {
+      background-color: rgba(245, 158, 11, 0.50);
+      border-color: rgba(251, 191, 36, 0.92);
+    }
+    .sq-cell.filled-amber-3 {
+      background-color: rgba(250, 204, 21, 0.58);
+      border-color: rgba(253, 224, 71, 0.96);
+    }
+    .sq-cell.filled-amber-4 {
+      background-color: rgba(254, 240, 138, 0.70);
+      border-color: rgba(254, 249, 195, 0.98);
+    }
+    /* Domaines ROCm (Fuchsia), Pool APU (Violet), Silicium (Émeraude) & Alerte Critique (Rouge) */
+    .sq-cell.filled-fuchsia {
+      background-color: rgba(236, 72, 153, 0.46);
+      border-color: rgba(244, 114, 182, 0.90);
+    }
+    .sq-cell.filled-purple,
+    .sq-cell.filled-violet {
+      background-color: rgba(139, 92, 246, 0.45);
+      border-color: rgba(167, 139, 250, 0.88);
     }
     .sq-cell.filled-emerald {
-      background-color: rgba(16, 185, 129, 0.38);
-      border-color: rgba(52, 211, 153, 0.75);
+      background-color: rgba(16, 185, 129, 0.42);
+      border-color: rgba(52, 211, 153, 0.85);
     }
-    .sq-cell.filled-purple {
-      background-color: rgba(168, 85, 247, 0.40);
-      border-color: rgba(192, 132, 252, 0.78);
-    }
-    .sq-cell.filled-rose {
-      background-color: rgba(251, 113, 133, 0.36);
-      border-color: rgba(253, 164, 175, 0.72);
-    }
-    .sq-cell.filled-amber {
-      background-color: rgba(251, 191, 36, 0.38);
-      border-color: rgba(252, 211, 77, 0.78);
+    .sq-cell.filled-rose,
+    .sq-cell.filled-alert {
+      background-color: rgba(239, 68, 68, 0.55);
+      border-color: rgba(248, 113, 113, 0.95);
     }
     @keyframes chevron-rotate-5s {
       0%, 26%, 100% { transform: rotate(0deg); }
@@ -240,7 +291,7 @@
       color: #F43F5E;
     }
 
-    /* Golden Efficiency Hero Indicator (V4.2.4) */
+    /* Golden Efficiency Hero Indicator (V4.2.5) */
     @keyframes golden-glow-pulse {
       0%, 100% {
         box-shadow: 0 0 18px -4px rgba(245, 158, 11, 0.42), inset 0 1px 0 rgba(251, 191, 36, 0.25);
@@ -294,39 +345,39 @@
     }
   </style>
 </head>
-<body class="bg-twBg text-slate-200 font-sans min-h-screen p-3 md:p-5 selection:bg-cyan-500/30 selection:text-cyan-200">
+<body class="bg-twBg text-slate-200 font-sans min-h-screen p-3 md:p-5 selection:bg-slate-600/40 selection:text-white">
 
-  <!-- ==================== FLOATING COMPACT HUD PILL (MODE A) ==================== -->
+  <!-- ==================== FLOATING COMPACT HUD PILL (MODE A — SHELL NEUTRE) ==================== -->
   <div id="hud-pill-container" class="hidden max-w-5xl mx-auto mb-6 transition-all duration-300">
-    <div class="glass-card rounded-full px-5 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xl border border-cyan-500/30 hover:border-cyan-400/50 transition">
+    <div class="glass-card rounded-full px-5 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xl border border-slate-600/45 hover:border-slate-500/65 transition">
       <div class="flex items-center space-x-3">
         <span class="flex h-2.5 w-2.5 relative">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-300 opacity-60"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-200"></span>
         </span>
-        <span class="text-xs font-mono font-bold text-cyan-400 tracking-wider" id="pill-chain-label">--</span>
+        <span class="text-xs font-mono font-bold text-slate-100 tracking-wider" id="pill-chain-label">--</span>
         <span class="text-xs text-slate-600">|</span>
-        <span class="text-xs font-mono font-medium text-slate-200" id="pill-model-name">--</span>
+        <span class="text-xs font-mono font-medium text-sky-300" id="pill-model-name">--</span>
       </div>
       <div class="flex items-center space-x-4 font-mono text-xs">
         <div>
           <span class="text-slate-400">CTX:</span>
           <span class="text-white font-semibold tabular-nums" id="pill-tokens">--</span>
-          <span class="text-cyan-400 text-[12px]" id="pill-kv">(--)</span>
+          <span class="text-sky-300 text-[12px]" id="pill-kv">(--)</span>
         </div>
-        <div class="hidden sm:flex items-center space-x-1 text-emerald-400">
+        <div class="hidden sm:flex items-center space-x-1 text-sky-300">
           <i class="fa-solid fa-bolt text-[11px]"></i>
           <span class="tabular-nums" id="pill-tps">-- t/s</span>
         </div>
-        <div class="hidden md:flex items-center space-x-1 text-amber-300">
+        <div class="hidden md:flex items-center space-x-1 text-slate-200">
           <i class="fa-solid fa-award text-[11px]"></i>
           <span class="tabular-nums font-semibold" id="pill-eff">-- tok/J</span>
         </div>
-        <div class="flex items-center space-x-1 text-amber-400">
+        <div class="flex items-center space-x-1 text-slate-300">
           <i class="fa-solid fa-temperature-half text-[12px]"></i>
           <span class="tabular-nums" id="pill-temp">--°C</span>
         </div>
-        <button onclick="setViewMode('cockpit')" class="px-3 py-1 text-[12px] rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/30 font-sans transition flex items-center gap-1.5">
+        <button onclick="setViewMode('cockpit')" class="px-3 py-1 text-[12px] rounded-full bg-slate-700/60 hover:bg-slate-600/70 text-slate-100 border border-slate-500/50 font-sans transition flex items-center gap-1.5">
           <i class="fa-solid fa-expand text-[11px]"></i>
           <span data-i18n="view.cockpit">Cockpit Complet</span>
         </button>
@@ -337,34 +388,34 @@
   <!-- ==================== MAIN COCKPIT CONTAINER (MODE B & C) ==================== -->
   <main id="main-cockpit" class="max-w-6xl mx-auto space-y-4 transition-all duration-300">
 
-    <!-- 1. TOP HEADER BAR & CONTROLS -->
-    <header class="glass-card rounded-2xl p-3.5 px-4 md:px-5 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+    <!-- 1. TOP HEADER BAR & CONTROLS (SHELL ARDOISE NEUTRE) -->
+    <header class="glass-card rounded-2xl p-3.5 px-4 md:px-5 flex flex-wrap items-center justify-between gap-3 shadow-lg border border-slate-700/60">
       <div class="flex items-center space-x-3 min-w-0">
-        <div class="relative flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-950/70 border border-cyan-500/30 text-cyan-400 shadow-inner shrink-0">
+        <div class="relative flex items-center justify-center w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-600/50 text-slate-200 shadow-inner shrink-0">
           <i class="fa-solid fa-satellite-dish text-sm"></i>
           <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-300 opacity-60"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-200"></span>
           </span>
         </div>
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
             <h1 class="text-sm md:text-base font-bold tracking-wider text-white" data-i18n="header.title">TOKENWATCHER</h1>
-            <span id="header-version-badge" class="hidden text-[11px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/25" data-i18n="header.version_badge">V4.2.4 MULTI-ENGINE</span>
-            <span id="header-preprod-badge" class="hidden text-[11px] font-mono px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">PREPROD</span>
-            <span id="header-i18n-saved-pill" class="hidden text-[11px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25">I18N Ready</span>
+            <span id="header-version-badge" class="hidden text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-700/60 text-slate-200 border border-slate-500/40" data-i18n="header.version_badge">V4.2.5 MULTI-ENGINE</span>
+            <span id="header-preprod-badge" class="hidden text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-700/80 text-slate-200 border border-slate-500/50 font-bold">PREPROD</span>
+            <span id="header-i18n-saved-pill" class="hidden text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-600/50">I18N Ready</span>
           </div>
-          <div class="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5 truncate">
-            <span id="header-live-badge" class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold shrink-0" data-i18n="header.offline_badge">HORS LIGNE</span>
-            <span class="hidden font-mono text-[12px] text-cyan-300 font-medium truncate" id="header-chain">--</span>
+          <div id="header-sub-row" class="hidden items-center gap-1.5 text-xs text-slate-400 mt-0.5 truncate">
+            <span id="header-live-badge" class="hidden px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 border border-red-500/40 font-mono text-[11px] font-bold shrink-0" data-i18n="header.offline_badge">OFFLINE</span>
+            <span class="hidden font-mono text-[12px] text-slate-300 font-medium truncate" id="header-chain">--</span>
           </div>
         </div>
       </div>
 
-      <!-- View Controls (Config/Lang/Pause dans le Footer) -->
+      <!-- View Controls + Discreet Verbose/Help (?) Toggle -->
       <div class="flex flex-wrap items-center gap-2">
-        <div class="bg-black/50 p-1 rounded-xl border border-white/5 flex items-center text-xs">
-          <button onclick="setViewMode('cockpit')" id="view-cockpit" class="view-btn px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1.5">
+        <div class="bg-black/50 p-1 rounded-xl border border-white/10 flex items-center text-xs">
+          <button onclick="setViewMode('cockpit')" id="view-cockpit" class="view-btn px-2.5 py-1 rounded-lg bg-slate-700/70 text-white border border-slate-500/50 transition flex items-center gap-1.5">
             <i class="fa-solid fa-table-columns text-[11px]"></i>
             <span class="hidden sm:inline" data-i18n="view.cockpit">Cockpit Complet</span>
           </button>
@@ -377,20 +428,23 @@
             <span class="hidden sm:inline" data-i18n="view.hud">Pill HUD</span>
           </button>
         </div>
+        <button type="button" id="header-verbose-btn" onclick="toggleVerboseMode()" class="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 border border-white/10 flex items-center justify-center text-[11px] font-mono font-bold transition cursor-pointer shrink-0" title="Aide / Mode Verbose">
+          ?
+        </button>
       </div>
     </header>
 
-    <!-- ==================== 2. INTERACTIVE DYNAMIC PIPELINE & TOPOLOGY SWITCHER ==================== -->
-    <section id="section-pipeline" class="glass-card rounded-2xl p-5 border border-cyan-500/25 space-y-4 transition-all duration-300">
+    <!-- ==================== 2. INTERACTIVE DYNAMIC PIPELINE & TOPOLOGY SWITCHER (CONTENEUR ARDOISE NEUTRE) ==================== -->
+    <section id="section-pipeline" class="glass-card rounded-2xl p-5 border border-slate-600/40 space-y-4 transition-all duration-300">
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-white/5 pb-3.5">
         <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+          <div class="w-8 h-8 rounded-xl bg-slate-800/80 border border-slate-600/50 flex items-center justify-center text-slate-200">
             <i class="fa-solid fa-diagram-project text-sm"></i>
           </div>
           <div>
             <div class="flex items-center gap-2">
               <h2 class="text-xs md:text-sm font-bold text-white tracking-wider uppercase" data-i18n="pipeline.section_title">CHAINES D'EXÉCUTION</h2>
-              <span id="pipeline-auto-badge" class="text-[11px] font-mono px-2 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" data-i18n="pipeline.badge_auto">Auto-Détection Active</span>
+              <span id="pipeline-auto-badge" class="text-[11px] font-mono px-2 py-0.2 rounded bg-slate-800/80 text-slate-300 border border-slate-600/50" data-i18n="pipeline.badge_auto">Auto-Détection Active</span>
             </div>
             <p class="text-[12px] text-slate-400" data-i18n="pipeline.subtitle">Topologies d'orchestration des noeuds d'execution</p>
           </div>
@@ -398,16 +452,16 @@
 
         <!-- 4 Topologies Switcher Pills (masqué en prod, affiché uniquement en --preprod) -->
         <div id="topo-selector-pills" class="hidden flex-wrap items-center gap-1.5 bg-black/50 p-1.5 rounded-xl border border-white/5 font-mono text-[12px]">
-          <button onclick="setTopology(1)" id="topo-btn-1" class="topo-btn px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold transition flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+          <button onclick="setTopology(1)" id="topo-btn-1" class="topo-btn px-2.5 py-1.5 rounded-lg bg-slate-700/70 text-white border border-slate-500/50 font-semibold transition flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-sky-400"></span>
             <span data-i18n="pipeline.topo1">1. Hermes ➔ OpenCode ➔ Proxy ➔ Vulkan</span>
           </button>
           <button onclick="setTopology(2)" id="topo-btn-2" class="topo-btn px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+            <span class="w-2 h-2 rounded-full bg-sky-400"></span>
             <span data-i18n="pipeline.topo2">2. OpenCode CLI Direct (Sans Hermes)</span>
           </button>
           <button onclick="setTopology(3)" id="topo-btn-3" class="topo-btn px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+            <span class="w-2 h-2 rounded-full bg-fuchsia-400"></span>
             <span data-i18n="pipeline.topo3">3. OpenWebUI ➔ vLLM ROCm</span>
           </button>
           <button onclick="setTopology(4)" id="topo-btn-4" class="topo-btn px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
@@ -423,18 +477,18 @@
       </div>
     </section>
 
-    <!-- ==================== 2B. RADAR QUOTAS & FLUX CLOUD (DIRECTEMENT SOUS CHAINES D'EXÉCUTION - V4.2.0) ==================== -->
-    <section id="section-cloud" class="glass-card rounded-2xl p-4 md:p-5 border border-amber-500/25 relative overflow-hidden transition-all duration-300">
+    <!-- ==================== 2B. RADAR QUOTAS & FLUX CLOUD (DOMINANTE AMBRE / OR EXCLUSIVE) ==================== -->
+    <section id="section-cloud" class="glass-card rounded-2xl p-4 md:p-5 border border-amber-500/35 relative overflow-hidden transition-all duration-300">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div class="flex items-center space-x-3">
-          <div id="cloud-section-icon-box" class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base shrink-0 transition-all duration-300">
+          <div id="cloud-section-icon-box" class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/35 flex items-center justify-center text-amber-400 text-base shrink-0 transition-all duration-300">
             <i id="cloud-section-icon" class="fa-solid fa-cloud-bolt"></i>
           </div>
           <div>
             <div class="flex items-center flex-wrap gap-2">
-              <span class="text-xs font-bold text-white tracking-wider" data-i18n="cloud.section_title">INFOS ET QUOTAS D'UTILISATION DU SERVICE CLOUD BASED</span>
-              <span class="px-2 py-0.2 rounded text-[11px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30" id="cloud-provider-label">--</span>
-              <span class="px-2 py-0.2 rounded text-[11px] font-mono bg-white/5 text-cyan-300 border border-cyan-500/20" id="cloud-model-label">--</span>
+              <span class="text-xs font-bold text-amber-300 tracking-wider uppercase" data-i18n="cloud.section_title">INFOS ET QUOTAS D'UTILISATION DU SERVICE CLOUD BASED</span>
+              <span class="px-2 py-0.2 rounded text-[11px] font-mono bg-amber-500/20 text-amber-200 border border-amber-500/35" id="cloud-provider-label">--</span>
+              <span class="px-2 py-0.2 rounded text-[11px] font-mono bg-amber-500/10 text-amber-200 border border-amber-500/25" id="cloud-model-label">--</span>
             </div>
             <div class="text-[12px] text-slate-400" data-i18n="cloud.alert.sliding_window_desc">
               Surveillance active de fenêtre glissante 60s (sliding window) pour prévenir les erreurs HTTP 429 Resource Exhausted
@@ -444,22 +498,22 @@
 
         <!-- Cumul Tokens Cloud Sessions + Liens segmentés 1H | 4H | 1D -->
         <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-          <div id="alert-429-badge" class="text-xs font-mono flex items-center gap-2 text-emerald-400 font-medium">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0" id="alert-429-dot"></span>
+          <div id="alert-429-badge" class="text-xs font-mono flex items-center gap-2 text-amber-300 font-medium">
+            <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0" id="alert-429-dot"></span>
             <span id="alert-429-text" class="tabular-nums font-bold">-- tok</span>
           </div>
-          <div id="cloud-cumul-window-pills" class="bg-black/45 px-1 py-0.5 rounded-lg border border-white/10 flex items-center gap-0.5 font-mono text-[11.5px]" title="Fenêtre de cumul des sessions Cloud (1H / 4H / 1D)">
-            <button type="button" onclick="setCloudCumulWindow('1H')" data-cw="1H" class="cw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">1H</button>
+          <div id="cloud-cumul-window-pills" class="bg-black/45 px-1 py-0.5 rounded-lg border border-amber-500/20 flex items-center gap-0.5 font-mono text-[11.5px]" title="Fenêtre de cumul des sessions Cloud (1H / 4H / 1D)">
+            <button type="button" onclick="setCloudCumulWindow('1H')" data-cw="1H" class="cw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-amber-200 transition cursor-pointer">1H</button>
             <span class="text-slate-600 select-none">|</span>
-            <button type="button" onclick="setCloudCumulWindow('4H')" data-cw="4H" class="cw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">4H</button>
+            <button type="button" onclick="setCloudCumulWindow('4H')" data-cw="4H" class="cw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-amber-200 transition cursor-pointer">4H</button>
             <span class="text-slate-600 select-none">|</span>
             <button type="button" onclick="setCloudCumulWindow('24H')" data-cw="24H" class="cw-btn px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/35 font-semibold transition cursor-pointer">1D</button>
           </div>
         </div>
       </div>
 
-      <!-- Tiroir Multi-Sessions Cloud & Sous-agents (formatage identique à SESSIONS / SLOTS LOCAUX, <= 3 visibles + Voir +) -->
-      <div id="cloud-sessions-drawer" class="mt-3 bg-[#080B11] border border-[#1E2638] rounded-lg p-2.5 font-mono text-[11px] text-[#94A3B8] flex flex-col gap-1.5">
+      <!-- Tiroir Multi-Sessions Cloud & Sous-agents -->
+      <div id="cloud-sessions-drawer" class="mt-3 bg-[#080B11] border border-amber-500/20 rounded-lg p-2.5 font-mono text-[11px] text-[#94A3B8] flex flex-col gap-1.5">
         <div class="flex flex-wrap items-center justify-between gap-1.5">
           <button type="button" id="cloud-sessions-toggle-btn" onclick="toggleCloudSessionsDrawer()" class="flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer transition">
             <span id="cloud-sessions-pill-text">SESSIONS CLOUD & SUBAGENTS (0 act · 0 réc)</span>
@@ -491,11 +545,11 @@
             </div>
             <div class="flex items-center tabular-nums">
               <span class="text-[11.5px] text-[#94A3B8] font-semibold" id="cloud-tpm-text">--</span>
-              <span class="text-[12px] text-emerald-400 font-bold ml-1" id="cloud-tpm-pct">(--)</span>
+              <span class="text-[12px] text-amber-300 font-bold ml-1" id="cloud-tpm-pct">(--)</span>
             </div>
           </div>
           <div class="flex justify-between text-[11px] font-mono text-slate-400">
-            <span><span data-i18n="cloud.metrics.headroom">Headroom libre</span>: <strong class="text-emerald-400 tabular-nums" id="cloud-tpm-free">--</strong></span>
+            <span><span data-i18n="cloud.metrics.headroom">Headroom libre</span>: <strong class="text-amber-200 tabular-nums" id="cloud-tpm-free">--</strong></span>
             <span class="text-slate-500"><span data-i18n="cloud.limits.tier1_ceiling">Plafond Tier 1</span>: <span id="cloud-tpm-ceiling">--</span></span>
           </div>
         </div>
@@ -510,14 +564,14 @@
             <span id="cloud-rpd-val" class="text-white font-mono font-bold tabular-nums">--</span>
           </div>
           <div class="text-[11px] text-slate-500 pt-0.5 font-mono">
-            Moy/Req: <strong id="cloud-avg-req" class="text-slate-300 tabular-nums">--</strong> (Historique + tools)
+            Moy/Req: <strong id="cloud-avg-req" class="text-amber-200/90 tabular-nums">--</strong> (Historique + tools)
           </div>
         </div>
 
         <div class="bg-black/35 p-3 rounded-xl border border-white/5 space-y-1">
           <div class="flex items-center justify-between text-xs font-mono">
             <span class="text-slate-400" data-i18n="cloud.cache_hit_label">Cache Cloud Hit</span>
-            <span id="cloud-cache-hit-val" class="text-cyan-400 font-bold tabular-nums">--</span>
+            <span id="cloud-cache-hit-val" class="text-amber-300 font-bold tabular-nums">--</span>
           </div>
           <div class="text-[12px] font-mono text-slate-300">
             <span data-i18n="cloud.metrics.total_tokens">Cumul Cloud</span>: <span id="cloud-cumul-val" class="text-white tabular-nums">--</span>
@@ -526,24 +580,24 @@
       </div>
     </section>
 
-    <!-- ==================== 3. HERO BENTO: ACTIVE SESSION & CONTEXT DNA BAR ==================== -->
-    <section id="section-hero" class="glass-card rounded-2xl p-5 md:p-6 border border-cyan-500/20 relative overflow-hidden transition-all duration-300">
-      <div class="absolute -right-20 -top-20 w-72 h-72 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none"></div>
+    <!-- ==================== 3. HERO BENTO: MOTEUR D'INFÉRENCE LOCALE (DOMINANTE BLEU / SKY EXCLUSIVE) ==================== -->
+    <section id="section-hero" class="glass-card rounded-2xl p-5 md:p-6 border border-sky-500/35 relative overflow-hidden transition-all duration-300">
+      <div class="absolute -right-20 -top-20 w-72 h-72 bg-sky-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div class="relative z-10 space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/5 pb-4">
           <div class="flex items-start space-x-3 flex-1 min-w-0">
-            <div id="local-section-icon-box" class="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-base shrink-0 transition-all duration-300 mt-0.5">
+            <div id="local-section-icon-box" class="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/35 flex items-center justify-center text-sky-400 text-base shrink-0 transition-all duration-300 mt-0.5">
               <i id="local-section-icon" class="fa-solid fa-server"></i>
             </div>
             <div class="space-y-1 flex-1 min-w-0">
-              <!-- Dynamic Local Inference Block Title + Engine Pill (sans parenthèses, sans doublon) -->
+              <!-- Dynamic Local Inference Block Title + Engine Pill -->
               <div class="flex flex-wrap items-center gap-2 pb-0.5">
-                <span id="local-section-dot" class="w-2 h-2 rounded-full bg-cyan-400 text-cyan-400 shrink-0"></span>
-                <span id="local-inference-block-title" class="text-[12px] font-mono font-bold tracking-normal text-cyan-400 uppercase whitespace-nowrap">
+                <span id="local-section-dot" class="w-2 h-2 rounded-full bg-sky-400 text-sky-400 shrink-0"></span>
+                <span id="local-inference-block-title" class="text-[12px] font-mono font-bold tracking-normal text-sky-300 uppercase whitespace-nowrap">
                   MOTEUR D'INFÉRENCE LOCALE / LLM
                 </span>
-                <span id="hero-backend-badge" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1 uppercase whitespace-nowrap shrink-0">
+                <span id="hero-backend-badge" class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-sky-500/20 text-sky-200 border border-sky-500/35 flex items-center gap-1 uppercase whitespace-nowrap shrink-0">
                   <i class="fa-solid fa-microchip text-[10px]"></i> VULKAN ENGINE ON LLAMA-SERVER :8001
                 </span>
               </div>
@@ -552,13 +606,13 @@
                 <span id="active-model-quant" class="text-xs text-slate-400 font-mono">(--)</span>
               </div>
               <div class="flex flex-wrap items-center gap-2.5 pt-0.5 min-w-0">
-                <button type="button" id="local-llm-config-btn" onclick="toggleLocalLlmConfigDrawer()" class="px-2.5 py-0.5 rounded-md bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border border-cyan-500/35 text-[11px] font-mono font-medium flex items-center gap-1.5 transition cursor-pointer shrink-0">
+                <button type="button" id="local-llm-config-btn" onclick="toggleLocalLlmConfigDrawer()" class="px-2.5 py-0.5 rounded-md bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 border border-sky-500/35 text-[11px] font-mono font-medium flex items-center gap-1.5 transition cursor-pointer shrink-0">
                   <i class="fa-solid fa-sliders text-[10px]"></i>
                   <span data-i18n="local.config_btn">Config LLM</span>
-                  <span id="local-llm-config-chevron" class="text-[10px] text-cyan-300 leading-none transition-transform duration-200">▼</span>
+                  <span id="local-llm-config-chevron" class="text-[10px] text-sky-300 leading-none transition-transform duration-200">▼</span>
                 </button>
-                <button id="workspace-dir-btn" onclick="triggerToast('📁 Workspace : ' + (document.getElementById('workspace-dir-text')?.textContent || ''))" class="hidden text-[12px] font-mono text-slate-400 hover:text-cyan-300 transition items-center gap-1.5 min-w-0">
-                  <i class="fa-regular fa-folder-open text-cyan-400 shrink-0"></i>
+                <button id="workspace-dir-btn" onclick="triggerToast('📁 Workspace : ' + (document.getElementById('workspace-dir-text')?.textContent || ''))" class="hidden text-[12px] font-mono text-slate-400 hover:text-sky-300 transition items-center gap-1.5 min-w-0">
+                  <i class="fa-regular fa-folder-open text-sky-400 shrink-0"></i>
                   <span id="workspace-dir-text" class="truncate">--</span>
                   <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-60 shrink-0"></i>
                 </button>
@@ -566,53 +620,53 @@
             </div>
           </div>
 
-          <!-- Cumul Tokens Sessions Locales + Liens segmentés 1H | 4H | 1D (homogène Cloud Tier LLM) -->
+          <!-- Cumul Tokens Sessions Locales + Liens segmentés 1H | 4H | 1D -->
           <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-            <div id="local-cumul-badge" class="text-xs font-mono flex items-center gap-2 text-emerald-400 font-medium">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0" id="local-cumul-dot"></span>
+            <div id="local-cumul-badge" class="text-xs font-mono flex items-center gap-2 text-sky-300 font-medium">
+              <span class="w-2 h-2 rounded-full bg-sky-400 shrink-0" id="local-cumul-dot"></span>
               <span id="local-cumul-text" class="tabular-nums font-bold">-- tok</span>
             </div>
-            <div id="local-cumul-window-pills" class="bg-black/45 px-1 py-0.5 rounded-lg border border-white/10 flex items-center gap-0.5 font-mono text-[11.5px]" title="Fenêtre de cumul des sessions Locales (1H / 4H / 1D)">
-              <button type="button" onclick="setLocalCumulWindow('1H')" data-lw="1H" class="lw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">1H</button>
+            <div id="local-cumul-window-pills" class="bg-black/45 px-1 py-0.5 rounded-lg border border-sky-500/20 flex items-center gap-0.5 font-mono text-[11.5px]" title="Fenêtre de cumul des sessions Locales (1H / 4H / 1D)">
+              <button type="button" onclick="setLocalCumulWindow('1H')" data-lw="1H" class="lw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-sky-200 transition cursor-pointer">1H</button>
               <span class="text-slate-600 select-none">|</span>
-              <button type="button" onclick="setLocalCumulWindow('4H')" data-lw="4H" class="lw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">4H</button>
+              <button type="button" onclick="setLocalCumulWindow('4H')" data-lw="4H" class="lw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-sky-200 transition cursor-pointer">4H</button>
               <span class="text-slate-600 select-none">|</span>
-              <button type="button" onclick="setLocalCumulWindow('24H')" data-lw="24H" class="lw-btn px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/35 font-semibold transition cursor-pointer">1D</button>
+              <button type="button" onclick="setLocalCumulWindow('24H')" data-lw="24H" class="lw-btn px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-200 border border-sky-500/35 font-semibold transition cursor-pointer">1D</button>
             </div>
           </div>
         </div>
 
-        <!-- Option A : Tiroir Config LLM Local Chargé (replié par défaut) -->
-        <div id="local-llm-config-drawer" class="hidden bg-[#080B11] border border-cyan-500/30 rounded-lg p-3 font-mono text-[11px] text-slate-300 space-y-2.5">
+        <!-- Option A : Tiroir Config LLM Local Chargé (camaïeu Bleu unifié) -->
+        <div id="local-llm-config-drawer" class="hidden bg-[#080B11] border border-sky-500/30 rounded-lg p-3 font-mono text-[11px] text-slate-300 space-y-2.5">
           <div id="local-llm-config-offline-banner" class="hidden text-[11px] font-mono font-semibold tracking-wide pb-1.5 border-b border-[#161E2E]">
-            <span class="text-cyan-400 font-bold" data-i18n="local.config_offline_prefix">Hors ligne</span><span class="text-slate-400" data-i18n="local.config_offline_suffix"> · Aucun LLM local chargé en mémoire</span>
+            <span class="text-sky-300 font-bold" data-i18n="local.config_offline_prefix">Hors ligne</span><span class="text-slate-400" data-i18n="local.config_offline_suffix"> · Aucun LLM local chargé en mémoire</span>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            <div class="bg-[#0D111A] border border-[#1E2638] rounded-md p-2.5 space-y-1">
-              <div class="text-[10.5px] uppercase text-cyan-400 font-bold" data-i18n="local.config_col_model">Modèle & Artefact</div>
+            <div class="bg-[#0D111A] border border-sky-500/20 rounded-md p-2.5 space-y-1">
+              <div class="text-[10.5px] uppercase text-sky-300 font-bold" data-i18n="local.config_col_model">Modèle & Artefact</div>
               <div id="llm-cfg-model-col" class="space-y-0.5 text-[11px] text-slate-300 tabular-nums">--</div>
             </div>
-            <div class="bg-[#0D111A] border border-[#1E2638] rounded-md p-2.5 space-y-1">
-              <div class="text-[10.5px] uppercase text-emerald-400 font-bold" data-i18n="local.config_col_runtime">Runtime & Mémoire</div>
+            <div class="bg-[#0D111A] border border-sky-500/20 rounded-md p-2.5 space-y-1">
+              <div class="text-[10.5px] uppercase text-sky-300 font-bold" data-i18n="local.config_col_runtime">Runtime & Mémoire</div>
               <div id="llm-cfg-runtime-col" class="space-y-0.5 text-[11px] text-slate-300 tabular-nums">--</div>
             </div>
-            <div class="bg-[#0D111A] border border-[#1E2638] rounded-md p-2.5 space-y-1">
-              <div class="text-[10.5px] uppercase text-purple-400 font-bold" data-i18n="local.config_col_sampling">Sampling Live (/slots)</div>
+            <div class="bg-[#0D111A] border border-sky-500/20 rounded-md p-2.5 space-y-1">
+              <div class="text-[10.5px] uppercase text-sky-300 font-bold" data-i18n="local.config_col_sampling">Sampling Live (/slots)</div>
               <div id="llm-cfg-sampling-col" class="space-y-0.5 text-[11px] text-slate-300 tabular-nums">--</div>
             </div>
           </div>
           <div id="llm-cfg-cmd-row" class="hidden items-center justify-between gap-2 bg-black/50 border border-[#1A2234] rounded px-2.5 py-1.5">
             <code id="llm-cfg-cmdline" class="text-[10.5px] text-slate-400 truncate flex-1">--</code>
-            <button type="button" onclick="copyLocalLlmCmdline()" class="px-2 py-0.5 rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 text-[10.5px] shrink-0 cursor-pointer transition" data-i18n="local.config_copy_cmd">Copier CMD</button>
+            <button type="button" onclick="copyLocalLlmCmdline()" class="px-2 py-0.5 rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 border border-sky-500/35 text-[10.5px] shrink-0 cursor-pointer transition" data-i18n="local.config_copy_cmd">Copier CMD</button>
           </div>
         </div>
 
-        <!-- 2.1 Tiroir Multi-Sessions & Slots Locaux (<= 3 visibles par défaut + Voir +) -->
-        <div class="bg-[#080B11] border border-[#1E2638] rounded-lg p-2.5 font-mono text-[11px] text-[#94A3B8] flex flex-col gap-1.5">
+        <!-- 2.1 Tiroir Multi-Sessions & Slots Locaux -->
+        <div class="bg-[#080B11] border border-sky-500/20 rounded-lg p-2.5 font-mono text-[11px] text-[#94A3B8] flex flex-col gap-1.5">
           <div class="flex flex-wrap items-center justify-between gap-1.5">
             <button type="button" onclick="toggleLocalSessionsDrawer()" class="flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer transition">
               <span id="local-sessions-pill-text">SESSIONS / SLOTS LOCAUX (0 act · 0 réc)</span>
-              <span id="local-sessions-chevron" class="text-[10px] text-cyan-300 leading-none transition-transform duration-200 rotate-180">▼</span>
+              <span id="local-sessions-chevron" class="text-[10px] text-sky-300 leading-none transition-transform duration-200 rotate-180">▼</span>
             </button>
             <span id="local-sessions-source-label" class="text-[10.5px] text-slate-500">opencode.db + state.db + /slots</span>
           </div>
@@ -628,21 +682,21 @@
           </div>
         </div>
 
-        <!-- 2.2 & 2.3 Anatomie du Contexte (Context DNA) + KV Cache -->
+        <!-- 2.2 & 2.3 Anatomie du Contexte (Context DNA) — Option A Camaïeu Bleu 4 niveaux -->
         <div class="space-y-2">
-          <div class="bg-[#0A0D14] border border-[#1B2436] rounded-lg px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-3 font-mono">
+          <div class="bg-[#0A0D14] border border-sky-500/20 rounded-lg px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-3 font-mono">
             <div class="flex flex-wrap items-center gap-3">
               <span class="text-xs text-[#94A3B8] font-semibold" data-i18n="context.title">Anatomie du Contexte (Context DNA) :</span>
-              <div id="context-dna-squares-10" class="sq-10-grid" title="Anatomie du Contexte (1 carré = 10% · Bleu: KV Cache, Cyan: Prompt In, Vert: Out, Violet: Rsn)"></div>
+              <div id="context-dna-squares-10" class="sq-10-grid" title="Anatomie du Contexte (Camaïeu Bleu 4 niveaux : KV Cache, Prompt In, Out, Rsn)"></div>
               <div class="flex items-center tabular-nums text-xs">
                 <span class="text-[#94A3B8] font-semibold" id="ctx-used-val">54.2k / 65.5k</span>
-                <span class="text-[#38BDF8] font-bold ml-1.5" id="ctx-percent-val">(83%)</span>
+                <span class="text-sky-300 font-bold ml-1.5" id="ctx-percent-val">(83%)</span>
               </div>
             </div>
             <div class="flex items-center gap-3 text-[12px] tabular-nums">
-              <span class="text-slate-400"><span data-i18n="context.free_suffix">Headroom libre</span> : <strong class="text-emerald-400" id="ctx-free-val">11.3k tok</strong></span>
+              <span class="text-slate-400"><span data-i18n="context.free_suffix">Headroom libre</span> : <strong class="text-sky-200" id="ctx-free-val">11.3k tok</strong></span>
               <span class="text-slate-600">|</span>
-              <span id="ctx-status-badge" class="text-emerald-400 font-mono font-semibold flex items-center gap-1" data-i18n="context.overflow_ok">
+              <span id="ctx-status-badge" class="text-sky-300 font-mono font-semibold flex items-center gap-1" data-i18n="context.overflow_ok">
                 [OK · Zéro Overflow]
               </span>
             </div>
@@ -651,38 +705,38 @@
           <div class="flex flex-wrap items-center justify-between text-[12px] font-mono text-slate-300 pt-0.5 gap-2">
             <div class="flex flex-wrap items-center gap-3">
               <span class="flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-sm bg-blue-500/50 border border-blue-400"></span>
+                <span class="w-2.5 h-2.5 rounded-sm bg-blue-700/70 border border-blue-500"></span>
                 <span class="text-slate-400" data-i18n="context.kv_label">KV Cache:</span>
                 <strong class="text-blue-300 tabular-nums" id="val-kv-hit">48.7k (94% Hit)</strong>
               </span>
               <span class="flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-sm bg-cyan-400/50 border border-cyan-300"></span>
+                <span class="w-2.5 h-2.5 rounded-sm bg-sky-500/60 border border-sky-400"></span>
                 <span class="text-slate-400" data-i18n="context.in_label">Prompt In:</span>
-                <span class="text-cyan-300 tabular-nums" id="val-in">+3.1k (Tot: 51.8k)</span>
+                <span class="text-sky-300 tabular-nums" id="val-in">+3.1k (Tot: 51.8k)</span>
               </span>
               <span class="flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400/50 border border-emerald-300"></span>
+                <span class="w-2.5 h-2.5 rounded-sm bg-sky-300/65 border border-sky-200"></span>
                 <span class="text-slate-400" data-i18n="context.out_label">Out:</span>
-                <span class="text-emerald-300 tabular-nums" id="val-out">1.8k</span>
+                <span class="text-sky-200 tabular-nums" id="val-out">1.8k</span>
               </span>
               <span class="flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-sm bg-purple-400/50 border border-purple-300"></span>
+                <span class="w-2.5 h-2.5 rounded-sm bg-sky-100/75 border border-white"></span>
                 <span class="text-slate-400" data-i18n="context.rsn_label">Rsn (Thought):</span>
-                <span class="text-purple-300 tabular-nums" id="val-rsn">640 tok (26%)</span>
+                <span class="text-sky-100 tabular-nums" id="val-rsn">640 tok (26%)</span>
               </span>
             </div>
             <div class="text-slate-400 text-[11px]">
-              <span data-i18n="session.thought_detector_label">Détecteur Boucle Thought:</span> <strong class="text-emerald-400" id="loop-risk-label" data-i18n="session.thought_detector_state">[OK · StopTokens Actifs]</strong>
+              <span data-i18n="session.thought_detector_label">Détecteur Boucle Thought:</span> <strong class="text-sky-300" id="loop-risk-label" data-i18n="session.thought_detector_state">[OK · StopTokens Actifs]</strong>
             </div>
           </div>
         </div>
 
-        <!-- 2.4 Speed Pills & Flags (PP, Latence TTFT, Flags Fine-Tuning & Runtime) -->
+        <!-- 2.4 Speed Pills & Flags (Monochrome Bleu/Ardoise unifié) -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
           <div class="bg-black/35 p-2.5 rounded-xl border border-white/5 space-y-1">
             <div class="text-[11px] text-slate-400 uppercase font-mono flex items-center justify-between">
               <span>PP (Prefill Speed)</span>
-              <i class="fa-solid fa-forward-fast text-blue-400 text-[11px]"></i>
+              <i class="fa-solid fa-forward-fast text-sky-400 text-[11px]"></i>
             </div>
             <div class="text-base font-bold font-mono text-white tabular-nums" id="speed-pp">1 420 <span class="text-xs text-slate-400 font-normal">t/s</span></div>
             <div id="speed-pp-sub" class="text-[11px] text-slate-500 font-mono">Batch 512 / uBatch 128</div>
@@ -690,22 +744,22 @@
           <div class="bg-black/35 p-2.5 rounded-xl border border-white/5 space-y-1">
             <div class="text-[11px] text-slate-400 uppercase font-mono flex items-center justify-between">
               <span>Latence TTFT</span>
-              <i class="fa-regular fa-clock text-cyan-400 text-[11px]"></i>
+              <i class="fa-regular fa-clock text-sky-400 text-[11px]"></i>
             </div>
-            <div class="text-base font-bold font-mono text-cyan-300 tabular-nums" id="speed-ttft">0.18 <span class="text-xs text-slate-400 font-normal">s</span></div>
-            <div id="speed-ttft-sub" class="text-[11px] text-emerald-400 font-mono">--cache-reuse 256 actif</div>
+            <div class="text-base font-bold font-mono text-sky-300 tabular-nums" id="speed-ttft">0.18 <span class="text-xs text-slate-400 font-normal">s</span></div>
+            <div id="speed-ttft-sub" class="text-[11px] text-sky-400/80 font-mono">--cache-reuse 256 actif</div>
           </div>
           <div class="bg-black/35 p-2.5 rounded-xl border border-white/5 space-y-1 sm:col-span-2">
             <div class="text-[11px] text-slate-400 uppercase font-mono flex items-center justify-between">
               <span>Flags Fine-Tuning & Runtime Détectés</span>
-              <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono">Zero-Hardcode</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/25 font-mono">Zero-Hardcode</span>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-0.5" id="hero-tuning-badges">
-              <span class="px-2 py-0.5 rounded bg-white/5 text-[12px] font-mono text-slate-300 border border-white/10">Temp <strong class="text-white">0.15</strong></span>
-              <span class="px-2 py-0.5 rounded bg-white/5 text-[12px] font-mono text-slate-300 border border-white/10">RepPen <strong class="text-white">1.0</strong></span>
-              <span class="px-2 py-0.5 rounded bg-blue-500/15 text-[12px] font-mono text-blue-300 border border-blue-500/30">KV <strong class="text-white">q8_0</strong></span>
-              <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-[12px] font-mono text-emerald-300 border border-emerald-500/30">FA: <strong class="text-white">ON</strong></span>
-              <span class="px-2 py-0.5 rounded bg-purple-500/15 text-[12px] font-mono text-purple-300 border border-purple-500/30">stream_options: include_usage</span>
+              <span class="px-2 py-0.5 rounded bg-sky-950/35 text-[12px] font-mono text-sky-200 border border-sky-500/25">Temp <strong class="text-white">0.15</strong></span>
+              <span class="px-2 py-0.5 rounded bg-sky-950/35 text-[12px] font-mono text-sky-200 border border-sky-500/25">RepPen <strong class="text-white">1.0</strong></span>
+              <span class="px-2 py-0.5 rounded bg-sky-950/35 text-[12px] font-mono text-sky-200 border border-sky-500/25">KV <strong class="text-white">q8_0</strong></span>
+              <span class="px-2 py-0.5 rounded bg-sky-950/35 text-[12px] font-mono text-sky-200 border border-sky-500/25">FA: <strong class="text-white">ON</strong></span>
+              <span class="px-2 py-0.5 rounded bg-sky-950/35 text-[12px] font-mono text-sky-200 border border-sky-500/25">stream_options: include_usage</span>
             </div>
           </div>
         </div>
@@ -715,17 +769,17 @@
     <!-- ==================== 4 & 5. STACKED FULL-WIDTH: MULTI-ENGINE RUNTIME & HARDWARE ==================== -->
     <div class="grid grid-cols-1 gap-4">
 
-      <!-- 4. MULTI-ENGINE MEMORY & RUNTIME TOPOLOGY CARD (PROTECTED DOM - 100% WIDTH) -->
-      <section id="section-slots" class="glass-card rounded-2xl p-4 md:p-5 border border-white/5 space-y-3.5 transition-all duration-300">
+      <!-- 4. MULTI-ENGINE MEMORY & RUNTIME TOPOLOGY CARD (DOMINANTE VIOLET + SOUS-CARTES BLEU VULKAN / FUCHSIA ROCM) -->
+      <section id="section-slots" class="glass-card rounded-2xl p-4 md:p-5 border border-violet-500/35 space-y-3.5 transition-all duration-300">
         <!-- En-tête du bloc -->
         <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-white/5">
           <div class="flex items-center gap-3 w-full">
-            <div class="w-8 h-8 rounded-full bg-purple-500/15 border border-purple-500/35 flex items-center justify-center text-purple-300 font-bold text-sm shrink-0">
+            <div class="w-8 h-8 rounded-full bg-violet-500/15 border border-violet-500/35 flex items-center justify-center text-violet-300 font-bold text-sm shrink-0">
               ≡
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <h2 class="text-xs md:text-sm font-bold text-white tracking-tight truncate uppercase">
+                <h2 class="text-xs md:text-sm font-bold text-violet-300 tracking-tight truncate uppercase">
                   <span data-i18n="memory.section_title">INFERENCE ENGINES AND UNIFIED MEMORY USAGE</span>
                 </h2>
               </div>
@@ -734,12 +788,12 @@
                 <span class="text-slate-600">|</span>
                 <span>
                   <span data-i18n="memory.gen_loc_label">Générés Loc:</span>
-                  <strong id="hdr-gen" class="text-white font-bold">14.8k</strong>
+                  <strong id="hdr-gen" class="text-violet-200 font-bold">14.8k</strong>
                 </span>
                 <span class="text-slate-600">|</span>
                 <span>
                   <span data-i18n="memory.served_label">Servis:</span>
-                  <strong id="hdr-serv" class="text-white font-bold">0.42M</strong>
+                  <strong id="hdr-serv" class="text-violet-200 font-bold">0.42M</strong>
                 </span>
               </div>
             </div>
@@ -747,19 +801,19 @@
         </div>
 
         <!-- POOL UNIFIÉ APU (128 Go LPDDR5X) — CAMEMBERT 96px + 4 BLOCS -->
-        <article class="bg-[#0A0D14]/90 border border-[#1E2638] rounded-xl px-3.5 py-3">
+        <article class="bg-[#0A0D14]/90 border border-violet-500/20 rounded-xl px-3.5 py-3">
           <div class="flex flex-col sm:flex-row items-center gap-4">
             <!-- Camembert SVG -->
             <div class="relative w-[96px] h-[96px] shrink-0 flex items-center justify-center">
               <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120" aria-label="Répartition Pool Unifié APU 128 Go">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="#263042" stroke-width="13" />
                 <circle id="donut-os" class="svg-ring-anim" cx="60" cy="60" r="50" fill="none" stroke="#94A3B8" stroke-width="13" stroke-dasharray="28.27 314.16" stroke-dashoffset="-99.28" />
-                <circle id="donut-rocm" class="svg-ring-anim" cx="60" cy="60" r="50" fill="none" stroke="#F43F5E" stroke-width="13" stroke-dasharray="54.04 314.16" stroke-dashoffset="-45.24" />
-                <circle id="donut-vulkan" class="svg-ring-anim" cx="60" cy="60" r="50" fill="none" stroke="#06B6D4" stroke-width="13" stroke-dasharray="45.24 314.16" stroke-dashoffset="0" />
+                <circle id="donut-rocm" class="svg-ring-anim" cx="60" cy="60" r="50" fill="none" stroke="#EC4899" stroke-width="13" stroke-dasharray="54.04 314.16" stroke-dashoffset="-45.24" />
+                <circle id="donut-vulkan" class="svg-ring-anim" cx="60" cy="60" r="50" fill="none" stroke="#38BDF8" stroke-width="13" stroke-dasharray="45.24 314.16" stroke-dashoffset="0" />
               </svg>
               <div class="absolute inset-0 flex flex-col items-center justify-center text-center font-mono pointer-events-none tabular-nums">
                 <span id="donut-pct-text" class="text-[13.5px] font-extrabold text-white leading-tight">31.5%</span>
-                <span id="donut-gb-text" class="text-[11px] font-semibold text-slate-300 mt-0.5">40.4 Go</span>
+                <span id="donut-gb-text" class="text-[11px] font-semibold text-violet-200 mt-0.5">40.4 Go</span>
               </div>
             </div>
 
@@ -767,36 +821,36 @@
             <div class="flex-1 w-full flex flex-col gap-2 font-mono">
               <div class="flex flex-wrap items-center justify-between gap-1.5 pb-1.5 border-b border-[#182030] text-[12px]">
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <span id="apu-pool-title" class="font-bold text-slate-200" data-i18n="memory.apu_title">Répartition Pool Unifié APU (-- Go) :</span>
+                  <span id="apu-pool-title" class="font-bold text-violet-200" data-i18n="memory.apu_title">Répartition Pool Unifié APU (-- Go) :</span>
                   <span class="text-slate-400">
                     <span data-i18n="memory.total_ia_label">Total IA :</span>
                     <strong id="apu-total-ia" class="text-white font-bold tabular-nums">40.4 Go (31.5%)</strong>
                   </span>
                   <span class="text-slate-600">·</span>
-                  <span class="text-[#CBD5E1]" data-i18n="memory.zero_copy_pcie">Zero-Copy LLM data via PCIe</span>
+                  <span class="text-slate-400" data-i18n="memory.zero_copy_pcie">Zero-Copy LLM data via PCIe</span>
                 </div>
               </div>
 
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px] tabular-nums">
                 <div class="bg-[#0F141E] border border-[#1B2436] rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
                   <div class="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                    <span class="w-2 h-2 rounded-sm bg-[#06B6D4] shrink-0"></span>
+                    <span class="w-2 h-2 rounded-sm bg-[#38BDF8] shrink-0"></span>
                     <span data-i18n="memory.leg_vulkan">Vulkan:</span>
                   </div>
                   <div class="text-white font-bold">
                     <span id="leg-v-gb">18.4 Go</span>
-                    <span id="leg-v-pct" class="text-[#38BDF8] font-semibold text-[11px]">(14.4%)</span>
+                    <span id="leg-v-pct" class="text-sky-300 font-semibold text-[11px]">(14.4%)</span>
                   </div>
                 </div>
 
                 <div class="bg-[#0F141E] border border-[#1B2436] rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
                   <div class="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                    <span class="w-2 h-2 rounded-sm bg-[#F43F5E] shrink-0"></span>
+                    <span class="w-2 h-2 rounded-sm bg-[#EC4899] shrink-0"></span>
                     <span data-i18n="memory.leg_rocm">ROCm:</span>
                   </div>
                   <div class="text-white font-bold">
                     <span id="leg-r-gb">22.0 Go</span>
-                    <span id="leg-r-pct" class="text-[#FB7185] font-semibold text-[11px]">(17.2%)</span>
+                    <span id="leg-r-pct" class="text-fuchsia-300 font-semibold text-[11px]">(17.2%)</span>
                   </div>
                 </div>
 
@@ -824,38 +878,81 @@
               </div>
             </div>
           </div>
+
+          <!-- SOUS-SECTION PHYSIQUE PILOTE DRM : VRAM DÉDIÉE + GTT UMA = SOMME (LIEN DIRECT AVEC LE DONUT) -->
+          <div class="border-t border-[#182030] mt-3 pt-2.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 font-mono text-[11.5px] tabular-nums">
+            <div id="apu-sub-vram" class="flex-1 bg-[#0F141E] border border-[#1B2436] rounded-lg px-3 py-1.5 flex flex-col gap-0.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10.5px] uppercase tracking-wider text-slate-400 font-semibold" data-i18n="hardware.memory.vram_dedicated">VRAM Dédiée</span>
+                <span id="apu-vram-pct" class="text-[11px] font-bold text-slate-200">0%</span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span id="apu-vram-val" class="font-bold text-white">0.0 / 16.0 Go</span>
+                <span class="text-slate-400 text-[11px]">
+                  <span data-i18n="hardware.memory.free">Libre</span>: <strong id="apu-vram-free" class="text-slate-200 font-semibold">16.0 Go</strong>
+                </span>
+              </div>
+            </div>
+
+            <div class="hidden sm:flex items-center justify-center text-slate-500 font-bold text-sm px-0.5 select-none">+</div>
+
+            <div id="apu-sub-gtt" class="flex-1 bg-[#0F141E] border border-[#1B2436] rounded-lg px-3 py-1.5 flex flex-col gap-0.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10.5px] uppercase tracking-wider text-slate-400 font-semibold" data-i18n="hardware.memory.gtt_uma">GTT UMA</span>
+                <span id="apu-gtt-pct" class="text-[11px] font-bold text-slate-200">0%</span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span id="apu-gtt-val" class="font-bold text-white">0.0 / 22.8 Go</span>
+                <span class="text-slate-400 text-[11px]">
+                  <span data-i18n="hardware.memory.free">Libre</span>: <strong id="apu-gtt-free" class="text-slate-200 font-semibold">22.8 Go</strong>
+                </span>
+              </div>
+            </div>
+
+            <div class="hidden sm:flex items-center justify-center text-slate-500 font-bold text-sm px-0.5 select-none">=</div>
+
+            <div id="apu-sub-sum" class="flex-1 bg-[#0F141E] border border-violet-500/25 rounded-lg px-3 py-1.5 flex flex-col gap-0.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10.5px] uppercase tracking-wider text-slate-400 font-semibold" data-i18n="hardware.memory.sum_label">Somme VRAM + GTT</span>
+                <span id="apu-sum-target-badge" class="text-[11px] font-bold text-sky-300">→ Vulkan: 0.0 Go</span>
+              </div>
+              <div id="apu-sum-formula" class="font-bold text-white">0.0 + 0.0 = 0.0 Go</div>
+            </div>
+          </div>
         </article>
 
         <!-- CARTE MOTEUR 1 : [VULKAN] Qwen3-Coder-30B-A3B-GGUF -->
         <article id="card-vulkan" class="tw-card-v34 tw-card-vulkan">
-          <div class="flex flex-col sm:flex-row items-center gap-4">
-            <div class="w-full sm:w-[116px] shrink-0 flex flex-col items-center text-center sm:border-r sm:border-[#1E2638] sm:pr-3">
-              <div class="relative w-[80px] h-[80px] flex items-center justify-center">
-                <svg class="w-full h-full -rotate-90" viewBox="0 0 88 88">
-                  <circle cx="44" cy="44" r="38" fill="none" stroke="#1E2738" stroke-width="6.5" />
-                  <circle id="ring-vulkan" class="svg-ring-anim" cx="44" cy="44" r="38" fill="none" stroke="#38BDF8" stroke-width="6.5" stroke-linecap="round" stroke-dasharray="34.38 238.76" />
-                </svg>
-                <div class="absolute inset-0 flex flex-col items-center justify-center font-mono pointer-events-none tabular-nums">
-                  <span id="ring-vulkan-pct" class="text-[12px] font-extrabold text-white leading-tight">14.4%</span>
-                  <span id="vulkan-mem-gb" class="text-[11px] font-bold text-[#67E8F9] mt-0.5">18.4 Go</span>
+          <div class="flex flex-col sm:flex-row items-stretch gap-3.5">
+            <div class="w-full sm:w-[134px] shrink-0 flex flex-col justify-center sm:border-r sm:border-[#1E2638] sm:pr-3.5">
+              <div id="vulkan-mem-pill" class="bg-[#121620] border border-[#1E2638] rounded-lg px-2.5 py-2 font-mono tabular-nums flex flex-col gap-1.5">
+                <div class="flex flex-col leading-snug text-[11px]">
+                  <div class="flex items-baseline justify-between gap-1">
+                    <span id="vulkan-vram-val" class="font-bold text-[#F8FAFC]">0.0G</span>
+                    <span class="text-[10px] text-[#64748B] uppercase tracking-wider">VRAM</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1">
+                    <span id="vulkan-gtt-val" class="font-semibold text-[#CBD5E1]">+ 0.0G</span>
+                    <span class="text-[10px] text-[#64748B] uppercase tracking-wider">GTT</span>
+                  </div>
                 </div>
-              </div>
-              <div class="font-mono mt-1 flex flex-col items-center leading-tight tabular-nums">
-                <span class="text-[10.5px] uppercase tracking-wider text-slate-400" data-i18n="engines.alloc_uma">Alloc UMA</span>
-                <span id="vulkan-kv-gb" class="text-[11px] text-slate-300 font-medium mt-0.5">KV: 3.8 Go</span>
+                <div class="border-t border-[#1E2638] pt-1 flex items-center justify-between gap-1 text-[10px] leading-tight">
+                  <span id="vulkan-kv-gb" class="text-[#CBD5E1] font-medium">KV: 0.00 Go</span>
+                  <span class="uppercase tracking-wider text-[#64748B]" data-i18n="engines.alloc_uma">Alloc UMA</span>
+                </div>
               </div>
             </div>
 
-            <div class="flex-1 w-full flex flex-col gap-2">
+            <div class="flex-1 w-full flex flex-col gap-2 min-w-0">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2 flex-wrap font-mono">
-                  <span id="vulkan-engine-badge" class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">[VULKAN]</span>
+                  <span id="vulkan-engine-badge" class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">[VULKAN]</span>
                   <h3 id="vulkan-model-title" class="text-xs font-bold text-white">Qwen3-Coder-30B-A3B-GGUF</h3>
                   <span id="vulkan-port-badge" title="Endpoint : http://127.0.0.1:8001/slots" class="text-[11px] text-[#94A3B8] bg-[#192132] px-1.5 py-0.5 rounded cursor-help tabular-nums">:8001</span>
                 </div>
 
                 <div class="font-mono text-[11.5px] bg-[#090C12] border border-[#243047] px-2.5 py-0.5 rounded-md flex items-center gap-1.5 tabular-nums">
-                  <span id="vulkan-heartbeat" class="heartbeat-dot"></span>
+                  <span id="vulkan-heartbeat" class="heartbeat-dot hb-sky"></span>
                   <span id="vulkan-slot-label" class="text-slate-300">SLOT 0 · RUN</span>
                   <strong id="vulkan-speed" class="text-white font-extrabold text-[11.5px]">58.4 t/s</strong>
                 </div>
@@ -895,43 +992,45 @@
           </div>
         </article>
 
-        <!-- CARTE MOTEUR 2 : [ROCm 7.x] Qwen2.5-14B-Instruct-AWQ (TIROIR DÉPLIÉ PAR DÉFAUT + RÈGLE <= 3 REQUÊTES) -->
+        <!-- CARTE MOTEUR 2 : [ROCm 7.x] (FUCHSIA DÉDIÉ) -->
         <article id="card-rocm" class="tw-card-v34 tw-card-rocm">
-          <div class="flex flex-col sm:flex-row items-center gap-4">
-            <div class="w-full sm:w-[116px] shrink-0 flex flex-col items-center text-center sm:border-r sm:border-[#1E2638] sm:pr-3">
-              <div class="relative w-[80px] h-[80px] flex items-center justify-center">
-                <svg class="w-full h-full -rotate-90" viewBox="0 0 88 88">
-                  <circle cx="44" cy="44" r="38" fill="none" stroke="#1E2738" stroke-width="6.5" />
-                  <circle id="ring-rocm" class="svg-ring-anim" cx="44" cy="44" r="38" fill="none" stroke="#FB7185" stroke-width="6.5" stroke-linecap="round" stroke-dasharray="41.07 238.76" />
-                </svg>
-                <div class="absolute inset-0 flex flex-col items-center justify-center font-mono pointer-events-none tabular-nums">
-                  <span id="ring-rocm-pct" class="text-[12px] font-extrabold text-white leading-tight">17.2%</span>
-                  <span id="rocm-mem-gb" class="text-[11px] font-bold text-[#FDA4AF] mt-0.5">22.0 Go</span>
+          <div class="flex flex-col sm:flex-row items-stretch gap-3.5">
+            <div class="w-full sm:w-[134px] shrink-0 flex flex-col justify-center sm:border-r sm:border-[#1E2638] sm:pr-3.5">
+              <div id="rocm-mem-pill" class="bg-[#121620] border border-[#1E2638] rounded-lg px-2.5 py-2 font-mono tabular-nums flex flex-col gap-1.5">
+                <div class="flex flex-col leading-snug text-[11px]">
+                  <div class="flex items-baseline justify-between gap-1">
+                    <span id="rocm-vram-val" class="font-semibold text-[#64748B]">0.0G</span>
+                    <span class="text-[10px] text-[#64748B] uppercase tracking-wider">VRAM</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1">
+                    <span id="rocm-gtt-val" class="font-semibold text-[#64748B]">0.0G</span>
+                    <span class="text-[10px] text-[#64748B] uppercase tracking-wider">GTT</span>
+                  </div>
                 </div>
-              </div>
-              <div class="font-mono mt-1 flex flex-col items-center leading-tight tabular-nums">
-                <span id="rocm-mem-label" class="text-[10.5px] uppercase tracking-wider text-slate-400" data-i18n="engines.pool_gtt">Pool GTT</span>
-                <span class="text-[11px] text-slate-300 font-medium mt-0.5">
-                  <span id="rocm-active-val">9.2G</span>
-                  <span data-i18n="engines.active_suffix">actif</span>
-                </span>
+                <div class="border-t border-[#1E2638] pt-1 flex items-center justify-between gap-1 text-[10px] leading-tight">
+                  <span id="rocm-mem-label" class="uppercase tracking-wider text-[#64748B]" data-i18n="engines.pool_gtt">Pool GTT</span>
+                  <span class="text-[#94A3B8] font-medium flex items-center gap-1">
+                    <span id="rocm-active-val" class="hidden">0.0G</span>
+                    <span id="rocm-status-suffix" data-i18n="engines.inactive_suffix">Inactif</span>
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div class="flex-1 w-full flex flex-col gap-2">
+            <div class="flex-1 w-full flex flex-col gap-2 min-w-0">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2 flex-wrap font-mono">
-                  <span id="rocm-engine-badge" class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">[ROCm 7.x]</span>
+                  <span id="rocm-engine-badge" class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30">[ROCm 7.x]</span>
                   <h3 id="rocm-model-title" class="text-xs font-bold text-white">Qwen2.5-14B-Instruct-AWQ</h3>
                   <span id="rocm-port-badge" title="Endpoint : http://127.0.0.1:8000/metrics" class="text-[11px] text-[#94A3B8] bg-[#192132] px-1.5 py-0.5 rounded cursor-help tabular-nums">:8000</span>
                 </div>
 
                 <div class="flex items-center gap-1.5">
-                  <button type="button" onclick="toggleBatchDrawer()" class="group font-mono text-[11.5px] bg-[#090C12] hover:bg-[#111726] border border-[#243047] hover:border-rose-500/60 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 cursor-pointer transition tabular-nums" title="Cliquer pour déplier/replier le détail des requêtes actives">
-                    <span id="rocm-heartbeat" class="heartbeat-dot inactive"></span>
+                  <button type="button" onclick="toggleBatchDrawer()" class="group font-mono text-[11.5px] bg-[#090C12] hover:bg-[#111726] border border-[#243047] hover:border-fuchsia-500/60 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 cursor-pointer transition tabular-nums" title="Cliquer pour déplier/replier le détail des requêtes actives">
+                    <span id="rocm-heartbeat" class="heartbeat-dot hb-fuchsia inactive"></span>
                     <span id="rocm-batch-pill-text" class="text-slate-300">BATCH (0 req · 0 wait) ·</span>
                     <strong id="rocm-speed" class="text-white font-extrabold text-[11.5px]">0.0 t/s</strong>
-                    <span id="batch-chevron" class="expand-chevron is-open text-[10px] text-[#FB7185] ml-0.5 leading-none">▼</span>
+                    <span id="batch-chevron" class="expand-chevron is-open text-[10px] text-fuchsia-400 ml-0.5 leading-none">▼</span>
                   </button>
                 </div>
               </div>
@@ -971,7 +1070,7 @@
                 </div>
                 <div class="tabular-nums">
                   <span data-i18n="engines.client_label">Client:</span>
-                  <strong id="rocm-client-name" class="text-[#FB7185] font-bold">OpenWebUI</strong>
+                  <strong id="rocm-client-name" class="text-fuchsia-300 font-bold">OpenWebUI</strong>
                   <span id="rocm-client-port" title="http://127.0.0.1:8080" class="text-[#94A3B8] cursor-help">:8080</span>
                 </div>
               </div>
@@ -979,19 +1078,19 @@
           </div>
         </article>
 
-        <!-- MOTEURS LOCAUX ADDITIONNELS DÉTECTÉS DYNAMIQUEMENT (Lemonade multi-modèles / Ollama /api/ps) -->
+        <!-- MOTEURS LOCAUX ADDITIONNELS DÉTECTÉS DYNAMIQUEMENT -->
         <div id="extra-engines-container" class="hidden space-y-3.5"></div>
       </section>
 
-      <!-- 5. SILICIUM AMD INDICATORS (VARIABILISÉ - 100% WIDTH STACKED BELOW INFERENCE ENGINES) -->
-      <section id="section-silicon" class="glass-card rounded-2xl p-5 border border-white/5 space-y-4 transition-all duration-300 relative">
+      <!-- 5. SILICIUM AMD INDICATORS (DOMINANTE TITANE / ACIER ARGENTÉ — VERT/ORANGE/ROUGE RÉSERVÉS AUX STATUTS OK/WARN/CRIT) -->
+      <section id="section-silicon" class="glass-card rounded-2xl p-5 border border-slate-400/35 space-y-4 transition-all duration-300 relative">
         <div class="flex items-center justify-between border-b border-white/5 pb-3">
           <div class="flex items-center space-x-2.5">
-            <div class="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-sm">
+            <div class="w-8 h-8 rounded-xl bg-slate-400/15 border border-slate-400/35 flex items-center justify-center text-slate-200 text-sm">
               <i class="fa-solid fa-microchip"></i>
             </div>
             <div>
-              <h2 class="text-xs md:text-sm font-bold text-white tracking-wider" data-i18n="hardware.silicon_title">HARDWARE & AMD INDICATORS</h2>
+              <h2 class="text-xs md:text-sm font-bold text-slate-200 tracking-wider uppercase" data-i18n="hardware.silicon_title">HARDWARE & AMD INDICATORS</h2>
               <p class="text-[12px] text-slate-400 font-mono" id="hw-silicon-subtitle">Ryzen AI Max+ 395 · Radeon 8060S gfx1151 · sondes sysfs/hwmon</p>
             </div>
           </div>
@@ -1000,41 +1099,41 @@
           </span>
         </div>
 
-        <!-- Dual Radial Gauges: VRAM Dedicated vs GTT Unified Memory -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="bg-black/40 p-3 rounded-xl border border-white/5 flex items-center space-x-3">
+        <!-- Dual Radial Gauges: affichées uniquement en mode Focus Silicium (masquées dans Cockpit Complet pour éviter le doublon avec la sous-section APU) -->
+        <div id="silicon-mem-gauges" class="hidden grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="bg-black/40 p-3 rounded-xl border border-slate-400/20 flex items-center space-x-3">
             <div class="relative w-12 h-12 flex-shrink-0 flex items-center justify-center">
               <svg class="w-12 h-12 transform -rotate-90">
                 <circle cx="24" cy="24" r="20" stroke="#1e293b" stroke-width="4" fill="transparent"/>
-                <circle id="gauge-vram-circle" cx="24" cy="24" r="20" stroke="#06B6D4" stroke-width="4" stroke-dasharray="125.6" stroke-dashoffset="20.1" stroke-linecap="round" fill="transparent" class="transition-all duration-700"/>
+                <circle id="gauge-vram-circle" cx="24" cy="24" r="20" stroke="#E2E8F0" stroke-width="4" stroke-dasharray="125.6" stroke-dashoffset="20.1" stroke-linecap="round" fill="transparent" class="transition-all duration-700"/>
               </svg>
-              <span class="absolute text-[12px] font-mono font-bold text-white tabular-nums" id="vram-pct">84%</span>
+              <span class="absolute text-[12px] font-mono font-bold text-slate-100 tabular-nums" id="vram-pct">84%</span>
             </div>
             <div class="space-y-0.5 font-mono">
               <div class="text-[11px] uppercase text-slate-400"><span data-i18n="hardware.memory.vram_dedicated">VRAM Dédiée</span> [■■■■□]</div>
               <div class="text-xs font-bold text-white tabular-nums" id="vram-val">13.5 / 16.0 <span class="text-[11px] text-slate-400 font-normal">Go</span></div>
-              <div class="text-[11px] text-emerald-400"><span data-i18n="hardware.memory.free">Libre</span>: <span id="vram-free-val">2.5 Go</span></div>
+              <div class="text-[11px] text-slate-300"><span data-i18n="hardware.memory.free">Libre</span>: <span id="vram-free-val">2.5 Go</span></div>
             </div>
           </div>
 
-          <div class="bg-black/40 p-3 rounded-xl border border-white/5 flex items-center space-x-3">
+          <div class="bg-black/40 p-3 rounded-xl border border-slate-500/20 flex items-center space-x-3">
             <div class="relative w-12 h-12 flex-shrink-0 flex items-center justify-center">
               <svg class="w-12 h-12 transform -rotate-90">
                 <circle cx="24" cy="24" r="20" stroke="#1e293b" stroke-width="4" fill="transparent"/>
-                <circle id="gauge-gtt-circle" cx="24" cy="24" r="20" stroke="#8B5CF6" stroke-width="4" stroke-dasharray="125.6" stroke-dashoffset="95.4" stroke-linecap="round" fill="transparent" class="transition-all duration-700"/>
+                <circle id="gauge-gtt-circle" cx="24" cy="24" r="20" stroke="#94A3B8" stroke-width="4" stroke-dasharray="125.6" stroke-dashoffset="95.4" stroke-linecap="round" fill="transparent" class="transition-all duration-700"/>
               </svg>
-              <span class="absolute text-[12px] font-mono font-bold text-purple-300 tabular-nums" id="gtt-pct">24%</span>
+              <span class="absolute text-[12px] font-mono font-bold text-slate-300 tabular-nums" id="gtt-pct">24%</span>
             </div>
             <div class="space-y-0.5 font-mono">
               <div class="text-[11px] uppercase text-slate-400"><span data-i18n="hardware.memory.gtt_uma">GTT UMA</span> [■□□□□]</div>
               <div class="text-xs font-bold text-white tabular-nums" id="gtt-val">26.7 / 112.0 <span class="text-[11px] text-slate-400 font-normal">Go</span></div>
-              <div class="text-[11px] text-purple-300"><span data-i18n="hardware.memory.free">Libre</span>: <span id="gtt-free-val">85.3 Go</span></div>
+              <div class="text-[11px] text-slate-300"><span data-i18n="hardware.memory.free">Libre</span>: <span id="gtt-free-val">85.3 Go</span></div>
             </div>
           </div>
         </div>
 
         <!-- Hardware Thermal, Power & 3-Point Vectors with Sparkline -->
-        <div class="bg-black/45 p-3.5 rounded-xl border border-white/5 space-y-2.5 relative overflow-hidden">
+        <div class="bg-black/45 p-3.5 rounded-xl border border-slate-400/15 space-y-2.5 relative overflow-hidden">
           <canvas id="silicon-sparkline-canvas" class="absolute inset-0 w-full h-full pointer-events-none opacity-25"></canvas>
 
           <div class="relative z-10 space-y-2">
@@ -1042,7 +1141,7 @@
             <div class="flex flex-wrap items-center justify-between text-xs font-mono border-b border-white/5 pb-1.5">
               <div class="flex items-center space-x-2">
                 <span class="text-slate-400"><span data-i18n="hardware.compute.activity">Compute</span>:</span>
-                <span class="text-cyan-300 font-bold tabular-nums">[■■■■■] GPU Busy <span id="hw-gpu-busy">94%</span></span>
+                <span class="text-slate-100 font-bold tabular-nums">[■■■■■] GPU Busy <span id="hw-gpu-busy">94%</span></span>
                 <span class="text-[12px] text-slate-400 tabular-nums">(<span id="hw-gpu-clock">2 450</span> MHz)</span>
               </div>
               <div class="text-slate-400 text-[12px]">
@@ -1050,18 +1149,18 @@
               </div>
             </div>
 
-            <!-- Row 1: Thermal sensors & 3-Point Vector -->
+            <!-- Row 1: Thermal sensors & 3-Point Vector (Statuts sémantiques OK=Vert / WARN=Orange / CRIT=Rouge) -->
             <div class="flex flex-wrap items-center justify-between text-xs font-mono">
               <div class="flex items-center space-x-2">
                 <span class="text-slate-400" data-i18n="hardware.gpu_edge">GPU T* Edge</span><span>:</span>
-                <span class="text-amber-400 font-bold tabular-nums text-sm" id="hw-temp-edge">68°C</span>
-                <span id="hw-temp-badge" class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[11px] font-bold">[WARN]</span>
-                <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-200 text-[11px] border border-amber-500/20 tabular-nums" id="hw-vector-temp">
-                  [44° → 61° → 68°C ↗ Pic 74°C]
+                <span class="text-slate-100 font-bold tabular-nums text-sm" id="hw-temp-edge">42°C</span>
+                <span id="hw-temp-badge" class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">[OK]</span>
+                <span class="px-2 py-0.5 rounded bg-slate-800/80 text-slate-200 text-[11px] border border-slate-600/50 tabular-nums" id="hw-vector-temp">
+                  [--]
                 </span>
               </div>
               <div class="text-slate-400 text-[12px]">
-                <span data-i18n="hardware.soc_tctl">SoC hottest T*Ctl</span>: <span class="text-amber-300 font-semibold tabular-nums" id="hw-temp-soc">72°C</span>
+                <span data-i18n="hardware.soc_tctl">SoC hottest T*Ctl</span>: <span class="text-slate-200 font-semibold tabular-nums" id="hw-temp-soc">45°C</span>
               </div>
             </div>
 
@@ -1069,24 +1168,24 @@
             <div class="flex flex-wrap items-center justify-between text-xs font-mono">
               <div class="flex items-center space-x-2">
                 <span class="text-slate-400" data-i18n="hardware.energy_label">Énergie GFX</span><span>:</span>
-                <span class="text-cyan-300 font-bold tabular-nums" id="hw-power-watts">38 W</span>
-                <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-200 text-[11px] border border-cyan-500/20 tabular-nums" id="hw-vector-power">
-                  [12W → 48W → 38W ↘ Moy 31W]
+                <span class="text-slate-100 font-bold tabular-nums" id="hw-power-watts">38 W</span>
+                <span class="px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 text-[11px] border border-slate-600/50 tabular-nums" id="hw-vector-power">
+                  [--]
                 </span>
               </div>
               <div class="text-slate-400 text-[12px]">
-                <span data-i18n="hardware.power.efficiency">Efficacité</span>: <strong id="hw-efficiency" class="text-emerald-400 tabular-nums">1.53 tok/J</strong>
+                <span data-i18n="hardware.power.efficiency">Efficacité</span>: <strong id="hw-efficiency" class="text-white tabular-nums">1.53 tok/J</strong>
               </div>
             </div>
 
             <!-- Row 3: Battery & AI Autonomy -->
             <div class="flex flex-wrap items-center justify-between text-xs font-mono pt-1 border-t border-white/5">
-              <div class="flex items-center space-x-2 text-emerald-400">
+              <div id="hw-battery-wrap" class="flex items-center space-x-2 text-emerald-400">
                 <i class="fa-solid fa-battery-three-quarters"></i>
-                <span class="tabular-nums font-semibold" id="hw-battery">[■■■■□] 74% (66 Wh · -52 W)</span>
+                <span class="tabular-nums font-semibold text-slate-200" id="hw-battery">[■■■■□] 74% (66 Wh · -52 W)</span>
               </div>
               <div class="text-[12px] text-slate-300">
-                <span data-i18n="hardware.battery.ai_runtime">Autonomie IA</span>: <strong id="hw-ai-runtime" class="text-amber-300 tabular-nums">1h 18m</strong> <span id="hw-idle-runtime" class="text-slate-500">(Idle: 5h 40m)</span>
+                <span data-i18n="hardware.battery.ai_runtime">Autonomie IA</span>: <strong id="hw-ai-runtime" class="text-white tabular-nums">1h 18m</strong> <span id="hw-idle-runtime" class="text-slate-500">(Idle: 5h 40m)</span>
               </div>
             </div>
           </div>
@@ -1094,112 +1193,114 @@
       </section>
     </div>
 
-    <!-- FOOTER STATUS & UTILITY CONTROLS (Config & Ports, FR/EN, Pause déplacés ici) -->
-    <footer class="glass-card rounded-xl px-3.5 py-2 flex flex-wrap items-center justify-between text-[12px] font-mono text-slate-500 gap-2.5">
+    <!-- FOOTER STATUS & UTILITY CONTROLS (SHELL ARDOISE NEUTRE) -->
+    <footer class="glass-card rounded-xl px-3.5 py-2 flex flex-wrap items-center justify-between text-[12px] font-mono text-slate-400 gap-2.5 border border-slate-700/60">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+        <span class="w-2 h-2 rounded-full bg-slate-300 shrink-0"></span>
         <span>tokenwatcher-daemon · IPC /tmp/tokenwatcher_widget_state.json</span>
         <span class="text-slate-600">·</span>
-        <span>Polling: <strong class="text-slate-400">1.0s</strong></span>
+        <span>Polling: <strong class="text-slate-300">1.0s</strong></span>
         <span class="text-slate-600">·</span>
         <span id="footer-hw-summary">AMD Strix Halo gfx1151 (Vulkan + ROCm 7.x)</span>
       </div>
       <div class="flex items-center space-x-1.5">
-        <button onclick="togglePortsConfigModal()" class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[12px] font-mono flex items-center gap-1.5 transition cursor-pointer" title="Inspecter les ports et la configuration active (lecture seule)">
+        <button onclick="togglePortsConfigModal()" class="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-600/50 text-[12px] font-mono flex items-center gap-1.5 transition cursor-pointer" title="Inspecter les ports et la configuration active (lecture seule)">
           <i class="fa-solid fa-network-wired text-[11px]"></i>
           <span data-i18n="nav.ports_btn">⚙️ Config & Ports</span>
         </button>
-        <button onclick="toggleLanguage()" id="lang-switch-btn" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-[12px] font-mono transition cursor-pointer" title="Basculer Français / English">
+        <button onclick="toggleLanguage()" id="lang-switch-btn" class="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-600/50 text-[12px] font-mono transition cursor-pointer" title="Basculer Français / English">
           🌐 <span id="current-lang-label">FR</span>
         </button>
-        <button id="toggle-sim-btn" onclick="togglePolling()" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition cursor-pointer" title="Mettre en pause ou relancer le polling 1.0s">
+        <button id="toggle-sim-btn" onclick="togglePolling()" class="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-600/50 flex items-center justify-center transition cursor-pointer" title="Mettre en pause ou relancer le polling 1.0s">
           <i class="fa-solid fa-pause text-[12px]" id="sim-icon"></i>
         </button>
       </div>
     </footer>
 
-    <!-- ==================== MODAL / DRAWER SOUS FOOTER : INSPECTEUR TOKENWATCHER.YAML & PROFILS (LECTURE SEULE) ==================== -->
-    <div id="ports-config-modal" class="hidden glass-card rounded-2xl p-5 border border-amber-500/40 shadow-2xl space-y-4 bg-twSurface/95">
+    <!-- ==================== MODAL / DRAWER SOUS FOOTER : INSPECTEUR TOKENWATCHER.YAML ==================== -->
+    <div id="ports-config-modal" class="hidden glass-card rounded-2xl p-5 border border-slate-600/50 shadow-2xl space-y-4 bg-twSurface/95">
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
         <div class="flex items-center gap-2.5">
-          <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-xs font-bold border border-amber-500/30">CONFIG / TOKENWATCHER.YAML</span>
+          <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/35">CONFIG / TOKENWATCHER.YAML</span>
           <h3 class="text-xs md:text-sm font-bold text-white tracking-wide">ENDPOINTS & PROFILS DÉTECTÉS (LECTURE SEULE)</h3>
         </div>
         <button onclick="togglePortsConfigModal()" class="text-slate-400 hover:text-white text-sm px-2 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <p class="text-xs text-slate-300 leading-relaxed">
-        Valeurs actives chargées par le démon depuis <code class="text-amber-300 font-mono bg-black/40 px-1.5 py-0.5 rounded">config/tokenwatcher.yaml</code> et les sondes système. Pour modifier un paramètre (ports, quotas, calibration repos), éditez <code class="text-cyan-300 font-mono bg-black/40 px-1.5 py-0.5 rounded">config/tokenwatcher.yaml</code> puis redémarrez <code class="text-slate-200 font-mono">tokenwatcher-daemon.service</code>.
+        Valeurs actives chargées par le démon depuis <code class="text-amber-300 font-mono bg-black/50 px-1.5 py-0.5 rounded border border-amber-500/20">config/tokenwatcher.yaml</code> et les sondes système. Pour modifier un paramètre (ports, quotas, calibration repos), éditez <code class="text-sky-300 font-mono bg-black/50 px-1.5 py-0.5 rounded border border-sky-500/20">config/tokenwatcher.yaml</code> puis redémarrez <code class="text-white font-mono">tokenwatcher-daemon.service</code>.
       </p>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 font-mono text-xs">
-        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
-          <span class="text-[11px] text-amber-400 uppercase block font-semibold">Proxy OpenCode</span>
+        <div class="bg-black/40 p-3 rounded-xl border border-teal-500/30 space-y-1">
+          <span class="text-[11px] text-teal-300 uppercase block font-semibold">Proxy OpenCode</span>
           <div id="ro-port-proxy" class="text-white font-bold tabular-nums">127.0.0.1:13306</div>
           <span class="text-[11px] text-slate-500 block">lemonade-opencode-proxy</span>
         </div>
-        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
-          <span class="text-[11px] text-cyan-400 uppercase block font-semibold">Lemonade Vulkan</span>
+        <div class="bg-black/40 p-3 rounded-xl border border-sky-500/30 space-y-1">
+          <span class="text-[11px] text-sky-300 uppercase block font-semibold">Lemonade Vulkan</span>
           <div id="ro-port-vulkan" class="text-white font-bold tabular-nums">127.0.0.1:8001</div>
           <span class="text-[11px] text-slate-500 block">llama-server /slots /metrics</span>
         </div>
-        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
-          <span class="text-[11px] text-rose-400 uppercase block font-semibold">vLLM Engine ROCm</span>
+        <div class="bg-black/40 p-3 rounded-xl border border-fuchsia-500/30 space-y-1">
+          <span class="text-[11px] text-fuchsia-300 uppercase block font-semibold">vLLM Engine ROCm</span>
           <div id="ro-port-vllm" class="text-white font-bold tabular-nums">127.0.0.1:8000</div>
           <span class="text-[11px] text-slate-500 block">PagedAttention /metrics</span>
         </div>
-        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
-          <span class="text-[11px] text-emerald-400 uppercase block font-semibold">OpenWebUI</span>
+        <div class="bg-black/40 p-3 rounded-xl border border-pink-500/30 space-y-1">
+          <span class="text-[11px] text-pink-300 uppercase block font-semibold">OpenWebUI</span>
           <div id="ro-port-webui" class="text-white font-bold tabular-nums">127.0.0.1:8080</div>
           <span class="text-[11px] text-slate-500 block">webui.db + API</span>
         </div>
-        <div class="bg-black/40 p-3 rounded-xl border border-purple-400/50 space-y-1">
-          <span class="text-[11px] text-purple-400 uppercase block font-semibold">Lemonade Health</span>
+        <div class="bg-black/40 p-3 rounded-xl border border-lime-500/30 space-y-1">
+          <span class="text-[11px] text-lime-300 uppercase block font-semibold">Lemonade Health</span>
           <div id="ro-port-lemonade-admin" class="text-white font-bold tabular-nums">127.0.0.1:13305</div>
           <span class="text-[11px] text-slate-500 block">/api/v1/health</span>
         </div>
-        <div class="bg-black/40 p-3 rounded-xl border border-white/10 space-y-1">
-          <span class="text-[11px] text-slate-300 uppercase block font-semibold">Ollama Local</span>
+        <div class="bg-black/40 p-3 rounded-xl border border-violet-500/30 space-y-1">
+          <span class="text-[11px] text-violet-300 uppercase block font-semibold">Ollama Local</span>
           <div id="ro-port-ollama" class="text-white font-bold tabular-nums">127.0.0.1:11434</div>
           <span class="text-[11px] text-slate-500 block">/api/ps</span>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-white/10 font-mono text-xs">
-        <div class="bg-black/40 p-3 rounded-xl border border-cyan-500/25 space-y-1">
-          <div class="text-[11px] text-cyan-400 uppercase font-bold">Matériel Détecté (sysfs / /proc)</div>
+        <div class="bg-black/40 p-3 rounded-xl border border-slate-400/30 space-y-1">
+          <div class="text-[11px] text-slate-200 uppercase font-bold">Matériel Détecté (sysfs / /proc)</div>
           <div id="ro-hw-profile" class="text-white font-semibold">--</div>
         </div>
-        <div class="bg-black/40 p-3 rounded-xl border border-amber-500/25 space-y-1">
-          <div class="text-[11px] text-amber-400 uppercase font-bold">Profil Hermes & Quotas (state.db)</div>
+        <div class="bg-black/40 p-3 rounded-xl border border-amber-500/30 space-y-1">
+          <div class="text-[11px] text-amber-300 uppercase font-bold">Profil Hermes & Quotas (state.db)</div>
           <div id="ro-cloud-profile" class="text-white font-semibold">--</div>
-          <div id="ro-hermes-profile" class="text-[11px] text-slate-400">--</div>
+          <div id="ro-hermes-profile" class="text-[11px] text-indigo-300">--</div>
         </div>
       </div>
 
       <div class="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
         <span class="font-mono text-emerald-400"><i class="fa-solid fa-lock mr-1"></i>Mode inspection lecture seule</span>
-        <button onclick="togglePortsConfigModal()" class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/30 font-mono cursor-pointer">Fermer</button>
+        <button onclick="togglePortsConfigModal()" class="px-3 py-1 rounded-lg bg-slate-700/70 hover:bg-slate-600/80 text-slate-100 border border-slate-500/50 font-mono cursor-pointer">Fermer</button>
       </div>
     </div>
   </main>
 
-  <!-- TOAST FEEDBACK FLOATING NOTIFICATION -->
-  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-card px-4 py-2.5 rounded-xl border border-cyan-500/40 text-cyan-200 text-xs font-mono shadow-2xl flex items-center gap-2 pointer-events-none">
-    <i class="fa-solid fa-circle-info text-cyan-400"></i>
+  <!-- TOAST FEEDBACK FLOATING NOTIFICATION (NEUTRE) -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-card px-4 py-2.5 rounded-xl border border-slate-500/50 text-slate-100 text-xs font-mono shadow-2xl flex items-center gap-2 pointer-events-none">
+    <i class="fa-solid fa-circle-info text-slate-300"></i>
     <span id="toast-msg">Action effectuée</span>
   </div>
 
-  <!-- ==================== JAVASCRIPT ROBUSTE V4.2.4 ==================== -->
+  <!-- ==================== JAVASCRIPT ROBUSTE V4.2.5 ==================== -->
   <script>
     const isPreprod = new URLSearchParams(window.location.search).get('mode') === 'preprod';
+    let verboseMode = isPreprod;
 
     // 1. DICTIONNAIRE I18N COMPLET SANS CODE EN DUR
     const DEFAULT_I18N = {
       fr: {
         "header.title": "TOKENWATCHER",
-        "header.version_badge": "V4.2.4 MULTI-ENGINE",
+        "header.version_badge": "V4.2.5 MULTI-ENGINE",
         "header.live_badge": "LIVE",
-        "header.offline_badge": "HORS LIGNE",
+        "header.offline_badge": "OFFLINE",
+        "header.verbose_tooltip": "Aide / Mode Verbose : afficher ou masquer les détails étendus (identique à --preprod)",
         "nav.session": "SESSION",
         "nav.1h": "1H",
         "nav.24h": "24H",
@@ -1213,7 +1314,7 @@
         "pipeline.badge_auto": "Auto-Détection Active",
         "pipeline.badge_multi": "Parallèle · {count} Chaînes",
         "pipeline.state_live": "LIVE",
-        "pipeline.state_ready": "PRÊT",
+        "pipeline.state_ready": "READY",
         "pipeline.subtitle": "Topologies d'orchestration des noeuds d'execution",
         "pipeline.topo1": "1. Hermes ➔ OpenCode ➔ Proxy ➔ Vulkan",
         "pipeline.topo2": "2. OpenCode CLI Direct (Sans Hermes)",
@@ -1274,6 +1375,7 @@
         "engines.alloc_uma": "Alloc UMA",
         "engines.pool_gtt": "Pool GTT",
         "engines.active_suffix": "actif",
+        "engines.inactive_suffix": "Inactif",
         "engines.kv_slot_label": "KV Slot ({ctx}) :",
         "engines.paged_cache_label": "Cache Contexte (Paged) :",
         "engines.batch_pill": "BATCH ({req} req · {wait} wait) ·",
@@ -1292,6 +1394,8 @@
         "hardware.memory.vram_dedicated": "VRAM Dédiée",
         "hardware.memory.gtt_uma": "GTT UMA",
         "hardware.memory.free": "Libre",
+        "hardware.memory.sum_label": "Somme VRAM + GTT",
+        "hardware.memory.os_display": "OS",
         "hardware.compute.activity": "Compute",
         "hardware.power.efficiency": "Efficacité",
         "hardware.battery.ai_runtime": "Autonomie IA",
@@ -1324,15 +1428,16 @@
         "cloud.all_models_chip": "Tous ({count})",
         "cloud.profile_all": "Tous",
         "cloud.profile_filter_title": "Filtrer l'affichage par profil Hermes (sans purger les autres profils ni le Local LLM)",
-        "cloud.status_active": "ACTIF",
-        "cloud.status_open": "OUVERT",
-        "cloud.status_ended": "FINI",
+        "cloud.status_active": "ACTIVE",
+        "cloud.status_open": "OPEN",
+        "cloud.status_ended": "ENDED",
+        "cloud.session_tok_tooltip": "Nb Total token depuis l’ouverture de cette session ({since}) : {exact} tok",
         "cloud.detail_link": "détail",
         "cloud.detail_hide": "masquer",
         "cloud.detail_header_multiday": "Total tokens depuis l’ouverture de cette session multi-jours ({since})",
         "cloud.detail_header_single": "Total tokens depuis l’ouverture de cette session ({since})",
         "cloud.detail_dna_label": "Anatomie Tokens (Context DNA) :",
-        "cloud.detail_dna_tooltip": "Répartition sur 10 carrés (1 carré = 10% · Bleu: Cache Read, Cyan: Input, Vert: Output, Violet: Reasoning)",
+        "cloud.detail_dna_tooltip": "Répartition sur 10 carrés en camaïeu du plus foncé au plus clair : Cache Read · Input · Output · Reasoning",
         "cloud.detail_cache_label": "cache_read_tokens (Cache serveur relu)",
         "cloud.detail_cache_desc": "historique de conversation réutilisé à chaque tour sans recalcul complet.",
         "cloud.detail_in_label": "input_tokens (Nouvelles entrées non cachées)",
@@ -1375,9 +1480,10 @@
       },
       en: {
         "header.title": "TOKENWATCHER",
-        "header.version_badge": "V4.2.4 MULTI-ENGINE",
+        "header.version_badge": "V4.2.5 MULTI-ENGINE",
         "header.live_badge": "LIVE",
         "header.offline_badge": "OFFLINE",
+        "header.verbose_tooltip": "Help / Verbose Mode: show or hide extended details (same as --preprod)",
         "nav.session": "SESSION",
         "nav.1h": "1H",
         "nav.24h": "24H",
@@ -1452,6 +1558,7 @@
         "engines.alloc_uma": "UMA Alloc",
         "engines.pool_gtt": "GTT Pool",
         "engines.active_suffix": "active",
+        "engines.inactive_suffix": "Inactive",
         "engines.kv_slot_label": "KV Slot ({ctx}):",
         "engines.paged_cache_label": "Context Cache (Paged):",
         "engines.batch_pill": "BATCH ({req} req · {wait} wait) ·",
@@ -1470,6 +1577,8 @@
         "hardware.memory.vram_dedicated": "Dedicated VRAM",
         "hardware.memory.gtt_uma": "UMA GTT",
         "hardware.memory.free": "Free",
+        "hardware.memory.sum_label": "VRAM + GTT Sum",
+        "hardware.memory.os_display": "OS",
         "hardware.compute.activity": "Compute",
         "hardware.power.efficiency": "Efficiency",
         "hardware.battery.ai_runtime": "AI Battery Life",
@@ -1505,12 +1614,13 @@
         "cloud.status_active": "ACTIVE",
         "cloud.status_open": "OPEN",
         "cloud.status_ended": "ENDED",
+        "cloud.session_tok_tooltip": "Total tokens since opening of this session ({since}): {exact} tok",
         "cloud.detail_link": "detail",
         "cloud.detail_hide": "hide",
         "cloud.detail_header_multiday": "Total tokens since opening of this multi-day session ({since})",
         "cloud.detail_header_single": "Total tokens since opening of this session ({since})",
         "cloud.detail_dna_label": "Token Anatomy (Context DNA):",
-        "cloud.detail_dna_tooltip": "10-square split (1 square = 10% · Blue: Cache Read, Cyan: Input, Green: Output, Purple: Reasoning)",
+        "cloud.detail_dna_tooltip": "10-square monochrome gradient from darkest to lightest: Cache Read · Input · Output · Reasoning",
         "cloud.detail_cache_label": "cache_read_tokens (Server cache read)",
         "cloud.detail_cache_desc": "conversation history reused each turn without full recomputation.",
         "cloud.detail_in_label": "input_tokens (Uncached new input)",
@@ -1648,18 +1758,91 @@
       powerVectorText: '--',
     };
 
+    function syncHeaderSubRow() {
+      const subRow = document.getElementById('header-sub-row');
+      const badge = document.getElementById('header-live-badge');
+      const chainEl = document.getElementById('header-chain');
+      if (!subRow) return;
+      const badgeVisible = badge && !badge.classList.contains('hidden');
+      const chainVisible = chainEl && !chainEl.classList.contains('hidden');
+      if (badgeVisible || chainVisible) {
+        subRow.classList.remove('hidden');
+        subRow.classList.add('flex');
+      } else {
+        subRow.classList.add('hidden');
+        subRow.classList.remove('flex');
+      }
+    }
+
     function setConnectionStatus(online) {
       const badge = document.getElementById('header-live-badge');
       if (!badge) return;
       if (online) {
-        badge.setAttribute('data-i18n', 'header.live_badge');
-        badge.textContent = getRawString('header.live_badge');
-        badge.className = 'px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[11px] font-bold';
+        // En mode connecté, le texte "LIVE" est masqué (l'icône satellite pulse déjà discrètement)
+        badge.className = 'hidden';
       } else {
         badge.setAttribute('data-i18n', 'header.offline_badge');
         badge.textContent = getRawString('header.offline_badge');
-        badge.className = 'px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold';
+        badge.className = 'px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 border border-red-500/40 font-mono text-[11px] font-bold shrink-0';
       }
+      syncHeaderSubRow();
+    }
+
+    function applyVerboseMode() {
+      const verBadge = document.getElementById('header-version-badge');
+      const preBadge = document.getElementById('header-preprod-badge');
+      const i18nPill = document.getElementById('header-i18n-saved-pill');
+      const chainEl = document.getElementById('header-chain');
+      const wsBtn = document.getElementById('workspace-dir-btn');
+      const topoPills = document.getElementById('topo-selector-pills');
+      const vBtn = document.getElementById('header-verbose-btn');
+
+      if (vBtn) {
+        vBtn.title = t('header.verbose_tooltip');
+        vBtn.className = verboseMode
+          ? 'w-7 h-7 rounded-full bg-slate-700/90 text-white border border-slate-400/60 flex items-center justify-center text-[11px] font-mono font-bold transition cursor-pointer shrink-0 shadow-inner'
+          : 'w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 border border-white/10 flex items-center justify-center text-[11px] font-mono font-bold transition cursor-pointer shrink-0';
+      }
+
+      if (verboseMode) {
+        verBadge?.classList.remove('hidden');
+        if (preBadge) {
+          preBadge.textContent = isPreprod ? 'PREPROD' : 'VERBOSE';
+          preBadge.classList.remove('hidden');
+        }
+        i18nPill?.classList.remove('hidden');
+        chainEl?.classList.remove('hidden');
+        if (wsBtn) {
+          wsBtn.classList.remove('hidden');
+          wsBtn.classList.add('flex');
+        }
+        if (topoPills) {
+          topoPills.classList.remove('hidden');
+          topoPills.classList.add('flex');
+        }
+      } else {
+        verBadge?.classList.add('hidden');
+        preBadge?.classList.add('hidden');
+        i18nPill?.classList.add('hidden');
+        chainEl?.classList.add('hidden');
+        if (wsBtn) {
+          wsBtn.classList.add('hidden');
+          wsBtn.classList.remove('flex');
+        }
+        if (topoPills) {
+          topoPills.classList.add('hidden');
+          topoPills.classList.remove('flex');
+        }
+        preprodManualTopo = null;
+      }
+      syncHeaderSubRow();
+      renderPipelineChain();
+    }
+
+    function toggleVerboseMode() {
+      verboseMode = !verboseMode;
+      applyVerboseMode();
+      triggerToast(verboseMode ? 'ℹ️ Mode Verbose activé' : 'Mode compact standard');
     }
 
     async function loadExternalI18n() {
@@ -1743,6 +1926,8 @@
     }
 
     function updateDynamicLabels() {
+      const vBtn = document.getElementById('header-verbose-btn');
+      if (vBtn) vBtn.title = t('header.verbose_tooltip');
       const infTitleEl = document.getElementById('local-inference-block-title');
       if (infTitleEl) infTitleEl.textContent = t("inference.local.block_title");
       const heroBadge = document.getElementById('hero-backend-badge');
@@ -1868,8 +2053,8 @@
       document.querySelectorAll('.lw-btn').forEach(btn => {
         const isSel = btn.getAttribute('data-lw') === localCumulWindow;
         btn.className = isSel
-          ? 'lw-btn px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/35 font-semibold transition cursor-pointer'
-          : 'lw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer';
+          ? 'lw-btn px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-200 border border-sky-500/35 font-semibold transition cursor-pointer'
+          : 'lw-btn px-1.5 py-0.5 rounded text-slate-400 hover:text-sky-200 transition cursor-pointer';
       });
       updateUI();
     }
@@ -2057,19 +2242,19 @@
       bar.classList.add('flex');
 
       const allActiveCls = selectedCloudModel === 'ALL'
-        ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/40'
-        : 'bg-[#0D111A] text-slate-400 border-[#243047] hover:text-white';
+        ? 'bg-amber-500/20 text-amber-200 border-amber-500/45 font-semibold'
+        : 'bg-[#0D111A] text-slate-400 border-[#243047] hover:text-amber-200';
       let html = `<button type="button" onclick="selectCloudModel('ALL')" class="px-2 py-0.5 rounded border ${allActiveCls} transition cursor-pointer">${escapeHtml(t('cloud.all_models_chip', { count: models.length }))}</button>`;
 
       models.forEach(m => {
         const isSel = selectedCloudModel === m.model;
         const pct = Number(m.tpm_pct ?? 0);
         const dotCls = pct >= 85
-          ? 'bg-rose-500 animate-pulse'
-          : (pct >= 70 ? 'bg-amber-400' : (m.active_sessions > 0 || m.tpm_60s > 0 ? 'bg-emerald-400' : 'bg-slate-500'));
+          ? 'bg-red-500 animate-pulse'
+          : ((m.active_sessions > 0 || m.tpm_60s > 0) ? 'bg-amber-400 animate-pulse' : 'bg-slate-500');
         const chipCls = isSel
           ? 'bg-amber-500/20 text-amber-200 border-amber-500/45'
-          : 'bg-[#0D111A] text-slate-300 border-[#1E2638] hover:border-slate-500';
+          : 'bg-[#0D111A] text-slate-300 border-[#1E2638] hover:border-amber-500/35';
         const ceilM = (Number(m.tpm_ceiling || 2000000) / 1_000_000).toFixed(1);
         html += `
           <button type="button" onclick="selectCloudModel('${escapeHtml(m.model)}')" class="px-2 py-0.5 rounded border ${chipCls} flex items-center gap-1.5 transition cursor-pointer tabular-nums" title="${escapeHtml(m.model)} · Plafond ${ceilM}M TPM / ${m.rpm_ceiling} RPM / ${m.rpd_ceiling} RPD">
@@ -2103,17 +2288,25 @@
         d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
     }
 
-    function buildSessionDnaSquaresHtml(cRead, tIn, tOut, tRsn, denom) {
+    function buildSessionDnaSquaresHtml(cRead, tIn, tOut, tRsn, denom, accent = 'sky') {
       const segSum = cRead + tIn + tOut + tRsn;
       if (segSum <= 0 || denom <= 0) {
         return '<span class="sq-cell"></span>'.repeat(10);
       }
-      const segments = [
-        { cls: 'filled-blue', val: cRead },
-        { cls: 'filled-cyan', val: tIn },
-        { cls: 'filled-emerald', val: tOut },
-        { cls: 'filled-purple', val: tRsn },
-      ];
+      const isAmber = accent === 'amber';
+      const segments = isAmber
+        ? [
+            { cls: 'filled-amber-1', val: cRead },
+            { cls: 'filled-amber-2', val: tIn },
+            { cls: 'filled-amber-3', val: tOut },
+            { cls: 'filled-amber-4', val: tRsn },
+          ]
+        : [
+            { cls: 'filled-blue-1', val: cRead },
+            { cls: 'filled-blue-2', val: tIn },
+            { cls: 'filled-blue-3', val: tOut },
+            { cls: 'filled-blue-4', val: tRsn },
+          ];
       const exact = segments.map((seg, idx) => {
         const raw = (seg.val / segSum) * 10;
         const fl = Math.floor(raw);
@@ -2159,13 +2352,9 @@
       const tRsn = Math.max(0, Number(s.tokens_rsn || 0));
       const denom = Math.max(1, tot || (cRead + tIn + tOut + tRsn));
       const pct = (v) => ((v / denom) * 100).toFixed(1);
-      const loc = currentLang === 'en' ? 'en-US' : 'fr-FR';
-      const st = Number(s.started_at || 0);
-      const upd = Number(s.updated_at || st || 0);
-      const isMultiDay = st > 0 && (upd - st) >= 86400;
-      const sinceStr = formatSessionStartedLabel(st, upd);
-      const hdrTxt = t(isMultiDay ? 'cloud.detail_header_multiday' : 'cloud.detail_header_single', { since: sinceStr });
-      const borderCls = accent === 'cyan' ? 'border-cyan-500/25' : 'border-amber-500/25';
+      const isAmber = accent === 'amber';
+      const borderCls = isAmber ? 'border-amber-500/25' : 'border-sky-500/25';
+      const pillBorderCls = isAmber ? 'border-amber-500/20' : 'border-sky-500/20';
 
       const rowItem = (swatchCls, valCls, labelTxt, valNum, descTxt) => `
         <div class="flex flex-wrap items-baseline gap-x-1.5 text-[10.5px] leading-snug">
@@ -2175,23 +2364,27 @@
           ${descTxt ? `<span class="text-slate-400">— ${escapeHtml(descTxt)}</span>` : ''}
         </div>`;
 
-      const dnaSquaresHtml = buildSessionDnaSquaresHtml(cRead, tIn, tOut, tRsn, denom);
+      const dnaSquaresHtml = buildSessionDnaSquaresHtml(cRead, tIn, tOut, tRsn, denom, isAmber ? 'amber' : 'sky');
+      const rowsHtml = isAmber
+        ? `
+            ${rowItem('bg-amber-700/70 border border-amber-500', 'text-amber-400', t('cloud.detail_cache_label'), cRead, t('cloud.detail_cache_desc'))}
+            ${rowItem('bg-amber-500/60 border border-amber-400', 'text-amber-300', t('cloud.detail_in_label'), tIn, t('cloud.detail_in_desc'))}
+            ${rowItem('bg-yellow-400/65 border border-yellow-200', 'text-yellow-200', t('cloud.detail_out_label'), tOut, '')}
+            ${rowItem('bg-amber-100/75 border border-amber-50', 'text-amber-100', t('cloud.detail_rsn_label'), tRsn, '')}`
+        : `
+            ${rowItem('bg-blue-700/70 border border-blue-500', 'text-blue-300', t('cloud.detail_cache_label'), cRead, t('cloud.detail_cache_desc'))}
+            ${rowItem('bg-sky-500/60 border border-sky-400', 'text-sky-300', t('cloud.detail_in_label'), tIn, t('cloud.detail_in_desc'))}
+            ${rowItem('bg-sky-300/65 border border-sky-200', 'text-sky-200', t('cloud.detail_out_label'), tOut, '')}
+            ${rowItem('bg-sky-100/75 border border-white', 'text-sky-100', t('cloud.detail_rsn_label'), tRsn, '')}`;
 
       return `
         <div class="mt-2 bg-[#070A10] border ${borderCls} rounded-md p-2.5 space-y-2 font-mono">
-          <div class="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-[#161E2E] text-[10.5px]">
-            <span class="text-cyan-300 font-semibold">${escapeHtml(hdrTxt)}</span>
-            <span class="text-white font-bold tabular-nums">${tot.toLocaleString(loc)} tok (${formatCompactTokens(tot)})</span>
-          </div>
-          <div class="inline-flex flex-wrap items-center gap-2.5 bg-[#0A0D14] border border-[#1B2436] rounded-md px-2.5 py-1.5 w-fit max-w-full">
+          <div class="inline-flex flex-wrap items-center gap-2.5 bg-[#0A0D14] border ${pillBorderCls} rounded-md px-2.5 py-1.5 w-fit max-w-full">
             <span class="text-[10.5px] text-[#94A3B8] font-semibold">${escapeHtml(t('cloud.detail_dna_label'))}</span>
             <div class="sq-10-grid" title="${escapeHtml(t('cloud.detail_dna_tooltip'))}">${dnaSquaresHtml}</div>
           </div>
           <div class="space-y-1 pt-0.5">
-            ${rowItem('bg-blue-500/50 border border-blue-400', 'text-blue-300', t('cloud.detail_cache_label'), cRead, t('cloud.detail_cache_desc'))}
-            ${rowItem('bg-cyan-400/50 border border-cyan-300', 'text-cyan-300', t('cloud.detail_in_label'), tIn, t('cloud.detail_in_desc'))}
-            ${rowItem('bg-emerald-400/50 border border-emerald-300', 'text-emerald-300', t('cloud.detail_out_label'), tOut, '')}
-            ${rowItem('bg-purple-400/50 border border-purple-300', 'text-purple-300', t('cloud.detail_rsn_label'), tRsn, '')}
+            ${rowsHtml}
           </div>
         </div>`;
     }
@@ -2249,7 +2442,7 @@
               ? 'bg-amber-500/20 text-amber-200 border-amber-500/40 font-semibold'
               : 'bg-[#0D111A] text-slate-400 border-[#243047] hover:text-white';
             const actDot = pe.active > 0
-              ? `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 text-emerald-400 dot-blink mr-1"></span>`
+              ? `<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 text-amber-400 dot-blink mr-1"></span>`
               : '';
             const pEsc = escapeHtml(pe.profile);
             pHtml += `<button type="button" onclick="selectCloudProfile('${pEsc}')" title="${tip}" class="px-1.5 py-0.2 rounded border ${cls} transition cursor-pointer flex items-center">${actDot}${pEsc} <span class="text-slate-500 ml-1">(${pe.count})</span></button>`;
@@ -2280,26 +2473,29 @@
       listEl.innerHTML = visible.map((s, idx) => {
         const st = s.status || 'ENDED';
         const dotCls = st === 'ACTIVE'
-          ? 'heartbeat-dot'
-          : (st === 'OPEN' ? 'heartbeat-dot idle' : 'heartbeat-dot inactive');
+          ? 'heartbeat-dot hb-amber'
+          : (st === 'OPEN' ? 'heartbeat-dot hb-amber idle' : 'heartbeat-dot inactive');
         const stLbl = st === 'ACTIVE'
           ? t('cloud.status_active')
           : (st === 'OPEN' ? t('cloud.status_open') : t('cloud.status_ended'));
         const stTxtCls = st === 'ACTIVE'
-          ? 'text-emerald-400 font-semibold animate-pulse'
-          : (st === 'OPEN' ? 'text-cyan-300' : 'text-slate-500');
+          ? 'text-amber-300 font-semibold animate-pulse'
+          : (st === 'OPEN' ? 'text-amber-200/80' : 'text-slate-500');
         const subBadge = s.is_subagent
-          ? `<span class="px-1 py-0.2 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[10px] shrink-0">↳ subagent</span>`
+          ? `<span class="px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/25 text-[10px] shrink-0">↳ subagent</span>`
           : '';
         const srcTag = escapeHtml(String(s.source || 'hermes').toUpperCase());
         const tgtBadge = s.target_info
           ? `<span class="text-slate-400 text-[10.5px] shrink-0">[${srcTag} · ${escapeHtml(s.target_info)}]</span>`
           : `<span class="text-slate-400 text-[10.5px] shrink-0">[${escapeHtml(s.profile || 'default')}]</span>`;
-        const promptHint = s.last_prompt ? `title="${escapeHtml(s.last_prompt)}"` : '';
         const showInlinePrompt = Boolean(s.last_prompt) && (st === 'ACTIVE' || idx === 0);
         const promptRow = showInlinePrompt
-          ? `<div class="mt-1 pl-3 border-l-2 border-amber-400/40 text-[11px] text-cyan-200/90 truncate" title="${escapeHtml(s.last_prompt)}">↳ &ldquo;${escapeHtml(s.last_prompt)}&rdquo;</div>`
+          ? `<div class="mt-1 pl-3 border-l-2 border-amber-400/50 text-[11px] text-amber-100/90 truncate"><span class="cursor-help" title="${escapeHtml(s.last_prompt)}">↳ &ldquo;${escapeHtml(s.last_prompt)}&rdquo;</span></div>`
           : '';
+        const totTok = Math.max(0, Number(s.tokens_total || 0));
+        const locNum = currentLang === 'en' ? 'en-US' : 'fr-FR';
+        const sinceLbl = formatSessionStartedLabel(Number(s.started_at || 0), Number(s.updated_at || s.started_at || 0));
+        const tokTooltip = t('cloud.session_tok_tooltip', { since: sinceLbl, exact: totTok.toLocaleString(locNum) });
         const sidEsc = escapeHtml(String(s.id || idx));
         const isDetOpen = expandedCloudSessionIds.has(String(s.id || ''));
         const detLink = s.id
@@ -2307,19 +2503,25 @@
           : '';
         const detDrawer = (s.id && isDetOpen) ? buildSessionDetailDrawerHtml(s, 'amber') : '';
         return `
-          <div class="bg-[#0D111A] border border-[#1A2234] px-2 py-1.5 rounded flex flex-col" ${promptHint}>
+          <div class="bg-[#0D111A] border border-[#1A2234] px-2 py-1.5 rounded flex flex-col">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-1.5 min-w-0 flex-1">
                 <span class="${dotCls} shrink-0"></span>
                 <span class="text-[10.5px] ${stTxtCls} shrink-0">${escapeHtml(stLbl)}</span>
-                <span class="px-1.5 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-cyan-200 text-[10px] shrink-0">${escapeHtml(s.model)}</span>
+                <span class="px-1.5 py-0.2 rounded bg-amber-950/35 border border-amber-500/25 text-amber-200 text-[10px] shrink-0">${escapeHtml(s.model)}</span>
                 ${tgtBadge}
                 <span class="text-slate-500 text-[10.5px] shrink-0">(${escapeHtml(s.profile || 'default')})</span>
                 ${subBadge}
                 <span class="text-slate-200 truncate">${escapeHtml(s.title || '--')}</span>
               </div>
-              <div class="text-[#94A3B8] shrink-0 tabular-nums text-[10.5px] flex items-center">
-                <span>${Number(s.tool_calls || 0)} tools · ${Number(s.api_calls || 0)} req · ${formatCompactTokens(s.tokens_total)} · ${formatAgeSec(s.age_sec)}</span>
+              <div class="text-amber-300 shrink-0 tabular-nums text-[10.5px] flex items-baseline">
+                <span class="text-[13px] font-extrabold text-amber-300 cursor-help leading-none" title="${escapeHtml(tokTooltip)}">${formatCompactTokens(totTok)} tok</span>
+                <span class="text-amber-500/50 mx-1">|</span>
+                <span class="text-amber-200/90">${Number(s.tool_calls || 0)} tools</span>
+                <span class="text-amber-500/50 mx-1">|</span>
+                <span class="text-amber-200/90">${Number(s.api_calls || 0)} req</span>
+                <span class="text-amber-500/50 mx-1">|</span>
+                <span class="text-amber-200/90">${formatAgeSec(s.age_sec)}</span>
                 ${detLink}
               </div>
             </div>
@@ -2380,46 +2582,53 @@
       listEl.innerHTML = visible.map((s, idx) => {
         const st = s.status || 'ENDED';
         const dotCls = st === 'ACTIVE'
-          ? 'heartbeat-dot'
-          : (st === 'OPEN' ? 'heartbeat-dot idle' : 'heartbeat-dot inactive');
+          ? 'heartbeat-dot hb-sky'
+          : (st === 'OPEN' ? 'heartbeat-dot hb-sky idle' : 'heartbeat-dot inactive');
         const stLbl = st === 'ACTIVE'
           ? t('cloud.status_active')
           : (st === 'OPEN' ? t('cloud.status_open') : t('cloud.status_ended'));
         const stTxtCls = st === 'ACTIVE'
-          ? 'text-emerald-400 font-semibold animate-pulse'
-          : (st === 'OPEN' ? 'text-cyan-300' : 'text-slate-500');
+          ? 'text-sky-300 font-semibold animate-pulse'
+          : (st === 'OPEN' ? 'text-sky-200/80' : 'text-slate-500');
         const srcBadge = escapeHtml(String(s.source || 'local').toUpperCase());
         const tgtTag = s.target_info
           ? `<span class="text-slate-400 text-[10px] shrink-0">[${escapeHtml(s.target_info)}]</span>`
           : '';
         const subBadge = s.is_subagent
-          ? `<span class="px-1 py-0.2 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[10px] shrink-0">↳ subagent</span>`
+          ? `<span class="px-1 py-0.2 rounded bg-sky-500/10 text-sky-300 border border-sky-500/25 text-[10px] shrink-0">↳ subagent</span>`
           : '';
-        const promptHint = s.last_prompt ? `title="${escapeHtml(s.last_prompt)}"` : '';
         const showInlinePrompt = Boolean(s.last_prompt) && (st === 'ACTIVE' || idx === 0);
         const promptRow = showInlinePrompt
-          ? `<div class="mt-1 pl-3 border-l-2 border-cyan-400/40 text-[11px] text-cyan-200/90 truncate" title="${escapeHtml(s.last_prompt)}">↳ &ldquo;${escapeHtml(s.last_prompt)}&rdquo;</div>`
+          ? `<div class="mt-1 pl-3 border-l-2 border-sky-400/50 text-[11px] text-sky-100/90 truncate"><span class="cursor-help" title="${escapeHtml(s.last_prompt)}">↳ &ldquo;${escapeHtml(s.last_prompt)}&rdquo;</span></div>`
           : '';
+        const totLocTok = Math.max(0, Number(s.tokens_total || 0));
+        const locNum = currentLang === 'en' ? 'en-US' : 'fr-FR';
+        const sinceLocLbl = formatSessionStartedLabel(Number(s.started_at || 0), Number(s.updated_at || s.started_at || 0));
+        const locTokTooltip = t('cloud.session_tok_tooltip', { since: sinceLocLbl, exact: totLocTok.toLocaleString(locNum) });
         const sidLocEsc = escapeHtml(String(s.id || ''));
         const isLocDetOpen = s.id ? expandedLocalSessionIds.has(String(s.id)) : false;
-        const locDetLink = (s.id && Number(s.tokens_total || 0) > 0)
-          ? `<button type="button" onclick="toggleSessionDetail('local', '${sidLocEsc}')" class="ml-1.5 text-cyan-300 hover:text-cyan-200 underline decoration-cyan-400/40 underline-offset-2 cursor-pointer transition font-semibold">${escapeHtml(isLocDetOpen ? t('cloud.detail_hide') : t('cloud.detail_link'))}</button>`
+        const locDetLink = (s.id && totLocTok > 0)
+          ? `<button type="button" onclick="toggleSessionDetail('local', '${sidLocEsc}')" class="ml-1.5 text-sky-300 hover:text-sky-200 underline decoration-sky-400/40 underline-offset-2 cursor-pointer transition font-semibold">${escapeHtml(isLocDetOpen ? t('cloud.detail_hide') : t('cloud.detail_link'))}</button>`
           : '';
-        const locDetDrawer = (s.id && isLocDetOpen) ? buildSessionDetailDrawerHtml(s, 'cyan') : '';
+        const locDetDrawer = (s.id && isLocDetOpen) ? buildSessionDetailDrawerHtml(s, 'sky') : '';
         return `
-          <div class="bg-[#0D111A] border border-[#1A2234] px-2 py-1.5 rounded flex flex-col" ${promptHint}>
+          <div class="bg-[#0D111A] border border-[#1A2234] px-2 py-1.5 rounded flex flex-col">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-1.5 min-w-0 flex-1">
                 <span class="${dotCls} shrink-0"></span>
                 <span class="text-[10.5px] ${stTxtCls} shrink-0">${escapeHtml(stLbl)}</span>
-                <span class="px-1.5 py-0.2 rounded bg-[#161D2B] border border-[#243047] text-cyan-300 text-[10px] shrink-0">${srcBadge}</span>
+                <span class="px-1.5 py-0.2 rounded bg-sky-950/40 border border-sky-500/25 text-sky-300 text-[10px] shrink-0">${srcBadge}</span>
                 ${tgtTag}
                 <span class="text-slate-300 text-[10.5px] shrink-0">${escapeHtml(s.model || '--')}</span>
                 ${subBadge}
                 <span class="text-slate-200 truncate">${escapeHtml(s.title || '--')}</span>
               </div>
-              <div class="text-[#94A3B8] shrink-0 tabular-nums text-[10.5px] flex items-center">
-                <span>${Number(s.tool_calls || 0)} tools · ${formatCompactTokens(s.tokens_total)} · ${formatAgeSec(s.age_sec)}</span>
+              <div class="text-sky-300 shrink-0 tabular-nums text-[10.5px] flex items-baseline">
+                <span class="text-[13px] font-extrabold text-sky-300 cursor-help leading-none" title="${escapeHtml(locTokTooltip)}">${formatCompactTokens(totLocTok)} tok</span>
+                <span class="text-sky-500/50 mx-1">|</span>
+                <span class="text-sky-200/90">${Number(s.tool_calls || 0)} tools</span>
+                <span class="text-sky-500/50 mx-1">|</span>
+                <span class="text-sky-200/90">${formatAgeSec(s.age_sec)}</span>
                 ${locDetLink}
               </div>
             </div>
@@ -2454,7 +2663,7 @@
       strip.classList.add('flex');
       strip.innerHTML = slots.map(sl => {
         const busy = Boolean(sl.is_processing);
-        const dotCls = busy ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500';
+        const dotCls = busy ? 'bg-sky-400 animate-pulse' : 'bg-slate-500';
         const stateTxt = busy ? `RUN ${sl.tg_tps} t/s` : 'IDLE';
         return `<span class="px-2 py-0.5 rounded bg-[#0D111A] border border-[#243047] text-slate-300 flex items-center gap-1.5 tabular-nums"><span class="w-1.5 h-1.5 rounded-full ${dotCls}"></span>SLOT ${sl.id} · ${stateTxt} (${sl.kv_pct}%)</span>`;
       }).join('');
@@ -2473,15 +2682,15 @@
       container.innerHTML = list.map(eng => {
         const isOnline = eng.online !== false;
         const isBusy = Boolean(eng.is_busy);
-        const dotCls = !isOnline ? 'heartbeat-dot inactive' : (isBusy ? 'heartbeat-dot' : 'heartbeat-dot idle');
+        const dotCls = !isOnline ? 'heartbeat-dot inactive' : (isBusy ? 'heartbeat-dot hb-violet' : 'heartbeat-dot hb-violet idle');
         const kvPct = Math.max(0, Math.min(100, Number(eng.kv_pct || 0)));
-        const pctCls = !isOnline ? 'text-slate-400' : (kvPct >= 85 ? 'text-rose-400' : (kvPct >= 70 ? 'text-amber-300' : 'text-emerald-400'));
+        const pctCls = !isOnline ? 'text-slate-400' : (kvPct >= 85 ? 'text-red-400' : 'text-violet-300');
         const flagsHtml = (eng.flags || []).map(f => `<span class="bg-[#171E2C] border border-[#232D42] px-1.5 py-0.5 rounded text-slate-300">${escapeHtml(f)}</span>`).join('');
         return `
-          <article class="tw-card-v34 tw-card-vulkan">
+          <article class="tw-card-v34 tw-card-extra">
             <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div class="flex items-center gap-2 flex-wrap font-mono">
-                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">${escapeHtml(eng.badge || '[ENGINE]')}</span>
+                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-500/30">${escapeHtml(eng.badge || '[ENGINE]')}</span>
                 <h3 class="text-xs font-bold text-white">${escapeHtml(eng.model || '--')}</h3>
                 <span class="text-[11px] text-[#94A3B8] bg-[#192132] px-1.5 py-0.5 rounded tabular-nums">:${Number(eng.port || 0)}</span>
                 <span class="text-[11px] text-slate-300 font-semibold">${Number(eng.uma_alloc_gb || 0).toFixed(1)} Go</span>
@@ -2494,7 +2703,7 @@
             </div>
             <div class="flex flex-wrap items-center justify-between gap-1.5 mt-2 font-mono text-[11px] text-[#94A3B8]">
               <div class="flex flex-wrap items-center gap-1">${flagsHtml}</div>
-              <div>Client: <strong class="text-cyan-300">${escapeHtml(eng.client_name || 'Local')}</strong></div>
+              <div>Client: <strong class="text-violet-300">${escapeHtml(eng.client_name || 'Local')}</strong></div>
             </div>
           </article>`;
       }).join('');
@@ -2603,18 +2812,18 @@
       }
     }
 
-    function setEngineHeartbeat(dotEl, isOnline, isRunning) {
+    function setEngineHeartbeat(dotEl, isOnline, isRunning, toneCls = 'hb-sky') {
       if (!dotEl) return;
       if (!isOnline) {
-        dotEl.className = 'heartbeat-dot inactive';
+        dotEl.className = `heartbeat-dot ${toneCls} inactive`;
       } else if (isRunning) {
-        dotEl.className = 'heartbeat-dot';
+        dotEl.className = `heartbeat-dot ${toneCls}`;
       } else {
-        dotEl.className = 'heartbeat-dot idle';
+        dotEl.className = `heartbeat-dot ${toneCls} idle`;
       }
     }
 
-    function applyConsumptionStyle(squaresId, pctEl, pctVal, isOnline) {
+    function applyConsumptionStyle(squaresId, pctEl, pctVal, isOnline, nominalSqCls = 'filled-blue-2', nominalTxtCls = 'text-sky-300') {
       const pct = Math.max(0, Math.min(100, Number(pctVal) || 0));
       if (!isOnline) {
         render10Squares(squaresId, 0, '');
@@ -2622,18 +2831,15 @@
         return;
       }
       if (pct >= 85) {
-        render10Squares(squaresId, pct, 'filled-rose');
-        if (pctEl) pctEl.className = 'text-[12px] text-rose-400 font-bold ml-1';
-      } else if (pct >= 70) {
-        render10Squares(squaresId, pct, 'filled-amber');
-        if (pctEl) pctEl.className = 'text-[12px] text-amber-300 font-bold ml-1';
+        render10Squares(squaresId, pct, 'filled-alert');
+        if (pctEl) pctEl.className = 'text-[12px] text-red-400 font-bold ml-1';
       } else {
-        render10Squares(squaresId, pct, 'filled-emerald');
-        if (pctEl) pctEl.className = 'text-[12px] text-emerald-400 font-bold ml-1';
+        render10Squares(squaresId, pct, nominalSqCls);
+        if (pctEl) pctEl.className = `text-[12px] ${nominalTxtCls} font-bold ml-1`;
       }
     }
 
-    // Jauge à 10 carrés multi-segments pour l'Anatomie du Contexte (Context DNA)
+    // Jauge à 10 carrés en camaïeu Bleu 4 niveaux (Option A) pour l'Anatomie du Contexte (Context DNA)
     function renderContextDnaSquares(ctxUsed, ctxMax) {
       const container = document.getElementById('context-dna-squares-10');
       if (!container) return;
@@ -2654,18 +2860,18 @@
       }
 
       const tailColors = [];
-      if (hasIn && totalFilled >= 2) tailColors.push('filled-cyan');
-      if (hasOut && totalFilled >= tailColors.length + 2) tailColors.push('filled-emerald');
-      if (hasRsn && totalFilled >= tailColors.length + 2) tailColors.push('filled-purple');
+      if (hasIn && totalFilled >= 2) tailColors.push('filled-blue-2');
+      if (hasOut && totalFilled >= tailColors.length + 2) tailColors.push('filled-blue-3');
+      if (hasRsn && totalFilled >= tailColors.length + 2) tailColors.push('filled-blue-4');
       const blueCount = Math.max(1, totalFilled - tailColors.length);
 
       for (let i = 0; i < 10; i++) {
         const sq = document.createElement('span');
         let colorCls = '';
         if (i < blueCount) {
-          colorCls = 'filled-blue';
+          colorCls = 'filled-blue-1';
         } else if (i < totalFilled) {
-          colorCls = tailColors[i - blueCount] || 'filled-emerald';
+          colorCls = tailColors[i - blueCount] || 'filled-blue-3';
         }
         sq.className = 'sq-cell' + (colorCls ? ` ${colorCls}` : '');
         container.appendChild(sq);
@@ -2744,33 +2950,194 @@
         }
       }
 
-      // Anneaux & 10 carrés
-      const ringV = document.getElementById('ring-vulkan');
-      if (ringV) {
-        const lenRingV = (vPct / 100) * RING_C;
-        ringV.setAttribute('stroke-dasharray', `${lenRingV.toFixed(2)} ${RING_C.toFixed(2)}`);
-      }
-      const ringVPctEl = document.getElementById('ring-vulkan-pct');
-      if (ringVPctEl) ringVPctEl.textContent = `${vPct}%`;
-      const vMemGbEl = document.getElementById('vulkan-mem-gb');
-      if (vMemGbEl) vMemGbEl.textContent = `${vGb.toFixed(1)} Go`;
-
-      const ringR = document.getElementById('ring-rocm');
-      if (ringR) {
-        const lenRingR = (rPct / 100) * RING_C;
-        ringR.setAttribute('stroke-dasharray', `${lenRingR.toFixed(2)} ${RING_C.toFixed(2)}`);
-      }
-      const ringRPctEl = document.getElementById('ring-rocm-pct');
-      if (ringRPctEl) ringRPctEl.textContent = `${rPct}%`;
-      const rMemGbEl = document.getElementById('rocm-mem-gb');
-      if (rMemGbEl) rMemGbEl.textContent = `${rGb.toFixed(1)} Go`;
-
       const vEng = enginesData?.vulkan;
       const vOnline = vEng
         ? (vEng.online !== undefined ? Boolean(vEng.online) : !String(vEng.status_label || '').includes('OFFLINE'))
         : false;
       const vRunning = vOnline && String(vEng?.status_label || '').includes('RUN');
-      setEngineHeartbeat(document.getElementById('vulkan-heartbeat'), vOnline, vRunning);
+      setEngineHeartbeat(document.getElementById('vulkan-heartbeat'), vOnline, vRunning, 'hb-sky');
+
+      const rEng = enginesData?.rocm;
+      const rOnline = rEng
+        ? (rEng.online !== undefined ? Boolean(rEng.online) : !String(rEng.model || '').includes('Inactif'))
+        : false;
+      const rRunning = rOnline && Number(rEng?.running_reqs || 0) > 0;
+      setEngineHeartbeat(document.getElementById('rocm-heartbeat'), rOnline, rRunning, 'hb-fuchsia');
+
+      // Répartition physique VRAM + GTT par moteur (Option A : zéro redondance avec le Donut APU)
+      const hwAmd = lastIpcPayload?.hardware_amd || {};
+      const hwVramUsed = Number(hwAmd.vram_used_gb ?? 0);
+      const hwVramTotal = Number(hwAmd.vram_total_gb ?? 16.0);
+      const hwVramFree = hwAmd.vram_free_gb !== undefined ? Number(hwAmd.vram_free_gb) : Math.max(0, hwVramTotal - hwVramUsed);
+      const hwVramPct = hwAmd.vram_pct !== undefined ? Number(hwAmd.vram_pct) : (hwVramTotal > 0 ? Math.round((hwVramUsed / hwVramTotal) * 100) : 0);
+
+      const hwGttUsed = Number(hwAmd.gtt_used_gb ?? 0);
+      const hwGttTotal = Number(hwAmd.gtt_total_gb ?? 22.8);
+      const hwGttFree = hwAmd.gtt_free_gb !== undefined ? Number(hwAmd.gtt_free_gb) : Math.max(0, hwGttTotal - hwGttUsed);
+      const hwGttPct = hwAmd.gtt_pct !== undefined ? Number(hwAmd.gtt_pct) : (hwGttTotal > 0 ? Math.round((hwGttUsed / hwGttTotal) * 100) : 0);
+
+      const offloadPct = Number(hwAmd.offload_gpu_pct ?? 100);
+      const round1 = (x) => Math.round(Number(x || 0) * 10) / 10;
+
+      const vTotR = vOnline ? round1(vGb) : 0.0;
+      const rTotR = rOnline ? round1(rGb) : 0.0;
+
+      let vVram = 0.0;
+      let vGtt = 0.0;
+      if (vTotR > 0) {
+        if (vEng?.vram_gb !== undefined && vEng?.vram_gb !== null && vEng?.gtt_gb !== undefined && vEng?.gtt_gb !== null) {
+          vVram = Math.min(vTotR, round1(vEng.vram_gb));
+          vGtt = Math.max(0.0, round1(vTotR - vVram));
+        } else if (rTotR <= 0) {
+          // Fallback mono-moteur : vram_gb + gtt_gb == engine_total_gb
+          vVram = Math.min(vTotR, round1(hwVramUsed));
+          vGtt = Math.max(0.0, round1(vTotR - vVram));
+        } else {
+          const share = vTotR / Math.max(0.1, vTotR + rTotR);
+          vVram = Math.min(vTotR, round1(hwVramUsed * share));
+          vGtt = Math.max(0.0, round1(vTotR - vVram));
+        }
+      }
+
+      let rVram = 0.0;
+      let rGtt = 0.0;
+      if (rTotR > 0) {
+        if (rEng?.vram_gb !== undefined && rEng?.vram_gb !== null && rEng?.gtt_gb !== undefined && rEng?.gtt_gb !== null) {
+          rVram = Math.min(rTotR, round1(rEng.vram_gb));
+          rGtt = Math.max(0.0, round1(rTotR - rVram));
+        } else if (vTotR <= 0) {
+          rVram = Math.min(rTotR, round1(hwVramUsed));
+          rGtt = Math.max(0.0, round1(rTotR - rVram));
+        } else {
+          const remVram = Math.max(0.0, hwVramUsed - vVram);
+          rVram = Math.min(rTotR, round1(remVram));
+          rGtt = Math.max(0.0, round1(rTotR - rVram));
+        }
+      }
+
+      // Hydratation sous-section numérique VRAM DÉDIÉE + GTT UMA = SOMME (rapprochement direct avec le Donut)
+      const apuVramValEl = document.getElementById('apu-vram-val');
+      if (apuVramValEl) apuVramValEl.textContent = `${hwVramUsed.toFixed(1)} / ${hwVramTotal.toFixed(1)} Go`;
+      const apuVramFreeEl = document.getElementById('apu-vram-free');
+      if (apuVramFreeEl) apuVramFreeEl.textContent = `${hwVramFree.toFixed(1)} Go`;
+      const apuVramPctEl = document.getElementById('apu-vram-pct');
+      if (apuVramPctEl) {
+        apuVramPctEl.textContent = `${hwVramPct}%`;
+        apuVramPctEl.className = 'text-[11px] font-bold text-slate-200';
+      }
+      const apuSubVram = document.getElementById('apu-sub-vram');
+      if (apuSubVram) {
+        apuSubVram.title = `VRAM Dédiée: ${hwVramUsed.toFixed(1)} / ${hwVramTotal.toFixed(1)} Go (${hwVramPct}%) — Vulkan: ${vVram.toFixed(1)}G · ROCm: ${rVram.toFixed(1)}G · Libre: ${hwVramFree.toFixed(1)} Go`;
+      }
+
+      const apuGttValEl = document.getElementById('apu-gtt-val');
+      if (apuGttValEl) apuGttValEl.textContent = `${hwGttUsed.toFixed(1)} / ${hwGttTotal.toFixed(1)} Go`;
+      const apuGttFreeEl = document.getElementById('apu-gtt-free');
+      if (apuGttFreeEl) apuGttFreeEl.textContent = `${hwGttFree.toFixed(1)} Go`;
+      const apuGttPctEl = document.getElementById('apu-gtt-pct');
+      if (apuGttPctEl) {
+        apuGttPctEl.textContent = `${hwGttPct}%`;
+        apuGttPctEl.className = hwGttPct >= 90
+          ? 'text-[11px] font-bold text-red-400'
+          : 'text-[11px] font-bold text-slate-200';
+      }
+      const apuSubGtt = document.getElementById('apu-sub-gtt');
+      if (apuSubGtt) {
+        apuSubGtt.title = `GTT UMA: ${hwGttUsed.toFixed(1)} / ${hwGttTotal.toFixed(1)} Go (${hwGttPct}%) — Vulkan: ${vGtt.toFixed(1)}G · ROCm: ${rGtt.toFixed(1)}G · Libre: ${hwGttFree.toFixed(1)} Go`;
+      }
+
+      const sumPhysGb = round1(hwVramUsed + hwGttUsed);
+      const sumAiGb = round1(vTotR + rTotR);
+      const osDiffGb = round1(Math.max(0, sumPhysGb - sumAiGb));
+      const apuSumFormulaEl = document.getElementById('apu-sum-formula');
+      const apuSumTargetEl = document.getElementById('apu-sum-target-badge');
+      const apuSubSum = document.getElementById('apu-sub-sum');
+
+      if (apuSumFormulaEl) {
+        apuSumFormulaEl.textContent = `${hwVramUsed.toFixed(1)} + ${hwGttUsed.toFixed(1)} = ${sumPhysGb.toFixed(1)} Go`;
+      }
+      if (apuSumTargetEl) {
+        if (vTotR > 0 && rTotR > 0) {
+          apuSumTargetEl.textContent = `→ Vulkan ${vTotR.toFixed(1)}G + ROCm ${rTotR.toFixed(1)}G`;
+          apuSumTargetEl.className = 'text-[11px] font-bold text-violet-300';
+        } else if (vTotR > 0) {
+          apuSumTargetEl.textContent = osDiffGb >= 0.2
+            ? `→ Vulkan ${vTotR.toFixed(1)}G (+${osDiffGb.toFixed(1)}G ${t('hardware.memory.os_display')})`
+            : `→ Vulkan: ${vTotR.toFixed(1)} Go`;
+          apuSumTargetEl.className = 'text-[11px] font-bold text-sky-300';
+        } else if (rTotR > 0) {
+          apuSumTargetEl.textContent = osDiffGb >= 0.2
+            ? `→ ROCm ${rTotR.toFixed(1)}G (+${osDiffGb.toFixed(1)}G ${t('hardware.memory.os_display')})`
+            : `→ ROCm: ${rTotR.toFixed(1)} Go`;
+          apuSumTargetEl.className = 'text-[11px] font-bold text-fuchsia-300';
+        } else {
+          apuSumTargetEl.textContent = `→ ${t('hardware.memory.os_display')}: ${sumPhysGb.toFixed(1)} Go`;
+          apuSumTargetEl.className = 'text-[11px] font-semibold text-slate-400';
+        }
+      }
+      if (apuSubSum) {
+        apuSubSum.title = `${hwVramUsed.toFixed(1)} Go (VRAM) + ${hwGttUsed.toFixed(1)} Go (GTT) = ${sumPhysGb.toFixed(1)} Go (Donut IA: ${sumAiGb.toFixed(1)} Go)`;
+      }
+
+      // Hydratation bloc compact VRAM + GTT — Carte Vulkan
+      const vVramEl = document.getElementById('vulkan-vram-val');
+      const vGttEl = document.getElementById('vulkan-gtt-val');
+      const vPillEl = document.getElementById('vulkan-mem-pill');
+      if (vVramEl) {
+        vVramEl.textContent = `${vVram.toFixed(1)}G`;
+        vVramEl.className = vOnline && vTotR > 0
+          ? 'font-bold text-[#F8FAFC]'
+          : 'font-semibold text-[#64748B]';
+      }
+      if (vGttEl) {
+        vGttEl.textContent = vOnline && vTotR > 0 ? `+ ${vGtt.toFixed(1)}G` : `${vGtt.toFixed(1)}G`;
+        vGttEl.className = vOnline && vTotR > 0
+          ? 'font-semibold text-[#CBD5E1]'
+          : 'font-semibold text-[#64748B]';
+      }
+      if (vPillEl) {
+        vPillEl.title = vOnline && vTotR > 0
+          ? `Total Vulkan: ${vTotR.toFixed(1)} Go (${vPct}%) = ${vVram.toFixed(1)}G VRAM + ${vGtt.toFixed(1)}G GTT · Offload GPU: ${offloadPct}%`
+          : `Vulkan: 0.0 Go (${t('engines.inactive_suffix')})`;
+      }
+
+      // Hydratation bloc compact VRAM + GTT — Carte ROCm
+      const rVramEl = document.getElementById('rocm-vram-val');
+      const rGttEl = document.getElementById('rocm-gtt-val');
+      const rPillEl = document.getElementById('rocm-mem-pill');
+      const rActEl = document.getElementById('rocm-active-val');
+      const rSufEl = document.getElementById('rocm-status-suffix');
+      if (rVramEl) {
+        rVramEl.textContent = `${rVram.toFixed(1)}G`;
+        rVramEl.className = rOnline && rTotR > 0
+          ? 'font-bold text-[#F8FAFC]'
+          : 'font-semibold text-[#64748B]';
+      }
+      if (rGttEl) {
+        rGttEl.textContent = rOnline && rTotR > 0 ? `+ ${rGtt.toFixed(1)}G` : `${rGtt.toFixed(1)}G`;
+        rGttEl.className = rOnline && rTotR > 0
+          ? 'font-semibold text-[#CBD5E1]'
+          : 'font-semibold text-[#64748B]';
+      }
+      if (rPillEl) {
+        rPillEl.title = rOnline && rTotR > 0
+          ? `Total ROCm: ${rTotR.toFixed(1)} Go (${rPct}%) = ${rVram.toFixed(1)}G VRAM + ${rGtt.toFixed(1)}G GTT`
+          : `ROCm: 0.0 Go (${t('engines.inactive_suffix')})`;
+      }
+      if (rActEl && rSufEl) {
+        if (rOnline) {
+          rActEl.classList.remove('hidden');
+          rActEl.textContent = `${Number(rEng?.gtt_active_gb || 0).toFixed(1)}G`;
+          rSufEl.setAttribute('data-i18n', 'engines.active_suffix');
+          rSufEl.textContent = t('engines.active_suffix');
+          rSufEl.className = 'text-[#CBD5E1]';
+        } else {
+          rActEl.classList.add('hidden');
+          rSufEl.setAttribute('data-i18n', 'engines.inactive_suffix');
+          rSufEl.textContent = t('engines.inactive_suffix');
+          rSufEl.className = 'text-[#94A3B8]';
+        }
+      }
 
       const vKvUsed = vEng ? Number(vEng.kv_used_tokens || 0) : state.ctxUsed;
       const vKvMax = vEng ? Number(vEng.kv_max_tokens || 65536) : state.ctxMax;
@@ -2782,41 +3149,31 @@
       if (vKvTokEl) vKvTokEl.textContent = `${(vKvUsed / 1000).toFixed(1)}k / ${(vKvMax / 1000).toFixed(1)}k`;
       const vKvPctEl = document.getElementById('vulkan-kv-pct');
       if (vKvPctEl) vKvPctEl.textContent = `(${kvPct}%)`;
-      applyConsumptionStyle('vulkan-squares-10', vKvPctEl, kvPct, vOnline);
+      applyConsumptionStyle('vulkan-squares-10', vKvPctEl, kvPct, vOnline, 'filled-blue-2', 'text-sky-300');
 
       const vSpeedEl = document.getElementById('vulkan-speed');
       const vSpeed = vEng ? Number(vEng.speed_tps || 0) : state.tgSpeed;
       if (vSpeedEl) vSpeedEl.textContent = `${vSpeed.toFixed(1)} t/s`;
 
+      const vKvGb = document.getElementById('vulkan-kv-gb');
+      if (vKvGb) {
+        vKvGb.textContent = vOnline
+          ? `KV: ${Number(vEng?.kv_alloc_gb || 0).toFixed(2)} Go`
+          : t('engines.inactive_suffix');
+        vKvGb.className = vOnline ? 'text-[#CBD5E1] font-medium' : 'text-[#94A3B8] font-medium';
+      }
       if (vEng) {
-        const vKvGb = document.getElementById('vulkan-kv-gb');
-        if (vKvGb) vKvGb.textContent = `KV: ${Number(vEng.kv_alloc_gb || 0).toFixed(2)} Go`;
         const vSlotLbl = document.getElementById('vulkan-slot-label');
         if (vSlotLbl) vSlotLbl.textContent = vEng.status_label || 'SLOT 0 · IDLE';
         renderVulkanMultiSlots(vEng.slots || []);
       }
 
-      const rEng = enginesData?.rocm;
-      const rOnline = rEng
-        ? (rEng.online !== undefined ? Boolean(rEng.online) : !String(rEng.model || '').includes('Inactif'))
-        : false;
-      const rRunning = rOnline && Number(rEng?.running_reqs || 0) > 0;
-      setEngineHeartbeat(document.getElementById('rocm-heartbeat'), rOnline, rRunning);
-
       const rPagedPct = rEng ? Number(rEng.paged_cache_pct || 0) : 0;
       const rPagedPctEl = document.getElementById('rocm-paged-pct');
       if (rPagedPctEl) rPagedPctEl.textContent = `(${rPagedPct}%)`;
-      applyConsumptionStyle('rocm-squares-10', rPagedPctEl, rPagedPct, rOnline);
-
-      if (rMemGbEl) {
-        rMemGbEl.className = rOnline
-          ? 'text-[11px] font-bold text-[#FDA4AF] mt-0.5'
-          : 'text-[11px] font-bold text-slate-400 mt-0.5';
-      }
+      applyConsumptionStyle('rocm-squares-10', rPagedPctEl, rPagedPct, rOnline, 'filled-fuchsia', 'text-fuchsia-300');
 
       if (rEng) {
-        const rActEl = document.getElementById('rocm-active-val');
-        if (rActEl) rActEl.textContent = `${Number(rEng.gtt_active_gb || 0).toFixed(1)}G`;
         const rSpdEl = document.getElementById('rocm-speed');
         if (rSpdEl) {
           rSpdEl.textContent = `${Number(rEng.speed_tps || 0).toFixed(1)} t/s`;
@@ -2862,88 +3219,186 @@
 
       const topologies = {
         1: [
-          { key: 'hermes', icon: 'fa-terminal', color: 'cyan', name: t('pipeline.hermes.name'), sub: t('pipeline.hermes.sub'), meta: hermesMode, status: 'ACTIF', live: true },
-          { key: 'opencode', icon: 'fa-code', color: 'purple', name: t('pipeline.opencode.name'), sub: t('pipeline.opencode.sub'), meta: t('pipeline.opencode.meta'), status: vkEng?.online ? 'LOCAL' : 'IDLE', live: Boolean(vkEng?.online) },
-          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'amber', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM', live: true },
-          { key: 'vulkan', icon: 'fa-microchip', color: 'emerald', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: runtimeConfig.engines.vulkan.modelName, meta: `KV ${vkKvPct}% · ${vkSpeed} t/s`, status: vkStatus, live: String(vkStatus).includes('RUN') }
+          { key: 'hermes', icon: 'fa-terminal', color: 'indigo', name: t('pipeline.hermes.name'), sub: t('pipeline.hermes.sub'), meta: hermesMode, status: 'ACTIVE', live: true },
+          { key: 'opencode', icon: 'fa-code', color: 'violet', name: t('pipeline.opencode.name'), sub: t('pipeline.opencode.sub'), meta: t('pipeline.opencode.meta'), status: vkEng?.online ? 'ACTIVE' : 'IDLE', live: Boolean(vkEng?.online) },
+          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'teal', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM', live: true },
+          { key: 'vulkan', icon: 'fa-microchip', color: 'sky', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: runtimeConfig.engines.vulkan.modelName, meta: `KV ${vkKvPct}% · ${vkSpeed} t/s`, status: vkStatus, live: String(vkStatus).includes('RUN') }
         ],
         2: [
-          { key: 'opencode', icon: 'fa-code', color: 'purple', name: 'OPENCODE CLI (DIRECT)', sub: 'Session TUI Autonome', meta: t('pipeline.opencode.meta'), status: vkEng?.online ? 'LOCAL' : 'IDLE', live: Boolean(vkEng?.online) },
-          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'amber', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM', live: true },
-          { key: 'vulkan', icon: 'fa-microchip', color: 'emerald', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: runtimeConfig.engines.vulkan.modelName, meta: `KV ${vkKvPct}% · ${vkSpeed} t/s`, status: vkStatus, live: String(vkStatus).includes('RUN') }
+          { key: 'opencode', icon: 'fa-code', color: 'violet', name: 'OPENCODE CLI (DIRECT)', sub: 'Session TUI Autonome', meta: t('pipeline.opencode.meta'), status: vkEng?.online ? 'ACTIVE' : 'IDLE', live: Boolean(vkEng?.online) },
+          { key: 'proxy', icon: 'fa-arrows-left-right-to-line', color: 'teal', name: t('pipeline.proxy.name', { port: servicePorts.proxy }), sub: t('pipeline.proxy.sub'), meta: t('pipeline.proxy.meta'), status: 'STREAM', live: true },
+          { key: 'vulkan', icon: 'fa-microchip', color: 'sky', name: t('pipeline.vulkan.name', { port: servicePorts.vulkan }), sub: runtimeConfig.engines.vulkan.modelName, meta: `KV ${vkKvPct}% · ${vkSpeed} t/s`, status: vkStatus, live: String(vkStatus).includes('RUN') }
         ],
         3: [
-          { key: 'webui', icon: 'fa-globe', color: 'emerald', name: t('pipeline.webui.name', { port: servicePorts.webui }), sub: t('pipeline.webui.sub'), meta: t('pipeline.webui.meta'), status: rcEng?.running_reqs ? `${rcEng.running_reqs} REQ` : 'IDLE', live: Boolean(rcEng?.running_reqs) },
-          { key: 'vllm', icon: 'fa-layer-group', color: 'rose', name: t('pipeline.vllm.name', { port: servicePorts.vllm }), sub: runtimeConfig.engines.rocm.modelName, meta: `Paged ${rcPaged}% · ${rcSpeed} t/s`, status: rcStatus, live: Boolean(rcEng?.running_reqs) }
+          { key: 'webui', icon: 'fa-globe', color: 'pink', name: t('pipeline.webui.name', { port: servicePorts.webui }), sub: t('pipeline.webui.sub'), meta: t('pipeline.webui.meta'), status: rcEng?.running_reqs ? `${rcEng.running_reqs} REQ` : 'IDLE', live: Boolean(rcEng?.running_reqs) },
+          { key: 'vllm', icon: 'fa-layer-group', color: 'fuchsia', name: t('pipeline.vllm.name', { port: servicePorts.vllm }), sub: runtimeConfig.engines.rocm.modelName, meta: `Paged ${rcPaged}% · ${rcSpeed} t/s`, status: rcStatus, live: Boolean(rcEng?.running_reqs) }
         ],
         4: [
-          { key: 'hermes', icon: 'fa-terminal', color: 'cyan', name: t('pipeline.hermes.name'), sub: t('pipeline.hermes.sub'), meta: hermesMode, status: 'ACTIF', live: true },
+          { key: 'hermes', icon: 'fa-terminal', color: 'indigo', name: t('pipeline.hermes.name'), sub: t('pipeline.hermes.sub'), meta: hermesMode, status: 'ACTIVE', live: true },
           { key: 'cloud', icon: 'fa-cloud', color: 'amber', name: `${runtimeConfig.provider_name.toUpperCase()} (${runtimeConfig.provider_tier.toUpperCase()})`, sub: runtimeConfig.model_name, meta: `TPM ${(state.cloudTpm/1e6).toFixed(2)}M / ${tpmMaxM}M`, status: ipcLiveConnected ? 'CLOUD' : 'OFFLINE', live: ipcLiveConnected }
         ]
       };
 
+      // Palette dédiée par service / serveur dans CHAINES D'EXÉCUTION
       const colorStyles = {
-        cyan: 'border-cyan-500/40 bg-cyan-950/25 text-cyan-300',
-        purple: 'border-purple-500/40 bg-purple-950/25 text-purple-300',
-        amber: 'border-amber-500/40 bg-amber-950/25 text-amber-300',
-        emerald: 'border-emerald-500/40 bg-emerald-950/25 text-emerald-300',
-        rose: 'border-rose-500/40 bg-rose-950/25 text-rose-300'
+        indigo: 'border-indigo-500/45 bg-indigo-950/30 text-indigo-200',
+        violet: 'border-violet-500/45 bg-violet-950/30 text-violet-200',
+        purple: 'border-violet-500/45 bg-violet-950/30 text-violet-200',
+        teal: 'border-teal-500/45 bg-teal-950/30 text-teal-200',
+        lime: 'border-lime-500/45 bg-lime-950/25 text-lime-200',
+        cyan: 'border-cyan-500/45 bg-cyan-950/25 text-cyan-200',
+        sky: 'border-sky-500/45 bg-sky-950/30 text-sky-200',
+        fuchsia: 'border-fuchsia-500/45 bg-fuchsia-950/30 text-fuchsia-200',
+        pink: 'border-pink-500/40 bg-pink-950/25 text-pink-200',
+        rose: 'border-fuchsia-500/45 bg-fuchsia-950/30 text-fuchsia-200',
+        amber: 'border-amber-500/45 bg-amber-950/30 text-amber-200',
+        stone: 'border-stone-400/40 bg-stone-900/40 text-stone-200',
+        emerald: 'border-teal-500/45 bg-teal-950/30 text-teal-200'
       };
 
+      const nodeLiveBadges = {
+        indigo: 'bg-indigo-500/20 border-indigo-400/40 text-indigo-200',
+        violet: 'bg-violet-500/20 border-violet-400/40 text-violet-200',
+        teal: 'bg-teal-500/20 border-teal-400/40 text-teal-200',
+        lime: 'bg-lime-500/20 border-lime-400/40 text-lime-200',
+        cyan: 'bg-cyan-500/20 border-cyan-400/40 text-cyan-200',
+        sky: 'bg-sky-500/20 border-sky-400/40 text-sky-200',
+        fuchsia: 'bg-fuchsia-500/20 border-fuchsia-400/40 text-fuchsia-200',
+        pink: 'bg-pink-500/20 border-pink-400/40 text-pink-200',
+        amber: 'bg-amber-500/20 border-amber-400/40 text-amber-200',
+        stone: 'bg-stone-500/20 border-stone-400/40 text-stone-200',
+      };
+
+      const chainAccentMap = {
+        amber: {
+          rowLive: 'border-amber-500/30',
+          pillLive: 'border-amber-500/45 text-amber-200',
+          dotLive: 'bg-amber-400 text-amber-400 dot-blink',
+          dotReady: 'bg-amber-400/60',
+          badgeLive: 'bg-amber-500/20 border-amber-400/40 text-amber-200',
+          particle: 'bg-amber-400',
+          arrow: 'text-amber-400',
+        },
+        fuchsia: {
+          rowLive: 'border-fuchsia-500/30',
+          pillLive: 'border-fuchsia-500/45 text-fuchsia-200',
+          dotLive: 'bg-fuchsia-400 text-fuchsia-400 dot-blink',
+          dotReady: 'bg-fuchsia-400/60',
+          badgeLive: 'bg-fuchsia-500/20 border-fuchsia-400/40 text-fuchsia-200',
+          particle: 'bg-fuchsia-400',
+          arrow: 'text-fuchsia-400',
+        },
+        violet: {
+          rowLive: 'border-violet-500/30',
+          pillLive: 'border-violet-500/45 text-violet-200',
+          dotLive: 'bg-violet-400 text-violet-400 dot-blink',
+          dotReady: 'bg-violet-400/60',
+          badgeLive: 'bg-violet-500/20 border-violet-400/40 text-violet-200',
+          particle: 'bg-violet-400',
+          arrow: 'text-violet-400',
+        },
+        sky: {
+          rowLive: 'border-sky-500/30',
+          pillLive: 'border-sky-500/45 text-sky-200',
+          dotLive: 'bg-sky-400 text-sky-400 dot-blink',
+          dotReady: 'bg-sky-400/60',
+          badgeLive: 'bg-sky-500/20 border-sky-400/40 text-sky-200',
+          particle: 'bg-sky-400',
+          arrow: 'text-sky-400',
+        },
+        lime: {
+          rowLive: 'border-lime-500/30',
+          pillLive: 'border-lime-500/45 text-lime-200',
+          dotLive: 'bg-lime-400 text-lime-400 dot-blink',
+          dotReady: 'bg-lime-400/60',
+          badgeLive: 'bg-lime-500/20 border-lime-400/40 text-lime-200',
+          particle: 'bg-lime-400',
+          arrow: 'text-lime-400',
+        },
+        stone: {
+          rowLive: 'border-stone-400/30',
+          pillLive: 'border-stone-400/45 text-stone-200',
+          dotLive: 'bg-stone-300 text-stone-300 dot-blink',
+          dotReady: 'bg-stone-400/60',
+          badgeLive: 'bg-stone-500/20 border-stone-400/40 text-stone-200',
+          particle: 'bg-stone-300',
+          arrow: 'text-stone-300',
+        },
+      };
+
+      const nodeDotColors = {
+        indigo: 'bg-indigo-400 text-indigo-400',
+        violet: 'bg-violet-400 text-violet-400',
+        teal: 'bg-teal-400 text-teal-400',
+        lime: 'bg-lime-400 text-lime-400',
+        cyan: 'bg-cyan-400 text-cyan-400',
+        sky: 'bg-sky-400 text-sky-400',
+        fuchsia: 'bg-fuchsia-400 text-fuchsia-400',
+        pink: 'bg-pink-400 text-pink-400',
+        amber: 'bg-amber-400 text-amber-400',
+        stone: 'bg-stone-300 text-stone-300',
+      };
+
+      const topoAccent = (n) => (n === 4 ? 'amber' : (n === 3 ? 'fuchsia' : 'sky'));
       const ipcChains = Array.isArray(lastIpcPayload?.active_chains) ? lastIpcPayload.active_chains : [];
-      const chainsToRender = (isPreprod && preprodManualTopo !== null)
-        ? [{ id: `preprod_${preprodManualTopo}`, state: 'LIVE', nodes: topologies[preprodManualTopo] || topologies[1] }]
+      const chainsToRender = (verboseMode && preprodManualTopo !== null)
+        ? [{ id: `preprod_${preprodManualTopo}`, accent: topoAccent(preprodManualTopo), state: 'LIVE', nodes: topologies[preprodManualTopo] || topologies[1] }]
         : (ipcChains.length > 0
             ? ipcChains
-            : [{ id: `fallback_${activeTopology}`, state: 'READY', nodes: topologies[activeTopology] || topologies[1] }]);
+            : [{ id: `fallback_${activeTopology}`, accent: topoAccent(activeTopology), state: 'READY', nodes: topologies[activeTopology] || topologies[1] }]);
 
       const autoBadgeEl = document.getElementById('pipeline-auto-badge');
       if (autoBadgeEl) {
         if (chainsToRender.length >= 2) {
           autoBadgeEl.removeAttribute('data-i18n');
           autoBadgeEl.textContent = t('pipeline.badge_multi', { count: chainsToRender.length });
-          autoBadgeEl.className = 'text-[11px] font-mono px-2 py-0.2 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-400/40 font-semibold';
+          autoBadgeEl.className = 'text-[11px] font-mono px-2 py-0.2 rounded bg-slate-700/80 text-white border border-slate-500/60 font-semibold';
         } else {
           autoBadgeEl.setAttribute('data-i18n', 'pipeline.badge_auto');
           autoBadgeEl.textContent = t('pipeline.badge_auto');
-          autoBadgeEl.className = 'text-[11px] font-mono px-2 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+          autoBadgeEl.className = 'text-[11px] font-mono px-2 py-0.2 rounded bg-slate-800/80 text-slate-300 border border-slate-600/50';
         }
       }
 
       const pillChainEl = document.getElementById('pill-chain-label');
       const chainTextEl = document.getElementById('header-chain');
-      if (ipcChains.length >= 2 && !(isPreprod && preprodManualTopo !== null)) {
+      if (ipcChains.length >= 2 && !(verboseMode && preprodManualTopo !== null)) {
         const multiSummary = ipcChains.map(c => c.short_label || c.id).join('  +  ');
         if (pillChainEl) pillChainEl.textContent = multiSummary;
         if (chainTextEl) chainTextEl.textContent = multiSummary;
-      } else if (ipcChains.length === 1 && ipcChains[0].label && !(isPreprod && preprodManualTopo !== null)) {
+      } else if (ipcChains.length === 1 && ipcChains[0].label && !(verboseMode && preprodManualTopo !== null)) {
         if (pillChainEl) pillChainEl.textContent = ipcChains[0].label;
         if (chainTextEl) chainTextEl.textContent = ipcChains[0].label;
       }
 
-      const showMultiTag = chainsToRender.length >= 2;
       const rowsHtml = chainsToRender.map(chain => {
         const isLiveChain = chain.state === 'LIVE';
         const nodes = Array.isArray(chain.nodes) ? chain.nodes : [];
-        const rowWrapCls = showMultiTag
-          ? (isLiveChain
-              ? 'bg-[#0A0E17] border border-cyan-500/25 rounded-xl p-2 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2'
-              : 'bg-black/25 border border-white/5 rounded-xl p-2 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 opacity-95')
-          : 'flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2';
+        const inferredAcc = chain.accent || (chain.id === 'cloud_api' ? 'amber' : (chain.id === 'local_rocm' ? 'fuchsia' : (String(chain.id || '').startsWith('extra_') ? 'lime' : 'sky')));
+        const acc = chainAccentMap[inferredAcc] || chainAccentMap.sky;
+        const rowWrapCls = isLiveChain
+          ? `bg-[#0A0E17] border ${acc.rowLive} rounded-xl p-2 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2`
+          : 'bg-black/25 border border-white/5 rounded-xl p-2 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 opacity-95';
 
-        const statePillHtml = showMultiTag
-          ? `<div class="flex md:flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg bg-black/50 border ${isLiveChain ? 'border-emerald-500/35 text-emerald-300' : 'border-slate-700 text-slate-400'} font-mono text-[10px] font-bold shrink-0 md:w-16">
-               <span class="w-2 h-2 rounded-full ${isLiveChain ? 'bg-emerald-400 text-emerald-400 dot-blink' : 'bg-cyan-400/70'}"></span>
-               <span>${escapeHtml(t(isLiveChain ? 'pipeline.state_live' : 'pipeline.state_ready'))}</span>
-             </div>`
-          : '';
+        // Pastille d'état de chaîne toujours présente avec puce animée lors des exécutions (LIVE)
+        const statePillHtml = `
+          <div class="flex md:flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg bg-black/50 border ${isLiveChain ? acc.pillLive : 'border-slate-700 text-slate-400'} font-mono text-[10px] font-bold shrink-0 md:w-16">
+            <span class="w-2 h-2 rounded-full ${isLiveChain ? acc.dotLive : acc.dotReady}"></span>
+            <span>${escapeHtml(t(isLiveChain ? 'pipeline.state_live' : 'pipeline.state_ready'))}</span>
+          </div>`;
 
         let innerHtml = statePillHtml;
         nodes.forEach((node, idx) => {
-          const cStyle = colorStyles[node.color] || colorStyles.cyan;
-          const stBadgeCls = (isLiveChain && node.live !== false)
-            ? 'bg-emerald-500/15 border-emerald-400/35 text-emerald-200'
+          const cStyle = colorStyles[node.color] || colorStyles[inferredAcc] || colorStyles.sky;
+          const isNodeExecuting = isLiveChain && node.live !== false;
+          const stBadgeCls = isNodeExecuting
+            ? (nodeLiveBadges[node.color] || acc.badgeLive)
             : 'bg-black/50 border-white/10 text-slate-300';
+          const nDotTone = nodeDotColors[node.color] || 'bg-sky-400 text-sky-400';
+          const nDotCls = isNodeExecuting
+            ? `w-1.5 h-1.5 rounded-full ${nDotTone} dot-blink shrink-0`
+            : `w-1.5 h-1.5 rounded-full ${nDotTone} opacity-55 shrink-0`;
+
           innerHtml += `
             <div class="flex-1 rounded-xl p-2.5 md:p-3 border ${cStyle} transition-all duration-200 space-y-1 relative min-w-0">
               <div class="flex items-center justify-between gap-1.5">
@@ -2951,7 +3406,10 @@
                   <i class="fa-solid ${escapeHtml(node.icon || 'fa-circle-nodes')} text-xs shrink-0"></i>
                   <span class="truncate">${escapeHtml(node.name || '--')}</span>
                 </span>
-                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold border shrink-0 ${stBadgeCls}">${escapeHtml(node.status || 'IDLE')}</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold border shrink-0 flex items-center gap-1 ${stBadgeCls}">
+                  <span class="${nDotCls}"></span>
+                  <span>${escapeHtml(node.status || 'IDLE')}</span>
+                </span>
               </div>
               <div class="text-[12px] font-mono text-slate-200 font-medium truncate">${escapeHtml(node.sub || '--')}</div>
               <div class="text-[11px] font-mono text-slate-400 pt-0.5 truncate">${escapeHtml(node.meta || '')}</div>
@@ -2959,13 +3417,17 @@
           `;
 
           if (idx < nodes.length - 1) {
+            const nextNode = nodes[idx + 1];
+            const nextColorKey = nextNode?.color || node.color || inferredAcc;
+            const particleBg = (nodeDotColors[nextColorKey] || acc.particle).split(' ')[0];
+            // Règle stricte : si la chaîne n'est PAS active (!isLiveChain), aucune animation sur les lignes
             const particleSpan = isLiveChain
-              ? `<span class="absolute top-0 h-1 w-3 rounded-full bg-cyan-400 animate-particle"></span>`
+              ? `<span class="absolute top-0 h-1 w-3.5 rounded-full ${particleBg} animate-particle"></span>`
               : '';
-            const arrowCls = isLiveChain ? 'text-cyan-400' : 'text-slate-500';
+            const arrowCls = isLiveChain ? `${acc.arrow} animate-flow` : 'text-slate-600';
             innerHtml += `
-              <div class="hidden md:flex flex-col items-center justify-center px-0.5 w-11 shrink-0">
-                <div class="w-full h-1 bg-slate-800 rounded-full relative overflow-hidden">
+              <div class="hidden md:flex flex-col items-center justify-center px-1 w-12 md:w-14 shrink-0">
+                <div class="w-full h-1 bg-slate-800/90 rounded-full relative overflow-hidden">
                   ${particleSpan}
                 </div>
                 <span class="text-[10px] font-mono ${arrowCls} mt-1">──►</span>
@@ -2983,18 +3445,18 @@
 
     function setTopology(topoNum, opts = {}) {
       const silent = Boolean(opts && opts.silent);
-      if (!silent && !isPreprod) return;
-      if (!silent && isPreprod) {
+      if (!silent && !verboseMode) return;
+      if (!silent && verboseMode) {
         preprodManualTopo = preprodManualTopo === topoNum ? null : topoNum;
       }
       activeTopology = topoNum;
       document.querySelectorAll('.topo-btn').forEach(btn => {
-        btn.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/40', 'font-semibold');
+        btn.classList.remove('bg-slate-700/70', 'text-white', 'border', 'border-slate-500/50', 'font-semibold');
         btn.classList.add('text-slate-400');
       });
       const activeBtn = document.getElementById('topo-btn-' + topoNum);
       if (activeBtn) {
-        activeBtn.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/40', 'font-semibold');
+        activeBtn.classList.add('bg-slate-700/70', 'text-white', 'border', 'border-slate-500/50', 'font-semibold');
         activeBtn.classList.remove('text-slate-400');
       }
 
@@ -3219,7 +3681,7 @@
           ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
         }
       });
-      ctx.strokeStyle = '#06B6D4';
+      ctx.strokeStyle = '#CBD5E1';
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
@@ -3227,8 +3689,8 @@
       ctx.lineTo(0, h);
       ctx.closePath();
       const grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, 'rgba(6, 182, 212, 0.25)');
-      grad.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+      grad.addColorStop(0, 'rgba(203, 213, 225, 0.22)');
+      grad.addColorStop(1, 'rgba(203, 213, 225, 0.0)');
       ctx.fillStyle = grad;
       ctx.fill();
     }
@@ -3345,7 +3807,7 @@
         const badgesEl = document.getElementById('hero-tuning-badges');
         if (badgesEl && Array.isArray(sh.tuning_flags) && sh.tuning_flags.length) {
           badgesEl.innerHTML = sh.tuning_flags
-            .map(f => `<span class="px-2 py-0.5 rounded bg-white/5 text-[12px] font-mono text-slate-300 border border-white/10">${f}</span>`)
+            .map(f => `<span class="px-2 py-0.5 rounded bg-sky-950/35 text-[12px] font-mono text-sky-200 border border-sky-500/25">${f}</span>`)
             .join('');
         }
         renderLocalLlmConfigDrawer(sh.local_model_config || null);
@@ -3371,9 +3833,13 @@
 
         const loopEl = document.getElementById('loop-risk-label');
         if (loopEl) {
-          loopEl.textContent = cd.loop_detector_status === 'WARN'
-            ? '[WARN · RSN élevé]'
-            : t('session.thought_detector_state');
+          if (cd.loop_detector_status === 'WARN') {
+            loopEl.textContent = '[WARN · RSN élevé]';
+            loopEl.className = 'text-red-400 font-bold';
+          } else {
+            loopEl.textContent = t('session.thought_detector_state');
+            loopEl.className = 'text-sky-300 font-semibold';
+          }
         }
       }
 
@@ -3417,14 +3883,36 @@
         if (cpuEl) cpuEl.textContent = `${hw.cpu_busy_pct ?? 0}%`;
 
         const tBadge = document.getElementById('hw-temp-badge');
+        const tEdgeEl = document.getElementById('hw-temp-edge');
+        const tSocEl = document.getElementById('hw-temp-soc');
+        const tVecEl = document.getElementById('hw-vector-temp');
+        const stTemp = hw.gpu_temp_status || 'OK';
+        const isTempCrit = stTemp === 'CRIT' || Number(hw.gpu_edge_temp_c ?? 0) >= 82;
+        const isTempWarn = !isTempCrit && (stTemp === 'WARN' || Number(hw.gpu_edge_temp_c ?? 0) >= 72);
         if (tBadge) {
-          const st = hw.gpu_temp_status || 'OK';
-          tBadge.textContent = `[${st}]`;
-          tBadge.className = st === 'CRIT'
-            ? 'px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 text-[11px] font-bold'
-            : (st === 'WARN'
-              ? 'px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[11px] font-bold'
-              : 'px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[11px] font-bold');
+          tBadge.textContent = `[${stTemp}]`;
+          tBadge.className = isTempCrit
+            ? 'px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 border border-red-500/35 text-[11px] font-bold'
+            : (isTempWarn
+              ? 'px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-300 border border-orange-500/35 text-[11px] font-bold'
+              : 'px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold');
+        }
+        if (tEdgeEl) {
+          tEdgeEl.className = isTempCrit
+            ? 'text-red-400 font-bold tabular-nums text-sm'
+            : (isTempWarn ? 'text-orange-300 font-bold tabular-nums text-sm' : 'text-slate-100 font-bold tabular-nums text-sm');
+        }
+        if (tSocEl) {
+          tSocEl.className = isTempCrit
+            ? 'text-red-300 font-semibold tabular-nums'
+            : (isTempWarn ? 'text-orange-200 font-semibold tabular-nums' : 'text-slate-200 font-semibold tabular-nums');
+        }
+        if (tVecEl) {
+          tVecEl.className = isTempCrit
+            ? 'px-2 py-0.5 rounded bg-red-500/10 text-red-200 text-[11px] border border-red-500/25 tabular-nums'
+            : (isTempWarn
+              ? 'px-2 py-0.5 rounded bg-orange-500/10 text-orange-200 text-[11px] border border-orange-500/25 tabular-nums'
+              : 'px-2 py-0.5 rounded bg-slate-800/80 text-slate-200 text-[11px] border border-slate-600/50 tabular-nums');
         }
 
         const effEl = document.getElementById('hw-efficiency');
@@ -3454,8 +3942,14 @@
             idleRtEl.classList.add('hidden');
           }
         } else {
+          const batWrapEl = document.getElementById('hw-battery-wrap');
+          const bp = Number(hw.battery_pct ?? 100);
+          if (batWrapEl) {
+            batWrapEl.className = bp < 20
+              ? 'flex items-center space-x-2 text-red-400'
+              : (bp < 40 ? 'flex items-center space-x-2 text-orange-400' : 'flex items-center space-x-2 text-emerald-400');
+          }
           if (batEl) {
-            const bp = Number(hw.battery_pct ?? 100);
             const blocks = Math.max(0, Math.min(5, Math.round(bp / 20)));
             const bar = '■'.repeat(blocks) + '□'.repeat(5 - blocks);
             const dis = Number(hw.battery_discharge_w ?? 0);
@@ -3527,7 +4021,19 @@
       const ctxMaxSafe = Math.max(1, state.ctxMax);
       const ctxPct = Math.min(100, Math.round((state.ctxUsed / ctxMaxSafe) * 100));
       document.getElementById('ctx-used-val').textContent = `${(state.ctxUsed / 1000).toFixed(1)}k / ${(ctxMaxSafe / 1000).toFixed(1)}k`;
-      document.getElementById('ctx-percent-val').textContent = `(${ctxPct}%)`;
+      const ctxPctEl = document.getElementById('ctx-percent-val');
+      if (ctxPctEl) {
+        ctxPctEl.textContent = `(${ctxPct}%)`;
+        ctxPctEl.className = ctxPct >= 85
+          ? 'text-red-400 font-bold ml-1.5'
+          : 'text-sky-300 font-bold ml-1.5';
+      }
+      const ctxBadgeEl = document.getElementById('ctx-status-badge');
+      if (ctxBadgeEl) {
+        ctxBadgeEl.className = ctxPct >= 90
+          ? 'text-red-400 font-mono font-semibold flex items-center gap-1'
+          : 'text-sky-300 font-mono font-semibold flex items-center gap-1';
+      }
       const freeTokens = Math.max(0, ctxMaxSafe - state.ctxUsed);
       document.getElementById('ctx-free-val').textContent = (freeTokens / 1000).toFixed(1) + 'k tok';
       renderContextDnaSquares(state.ctxUsed, ctxMaxSafe);
@@ -3542,7 +4048,7 @@
       document.getElementById('hw-vector-temp').textContent = state.tempVectorText || '--';
       document.getElementById('hw-vector-power').textContent = state.powerVectorText || '--';
 
-      // Quotas Cloud : Jauge à 10 carrés sur TPM Glissant + Badge
+      // Quotas Cloud : Jauge à 10 carrés sur TPM Glissant + Badge (Ambre nominal / Rouge alerte >=85%)
       const tpmMaxSafe = Math.max(1, state.cloudTpmMax);
       const tpmMillions = (state.cloudTpm / 1000000).toFixed(2);
       const tpmMaxMillions = (tpmMaxSafe / 1000000).toFixed(2);
@@ -3552,11 +4058,11 @@
       if (tpmPctEl) {
         tpmPctEl.textContent = `(${tpmPct}%)`;
         tpmPctEl.className = tpmPct >= 85
-          ? 'text-[12px] text-rose-400 font-bold ml-1'
-          : (tpmPct >= 70 ? 'text-[12px] text-amber-300 font-bold ml-1' : 'text-[12px] text-emerald-400 font-bold ml-1');
+          ? 'text-[12px] text-red-400 font-bold ml-1'
+          : 'text-[12px] text-amber-300 font-bold ml-1';
       }
 
-      const tpmSqColor = tpmPct >= 85 ? 'filled-rose' : (tpmPct >= 70 ? 'filled-amber' : 'filled-emerald');
+      const tpmSqColor = tpmPct >= 85 ? 'filled-alert' : 'filled-amber-2';
       render10Squares('cloud-tpm-squares-10', tpmPct, tpmSqColor);
 
       const tpmFreeK = Math.max(0, Math.round((tpmMaxSafe - state.cloudTpm) / 1000));
@@ -3600,14 +4106,14 @@
       const localIconBox = document.getElementById('local-section-icon-box');
       if (localIconBox) {
         localIconBox.className = localHasActive
-          ? 'w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-base shrink-0 transition-all duration-300 mt-0.5 icon-active-cyan'
-          : 'w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-base shrink-0 transition-all duration-300 mt-0.5';
+          ? 'w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/35 flex items-center justify-center text-sky-400 text-base shrink-0 transition-all duration-300 mt-0.5 icon-active-cyan'
+          : 'w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/35 flex items-center justify-center text-sky-400 text-base shrink-0 transition-all duration-300 mt-0.5';
       }
       const localDot = document.getElementById('local-section-dot');
       if (localDot) {
         localDot.className = localHasActive
-          ? 'w-2 h-2 rounded-full bg-cyan-400 text-cyan-400 shrink-0 dot-blink'
-          : 'w-2 h-2 rounded-full bg-cyan-400 text-cyan-400 shrink-0';
+          ? 'w-2 h-2 rounded-full bg-sky-400 text-sky-400 shrink-0 dot-blink'
+          : 'w-2 h-2 rounded-full bg-sky-400 text-sky-400 shrink-0';
       }
 
       const localCumulBadge = document.getElementById('local-cumul-badge');
@@ -3643,14 +4149,11 @@
         if (localCumulBadge) localCumulBadge.className = 'text-xs font-mono flex items-center gap-2 text-slate-400 font-medium';
         if (localCumulDot) localCumulDot.className = 'w-2 h-2 rounded-full bg-slate-500 text-slate-500 shrink-0';
       } else if (ctxPct >= 85) {
-        if (localCumulBadge) localCumulBadge.className = 'text-xs font-mono flex items-center gap-2 text-rose-400 font-semibold';
-        if (localCumulDot) localCumulDot.className = 'w-2 h-2 rounded-full bg-rose-500 text-rose-500 shrink-0' + locBlinkCls;
-      } else if (ctxPct >= 70) {
-        if (localCumulBadge) localCumulBadge.className = 'text-xs font-mono flex items-center gap-2 text-amber-300 font-semibold';
-        if (localCumulDot) localCumulDot.className = 'w-2 h-2 rounded-full bg-amber-400 text-amber-400 shrink-0' + locBlinkCls;
+        if (localCumulBadge) localCumulBadge.className = 'text-xs font-mono flex items-center gap-2 text-red-400 font-semibold';
+        if (localCumulDot) localCumulDot.className = 'w-2 h-2 rounded-full bg-red-500 text-red-500 shrink-0' + locBlinkCls;
       } else {
-        if (localCumulBadge) localCumulBadge.className = 'text-xs font-mono flex items-center gap-2 text-emerald-400 font-medium';
-        if (localCumulDot) localCumulDot.className = 'w-2 h-2 rounded-full bg-emerald-400 text-emerald-400 shrink-0' + locBlinkCls;
+        if (localCumulBadge) localCumulBadge.className = 'text-xs font-mono flex items-center gap-2 text-sky-300 font-medium';
+        if (localCumulDot) localCumulDot.className = 'w-2 h-2 rounded-full bg-sky-400 text-sky-400 shrink-0' + locBlinkCls;
       }
 
       const badge429 = document.getElementById('alert-429-badge');
@@ -3676,14 +4179,11 @@
       if (badge429) badge429.title = text429?.title || '';
 
       if (tpmPct >= 85) {
-        badge429.className = 'text-xs font-mono flex items-center gap-2 text-rose-400 font-semibold';
-        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-rose-500 text-rose-500 shrink-0' + blinkCls;
-      } else if (tpmPct >= 70) {
-        badge429.className = 'text-xs font-mono flex items-center gap-2 text-amber-300 font-semibold';
-        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-amber-400 text-amber-400 shrink-0' + blinkCls;
+        badge429.className = 'text-xs font-mono flex items-center gap-2 text-red-400 font-semibold';
+        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-red-500 text-red-500 shrink-0' + blinkCls;
       } else {
-        badge429.className = 'text-xs font-mono flex items-center gap-2 text-emerald-400 font-medium';
-        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-emerald-400 text-emerald-400 shrink-0' + blinkCls;
+        badge429.className = 'text-xs font-mono flex items-center gap-2 text-amber-300 font-medium';
+        if (dot429) dot429.className = 'w-2 h-2 rounded-full bg-amber-400 text-amber-400 shrink-0' + blinkCls;
       }
 
       updateApuDonutAndCards(lastIpcPayload?.apu_pool_128g || null, lastIpcPayload?.inference_engines || null);
@@ -3696,7 +4196,7 @@
         const resp = await fetch(`file:///tmp/tokenwatcher_widget_state.json?t=${Date.now()}`, { cache: 'no-store' });
         if (!resp.ok && resp.status !== 0) throw new Error(`HTTP ${resp.status}`);
         const payload = await resp.json();
-        if (payload && ['4.2.4', '4.2.0', '4.1.1', '4.1.0', '4.0.4', '4.0.2'].includes(payload.schema_version)) {
+        if (payload && ['4.2.5', '4.2.4', '4.2.0', '4.1.1', '4.1.0', '4.0.4', '4.0.2'].includes(payload.schema_version)) {
           const ageSec = (Date.now() / 1000) - Number(payload.timestamp || 0);
           const isFresh = ageSec <= 8.0;
           ipcLiveConnected = isFresh;
@@ -3720,12 +4220,12 @@
       const icon = document.getElementById('sim-icon');
       if (pollingRunning) {
         icon.className = 'fa-solid fa-pause text-[12px]';
-        btn.className = 'px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition cursor-pointer';
+        btn.className = 'px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-600/50 flex items-center justify-center transition cursor-pointer';
         triggerToast('Polling temps réel actif (1.0s)');
         pollIpcState();
       } else {
         icon.className = 'fa-solid fa-play text-[12px]';
-        btn.className = 'px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 flex items-center justify-center transition cursor-pointer';
+        btn.className = 'px-2.5 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/35 flex items-center justify-center transition cursor-pointer';
         triggerToast('Polling en pause');
       }
     }
@@ -3740,15 +4240,16 @@
       const secPipeline = document.getElementById('section-pipeline');
 
       document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/30');
+        btn.classList.remove('bg-slate-700/70', 'text-white', 'border', 'border-slate-500/50');
         btn.classList.add('text-slate-400');
       });
       const activeBtn = document.getElementById('view-' + mode);
       if (activeBtn) {
-        activeBtn.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border', 'border-cyan-500/30');
+        activeBtn.classList.add('bg-slate-700/70', 'text-white', 'border', 'border-slate-500/50');
         activeBtn.classList.remove('text-slate-400');
       }
 
+      const silMemGauges = document.getElementById('silicon-mem-gauges');
       if (mode === 'hud') {
         mainCockpit.classList.add('hidden');
         hudPill.classList.remove('hidden');
@@ -3759,8 +4260,12 @@
         secHero.classList.add('hidden');
         secCloud.classList.add('hidden');
         secPipeline.classList.add('hidden');
-        secSlots.classList.remove('hidden');
+        secSlots.classList.add('hidden');
         secSilicon.classList.remove('hidden');
+        if (silMemGauges) {
+          silMemGauges.classList.remove('hidden');
+          silMemGauges.classList.add('grid');
+        }
         triggerToast('Focus Silicium AMD');
         setTimeout(drawSparkline, 50);
       } else {
@@ -3771,6 +4276,10 @@
         secSlots.classList.remove('hidden');
         secSilicon.classList.remove('hidden');
         secPipeline.classList.remove('hidden');
+        if (silMemGauges) {
+          silMemGauges.classList.add('hidden');
+          silMemGauges.classList.remove('grid');
+        }
         triggerToast('Cockpit complet affiché');
         setTimeout(drawSparkline, 50);
       }
@@ -3804,23 +4313,9 @@
     window.addEventListener('resize', drawSparkline);
 
     window.onload = async function() {
-      if (isPreprod) {
-        document.getElementById('header-version-badge')?.classList.remove('hidden');
-        document.getElementById('header-preprod-badge')?.classList.remove('hidden');
-        document.getElementById('header-i18n-saved-pill')?.classList.remove('hidden');
-        document.getElementById('header-chain')?.classList.remove('hidden');
-        const wsBtn = document.getElementById('workspace-dir-btn');
-        if (wsBtn) {
-          wsBtn.classList.remove('hidden');
-          wsBtn.classList.add('flex');
-        }
-        const topoPills = document.getElementById('topo-selector-pills');
-        if (topoPills) {
-          topoPills.classList.remove('hidden');
-          topoPills.classList.add('flex');
-        }
-      }
+      applyVerboseMode();
       applyLanguage();
+      applyVerboseMode();
       setConnectionStatus(false);
       setTopology(1, { silent: true });
       renderEndpointsConfig();
@@ -3828,6 +4323,7 @@
       updateUI();
       drawSparkline();
       await loadExternalI18n();
+      applyVerboseMode();
       await pollIpcState();
     };
   </script>

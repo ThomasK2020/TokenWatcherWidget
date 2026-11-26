@@ -1,6 +1,6 @@
 # Template systemd utilisateur (install_local_widget.sh génère le chemin exact du poste)
 [Unit]
-Description=TokenWatcher GTK4 Cockpit Widget V4.2.4
+Description=TokenWatcher GTK4 Cockpit Widget V4.2.5
 After=graphical-session.target tokenwatcher-daemon.service
 Wants=tokenwatcher-daemon.service
 PartOf=graphical-session.target

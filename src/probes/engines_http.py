@@ -87,11 +87,12 @@ class EnginesHttpProbe:
         return None, []
 
     @staticmethod
-    def _read_fdinfo_drm_gb(pid: Optional[int]) -> Optional[float]:
+    def _read_fdinfo_drm_split(pid: Optional[int]) -> Optional[tuple[float, float, float]]:
         if pid is None:
             return None
         fdinfo_dir = Path(f"/proc/{pid}/fdinfo")
-        total_kib = 0
+        vram_kib = 0
+        gtt_kib = 0
         seen_ids: set[str] = set()
         read_any = False
         try:
@@ -116,19 +117,33 @@ class EnginesHttpProbe:
             if client_id:
                 seen_ids.add(client_id)
             for line in txt.splitlines():
-                m = re.match(r"^drm-memory-(?:vram|gtt):\s*(\d+)\s*(KiB|MiB|B)?", line.strip())
+                m = re.match(r"^drm-memory-(vram|gtt):\s*(\d+)\s*(KiB|MiB|B)?", line.strip())
                 if m:
-                    val = int(m.group(1))
-                    unit = m.group(2) or "B"
+                    kind = m.group(1)
+                    val = int(m.group(2))
+                    unit = m.group(3) or "B"
                     if unit == "MiB":
-                        total_kib += val * 1024
+                        kib = val * 1024
                     elif unit == "KiB":
-                        total_kib += val
+                        kib = val
                     else:
-                        total_kib += val // 1024
+                        kib = val // 1024
+                    if kind == "vram":
+                        vram_kib += kib
+                    else:
+                        gtt_kib += kib
+        total_kib = vram_kib + gtt_kib
         if not read_any or total_kib == 0:
             return None
-        return round(total_kib / (1024 * 1024), 2)
+        total_gb = round(total_kib / (1024 * 1024), 2)
+        vram_gb = round(vram_kib / (1024 * 1024), 2)
+        gtt_gb = round(gtt_kib / (1024 * 1024), 2)
+        return (total_gb, vram_gb, gtt_gb)
+
+    @classmethod
+    def _read_fdinfo_drm_gb(cls, pid: Optional[int]) -> Optional[float]:
+        split = cls._read_fdinfo_drm_split(pid)
+        return split[0] if split is not None else None
 
     @staticmethod
     def _extract_cli_flags(args: List[str]) -> tuple[List[str], Optional[int], Optional[int]]:
@@ -301,12 +316,15 @@ class EnginesHttpProbe:
         slots_url = f"http://{v_host}:{v_port}{slots_ep}"
         metrics_url = f"http://{v_host}:{v_port}{metrics_ep}"
         props_url = f"http://{v_host}:{v_port}/props"
-        slots_data, metrics_raw, props_data, fdinfo_gb = await asyncio.gather(
+        slots_data, metrics_raw, props_data, fdinfo_split = await asyncio.gather(
             asyncio.to_thread(self._http_get_json, slots_url, 1.5),
             asyncio.to_thread(self._http_get_text, metrics_url, 1.5),
             asyncio.to_thread(self._http_get_json, props_url, 1.0),
-            asyncio.to_thread(self._read_fdinfo_drm_gb, pid),
+            asyncio.to_thread(self._read_fdinfo_drm_split, pid),
         )
+        fdinfo_gb = fdinfo_split[0] if fdinfo_split is not None else None
+        fdinfo_vram_gb = fdinfo_split[1] if fdinfo_split is not None else None
+        fdinfo_gtt_gb = fdinfo_split[2] if fdinfo_split is not None else None
 
         prom = self._parse_prometheus(metrics_raw) if metrics_raw else {}
         online = slots_data is not None or bool(prom)
@@ -514,6 +532,8 @@ class EnginesHttpProbe:
             "ttft_sec": round(ttft_sec, 2),
             "ttft_source": ttft_source,
             "uma_alloc_gb": fdinfo_gb,
+            "vram_gb": fdinfo_vram_gb,
+            "gtt_gb": fdinfo_gtt_gb,
             "kv_alloc_gb": round((kv_used / max(1, n_ctx)) * 2.0, 2) if online else 0.0,
             "ctx_label": ctx_label,
             "kv_used_tokens": kv_used,
@@ -572,11 +592,14 @@ class EnginesHttpProbe:
         models_url = f"http://{r_host}:{r_port}{models_ep}"
         pid, cmd_args = await asyncio.to_thread(self._find_proc_info, ("vllm.entrypoints", "vllm serve"))
 
-        metrics_raw, models_data, fdinfo_gb = await asyncio.gather(
+        metrics_raw, models_data, fdinfo_split = await asyncio.gather(
             asyncio.to_thread(self._http_get_text, metrics_url, 1.5),
             asyncio.to_thread(self._http_get_json, models_url, 1.0),
-            asyncio.to_thread(self._read_fdinfo_drm_gb, pid),
+            asyncio.to_thread(self._read_fdinfo_drm_split, pid),
         )
+        fdinfo_gb = fdinfo_split[0] if fdinfo_split is not None else None
+        fdinfo_vram_gb = fdinfo_split[1] if fdinfo_split is not None else None
+        fdinfo_gtt_gb = fdinfo_split[2] if fdinfo_split is not None else None
 
         model_name = "vLLM ROCm (Inactif)"
         if isinstance(models_data, dict):
@@ -595,6 +618,8 @@ class EnginesHttpProbe:
                 "waiting_reqs": 0,
                 "speed_tps": 0.0,
                 "gtt_pool_gb": fdinfo_gb or 0.0,
+                "vram_gb": fdinfo_vram_gb or 0.0,
+                "gtt_gb": fdinfo_gtt_gb or 0.0,
                 "gtt_pool_pct": 0.0,
                 "gtt_active_gb": 0.0,
                 "paged_cache_pct": 0,
@@ -661,6 +686,8 @@ class EnginesHttpProbe:
             "waiting_reqs": waiting,
             "speed_tps": speed_tps,
             "gtt_pool_gb": round(pool_gb, 1),
+            "vram_gb": round(fdinfo_vram_gb, 1) if fdinfo_vram_gb is not None else None,
+            "gtt_gb": round(fdinfo_gtt_gb, 1) if fdinfo_gtt_gb is not None else None,
             "gtt_pool_pct": 0.0,
             "gtt_active_gb": active_gb,
             "paged_cache_pct": paged_pct,

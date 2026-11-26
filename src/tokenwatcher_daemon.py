@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Démon Principal TokenWatcher V4.2.4.
+Démon Principal TokenWatcher V4.2.5.
 Orchestre les 3 sondes (AmdSysfsProbe, EnginesHttpProbe, SqliteTelemetryReader)
 à un intervalle de 1.0s et écrit atomiquement l'état dans /tmp/tokenwatcher_widget_state.json.
 """
@@ -129,7 +129,7 @@ class TokenWatcherDaemon:
         return merged
 
     async def collect_once(self) -> Dict[str, Any]:
-        """Fusionner les données des 3 sondes dans le schéma JSON V4.2.4."""
+        """Fusionner les données des 3 sondes dans le schéma JSON V4.2.5."""
         if not self._full_config or self.engines_probe is None:
             self.load_ports_config()
 
@@ -290,6 +290,36 @@ class TokenWatcherDaemon:
         free_pct = pct_of_apu(free_gb)
         total_ai_pct = pct_of_apu(total_ai_gb)
 
+        # Répartition physique VRAM + GTT par moteur (depuis /proc/<pid>/fdinfo avec fallback agrégat)
+        vulkan_tot_r = round(vulkan_gb, 1)
+        rocm_tot_r = round(rocm_gb, 1)
+
+        if vulkan_tot_r <= 0.0 or not vulkan_data.get("online"):
+            vk_vram_gb, vk_gtt_gb = 0.0, 0.0
+        elif vulkan_data.get("vram_gb") is not None and vulkan_data.get("gtt_gb") is not None:
+            vk_vram_gb = min(vulkan_tot_r, round(float(vulkan_data["vram_gb"]), 1))
+            vk_gtt_gb = round(max(0.0, vulkan_tot_r - vk_vram_gb), 1)
+        elif rocm_tot_r <= 0.0:
+            vk_vram_gb = min(vulkan_tot_r, round(vram_used, 1))
+            vk_gtt_gb = round(max(0.0, vulkan_tot_r - vk_vram_gb), 1)
+        else:
+            share = vulkan_tot_r / max(0.1, vulkan_tot_r + rocm_tot_r)
+            vk_vram_gb = min(vulkan_tot_r, round(vram_used * share, 1))
+            vk_gtt_gb = round(max(0.0, vulkan_tot_r - vk_vram_gb), 1)
+
+        if rocm_tot_r <= 0.0 or not vllm_data.get("online"):
+            rc_vram_gb, rc_gtt_gb = 0.0, 0.0
+        elif vllm_data.get("vram_gb") is not None and vllm_data.get("gtt_gb") is not None:
+            rc_vram_gb = min(rocm_tot_r, round(float(vllm_data["vram_gb"]), 1))
+            rc_gtt_gb = round(max(0.0, rocm_tot_r - rc_vram_gb), 1)
+        elif vulkan_tot_r <= 0.0:
+            rc_vram_gb = min(rocm_tot_r, round(vram_used, 1))
+            rc_gtt_gb = round(max(0.0, rocm_tot_r - rc_vram_gb), 1)
+        else:
+            rem_vram = max(0.0, vram_used - vk_vram_gb)
+            rc_vram_gb = min(rocm_tot_r, round(rem_vram, 1))
+            rc_gtt_gb = round(max(0.0, rocm_tot_r - rc_vram_gb), 1)
+
         # Injection des empreintes calculées dans les cartes moteurs
         vulkan_card = {
             "online": bool(vulkan_data.get("online", False)),
@@ -302,8 +332,10 @@ class TokenWatcherDaemon:
             "slots_active": int(vulkan_data.get("slots_active", 0)),
             "slots_total": int(vulkan_data.get("slots_total", 0)),
             "speed_tps": vulkan_data["speed_tps"],
-            "uma_alloc_gb": round(vulkan_gb, 1),
+            "uma_alloc_gb": vulkan_tot_r,
             "uma_alloc_pct": vulkan_pct,
+            "vram_gb": vk_vram_gb,
+            "gtt_gb": vk_gtt_gb,
             "kv_alloc_gb": vulkan_data["kv_alloc_gb"],
             "ctx_label": vulkan_data["ctx_label"],
             "kv_used_tokens": vulkan_data["kv_used_tokens"],
@@ -325,8 +357,10 @@ class TokenWatcherDaemon:
             "running_reqs": vllm_data["running_reqs"],
             "waiting_reqs": vllm_data["waiting_reqs"],
             "speed_tps": vllm_data["speed_tps"],
-            "gtt_pool_gb": round(rocm_gb, 1),
+            "gtt_pool_gb": rocm_tot_r,
             "gtt_pool_pct": rocm_pct,
+            "vram_gb": rc_vram_gb,
+            "gtt_gb": rc_gtt_gb,
             "gtt_active_gb": vllm_data["gtt_active_gb"],
             "paged_cache_pct": vllm_data["paged_cache_pct"],
             "prefix_cache_hit_pct": vllm_data["prefix_cache_hit_pct"],
@@ -437,7 +471,7 @@ class TokenWatcherDaemon:
             active_topology = int(active_chains[0].get("topo_num") or active_topology)
 
         return {
-            "schema_version": "4.2.4",
+            "schema_version": "4.2.5",
             "timestamp": round(time.time(), 3),
             "active_topology": active_topology,
             "active_chains": active_chains,
@@ -604,6 +638,7 @@ class TokenWatcherDaemon:
                 {
                     "id": "cloud_api",
                     "topo_num": 4,
+                    "accent": "amber",
                     "state": c_state,
                     "short_label": f"CLOUD {prov_clean}",
                     "label": f"{c_client_name} ({'·'.join(hermes_profs[:2]) or 'cloud'}) ──► {prov_clean} API ({mod_sub})",
@@ -611,11 +646,11 @@ class TokenWatcherDaemon:
                         {
                             "key": "hermes_cloud",
                             "icon": c_client_icon,
-                            "color": "cyan",
+                            "color": "violet" if (has_oc_cloud and not hermes_profs) else "indigo",
                             "name": c_client_name,
                             "sub": c_client_sub,
                             "meta": c_client_meta,
-                            "status": "ACTIF" if cloud_live else "OUVERT",
+                            "status": "ACTIVE" if cloud_live else "OPEN",
                             "live": cloud_live,
                         },
                         {
@@ -648,7 +683,7 @@ class TokenWatcherDaemon:
             oc_loc = [s for s in recent_l if s.get("source") == "opencode"]
             vk_nodes: List[Dict[str, Any]] = []
             vk_topo = 1
-            chain_head_lbl = "CLIENT LOCAL"
+            chain_head_lbl = "LOCALHOST"
 
             if hm_loc and oc_loc:
                 profs_l = list(dict.fromkeys(str(s.get("profile") or "default") for s in hm_loc))
@@ -659,11 +694,11 @@ class TokenWatcherDaemon:
                     {
                         "key": "hermes_local",
                         "icon": "fa-terminal",
-                        "color": "cyan",
+                        "color": "indigo",
                         "name": "HERMES CLI",
                         "sub": f"Profil: {' · '.join(profs_l[:2])}",
                         "meta": f"{tools_hm} tools · Orchestrateur",
-                        "status": "ACTIF" if vk_live else "PRÊT",
+                        "status": "ACTIVE" if vk_live else "READY",
                         "live": vk_live,
                     }
                 )
@@ -671,11 +706,11 @@ class TokenWatcherDaemon:
                     {
                         "key": "opencode_local",
                         "icon": "fa-code",
-                        "color": "purple",
+                        "color": "violet",
                         "name": "OPENCODE",
                         "sub": "Agent Build / Code",
                         "meta": f"{tools_oc} tools · Local",
-                        "status": "LOCAL" if vk_live else "IDLE",
+                        "status": "ACTIVE" if vk_live else "IDLE",
                         "live": vk_live,
                     }
                 )
@@ -687,11 +722,11 @@ class TokenWatcherDaemon:
                     {
                         "key": "hermes_local",
                         "icon": "fa-terminal",
-                        "color": "cyan",
+                        "color": "indigo",
                         "name": "HERMES CLI",
                         "sub": f"Profil: {' · '.join(profs_l[:2])}",
                         "meta": f"{tools_hm} tools · Session Locale",
-                        "status": "ACTIF" if vk_live else "OUVERT",
+                        "status": "ACTIVE" if vk_live else "OPEN",
                         "live": vk_live,
                     }
                 )
@@ -703,25 +738,25 @@ class TokenWatcherDaemon:
                     {
                         "key": "opencode_direct",
                         "icon": "fa-code",
-                        "color": "purple",
+                        "color": "violet",
                         "name": "OPENCODE CLI",
                         "sub": "Session TUI Autonome",
                         "meta": f"{tools_oc} tools · Direct",
-                        "status": "ACTIF" if vk_live else "IDLE",
+                        "status": "ACTIVE" if vk_live else "IDLE",
                         "live": vk_live,
                     }
                 )
             else:
-                chain_head_lbl = "ENDPOINT LOCAL"
+                chain_head_lbl = "LOCALHOST"
                 vk_nodes.append(
                     {
                         "key": "local_client",
-                        "icon": "fa-terminal",
+                        "icon": "fa-network-wired",
                         "color": "cyan",
-                        "name": "CLIENT LOCAL",
+                        "name": "LOCALHOST",
                         "sub": "OpenAI-compat API",
                         "meta": "Moteur chargé en mémoire",
-                        "status": "VEILLE",
+                        "status": "IDLE",
                         "live": False,
                     }
                 )
@@ -733,7 +768,7 @@ class TokenWatcherDaemon:
                 {
                     "key": "proxy",
                     "icon": "fa-arrows-left-right-to-line",
-                    "color": "amber",
+                    "color": "teal",
                     "name": f"PROXY :{proxy_port}",
                     "sub": "Lemonade Router",
                     "meta": "SSE Stream · OpenAI v1",
@@ -745,7 +780,7 @@ class TokenWatcherDaemon:
                 {
                     "key": "vulkan",
                     "icon": "fa-microchip",
-                    "color": "emerald",
+                    "color": "sky",
                     "name": f"VULKAN :{vk_port}",
                     "sub": vk_mod,
                     "meta": f"KV {vk_kv_pct}% · {vk_spd:.1f} t/s",
@@ -757,6 +792,7 @@ class TokenWatcherDaemon:
                 {
                     "id": "local_vulkan",
                     "topo_num": vk_topo,
+                    "accent": "sky",
                     "state": "LIVE" if vk_live else "READY",
                     "short_label": f"VULKAN :{vk_port}",
                     "label": f"{chain_head_lbl} ──► PROXY :{proxy_port} ──► VULKAN :{vk_port} ({vk_mod})",
@@ -778,6 +814,7 @@ class TokenWatcherDaemon:
                 {
                     "id": "local_rocm",
                     "topo_num": 3,
+                    "accent": "fuchsia",
                     "state": "LIVE" if rc_live else "READY",
                     "short_label": f"ROCM :{vllm_port}",
                     "label": f"OPENWEBUI :{webui_port} ──► VLLM ROCM :{vllm_port} ({rc_mod})",
@@ -785,7 +822,7 @@ class TokenWatcherDaemon:
                         {
                             "key": "webui",
                             "icon": "fa-globe",
-                            "color": "emerald",
+                            "color": "pink",
                             "name": f"OPEN WEBUI :{webui_port}",
                             "sub": "Portail Multi-Users",
                             "meta": f"{len(rocm_card.get('vllm_requests') or [])} session(s) Web",
@@ -795,7 +832,7 @@ class TokenWatcherDaemon:
                         {
                             "key": "vllm",
                             "icon": "fa-layer-group",
-                            "color": "rose",
+                            "color": "fuchsia",
                             "name": f"VLLM ROCM :{vllm_port}",
                             "sub": rc_mod,
                             "meta": f"Paged {rc_paged}% · {rc_spd:.1f} t/s",
@@ -818,28 +855,30 @@ class TokenWatcherDaemon:
             e_port = inst.get("port") or 11434
             e_eng = str(inst.get("engine") or "ENGINE").upper()
             e_mod = str(inst.get("model") or "Modèle Local")
+            eng_color = "lime" if "LEMONADE" in e_eng else "stone"
             chains.append(
                 {
                     "id": f"extra_{e_port}",
                     "topo_num": 2,
+                    "accent": eng_color,
                     "state": "LIVE" if e_live else "READY",
                     "short_label": f"{e_eng} :{e_port}",
-                    "label": f"CLIENT LOCAL ──► {e_eng} :{e_port} ({e_mod})",
+                    "label": f"LOCALHOST ──► {e_eng} :{e_port} ({e_mod})",
                     "nodes": [
                         {
                             "key": f"client_{e_port}",
-                            "icon": "fa-terminal",
-                            "color": "purple",
-                            "name": "CLIENT LOCAL",
+                            "icon": "fa-network-wired",
+                            "color": "cyan",
+                            "name": "LOCALHOST",
                             "sub": "API Locale Directe",
                             "meta": "Requête HTTP locale",
-                            "status": "ACTIF" if e_live else "PRÊT",
+                            "status": "ACTIVE" if e_live else "READY",
                             "live": e_live,
                         },
                         {
                             "key": f"extra_{e_port}",
                             "icon": "fa-server",
-                            "color": "cyan",
+                            "color": eng_color,
                             "name": f"{e_eng} :{e_port}",
                             "sub": e_mod,
                             "meta": f"UMA {alloc_gb:.1f} Go",
@@ -892,7 +931,7 @@ async def _run_once(daemon: TokenWatcherDaemon) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.2.4")
+    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.2.5")
     parser.add_argument("--once", action="store_true", help="Exécute un cycle de collecte unique puis quitte.")
     args = parser.parse_args()
 

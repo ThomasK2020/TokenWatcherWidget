@@ -1,4 +1,4 @@
-# TokenWatcher Cockpit V4.2.4 MULTI-ENGINE
+# TokenWatcher Cockpit V4.2.5 MULTI-ENGINE
 
 Moniteur temps réel (1,0 s) pour stations IA locales AMD (Vulkan `llama-server`, ROCm `vLLM`, OpenCode, OpenWebUI) et quotas Cloud (Hermes Agent), combinant un démon Python (`stdlib` + `PyYAML`) et une interface native GTK4 / WebKitGTK 6.0.
 
@@ -20,7 +20,7 @@ chmod +x scripts/*.sh
 systemctl --user enable --now tokenwatcher-daemon.service
 ```
 
-`install_local_widget.sh` crée l'environnement Python hybride `.venv` (`--system-site-packages`), installe les services `systemd --user` avec le chemin exact du dépôt et génère le lanceur GNOME **TokenWatcher Cockpit V4.2.4**.
+`install_local_widget.sh` crée l'environnement Python hybride `.venv` (`--system-site-packages`), installe les services `systemd --user` avec le chemin exact du dépôt et génère le lanceur GNOME **TokenWatcher Cockpit V4.2.5**.
 
 ## Lancement
 
