@@ -1,4 +1,4 @@
-# Configuration dynamique des ports, profils Hermes et quotas par modèle — TokenWatcher V4.2.0
+# Configuration dynamique des ports, profils Hermes, efficacité énergétique et quotas — TokenWatcher V4.2.4
 services:
   proxy:
     host: "127.0.0.1"
@@ -80,6 +80,27 @@ cloud_quotas:
 ipc:
   state_file: "/tmp/tokenwatcher_widget_state.json"
   polling_interval_sec: 1.0
+
+efficiency:
+  electricity_eur_per_kwh: 0.20
+  discrete_ref_tok_per_j: 0.28
+  discrete_ref_label: "GPU discret 300W (~0.28 tok/J)"
+
+power:
+  # "auto" = auto-calibré sur les fenêtres calmes (par platform_profile), sinon fallback
+  # ou un nombre (ex: 13.5) pour forcer un talon manuel.
+  # Le démon tourne déjà toutes les 1,0 s et connaît gpu_busy_pct, cpu_busy_pct,
+  # l'activité des moteurs locaux (slots_active, running_reqs) et l'état batterie (status == "Discharging").
+  # Dès qu'il observe une fenêtre de vrai repos sur batterie (ex. GPU <= 5%, CPU <= 15%,
+  # aucun moteur en génération pendant >= 15-30 s), il capture le percentile bas / médian de BAT*/power_now.
+  # Cette valeur est mise en cache sur disque (ex. ~/.cache/tokenwatcher/power_baseline.json)
+  # indexée par profil ACPI (/sys/firmware/acpi/platform_profile : low-power, balanced, performance).
+  idle_baseline_watts: "auto"
+  fallback_idle_watts: 12.0
+  idle_max_gpu_busy_pct: 5
+  idle_max_cpu_busy_pct: 15
+  idle_min_window_sec: 15
+  baseline_cache_file: "~/.cache/tokenwatcher/power_baseline.json"
 
 inference_routing:
   cloud_hosts:

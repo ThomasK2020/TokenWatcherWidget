@@ -22,7 +22,7 @@ else
     VERIFY_STEP="Vérifie la compilation Python (./.venv/bin/python3 -m py_compile src/*.py src/probes/*.py) et affiche le rapport de validation avant commit."
 fi
 
-PROMPT="Exécute le cahier des charges '${SOW_FILE}' en respectant strictement 'AGENTS.md', 'SOW/00_AGENT_CODING_RULES.md', 'config/ports.yaml' et 'config/i18n_labels.json'.
+PROMPT="Exécute le cahier des charges '${SOW_FILE}' en respectant strictement 'AGENTS.md', 'SOW/00_AGENT_CODING_RULES.md', 'config/tokenwatcher.yaml' et 'config/i18n_labels.json'.
 1. ${TARGET_SCOPE}
 2. Implémente chirurgicalement les méthodes/fonctions cibles sans aucun port ni chemin sysfs codé en dur (shell=False, SQLite ?mode=ro, Stdlib + PyYAML uniquement).
 3. ${VERIFY_STEP}"

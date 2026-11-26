@@ -341,7 +341,11 @@ class SqliteTelemetryReader:
             "latest_session": None,
             "sessions": [],
             "cloud_sessions": [],
-            "windows": {"SESSION": 0, "1H": 0, "24H": 0, "7J": 0, "TOTAL": 0},
+            "windows": {"SESSION": 0, "1H": 0, "4H": 0, "24H": 0, "7J": 0, "TOTAL": 0},
+            "local_cumul_windows": {"1H": 0, "4H": 0, "24H": 0},
+            "local_window_sessions": {"1H": 0, "4H": 0, "24H": 0},
+            "cloud_windows": {"1H": 0, "4H": 0, "24H": 0},
+            "cloud_window_sessions": {"1H": 0, "4H": 0, "24H": 0},
         }
         if conn is None:
             return result
@@ -368,6 +372,7 @@ class SqliteTelemetryReader:
             for idx, r in enumerate(rows):
                 sid, title, directory, t_cre, t_upd, model_raw, t_in, t_out, t_rsn, t_cr, t_cw, agent_raw, parent_id = r
                 ts = self._norm_ts(t_upd or t_cre)
+                started_ts_oc = self._norm_ts(t_cre) or ts
                 tok_sum = int(t_in or 0) + int(t_out or 0) + int(t_rsn or 0) + int(t_cr or 0)
                 age = max(0.0, now - ts)
                 model_clean, provider_id = self._parse_opencode_model(model_raw)
@@ -430,6 +435,7 @@ class SqliteTelemetryReader:
                         "tokens_cache_read": int(t_cr or 0),
                         "tokens_total": tok_sum,
                         "last_prompt": last_prompt_oc,
+                        "started_at": round(started_ts_oc, 1),
                         "updated_at": ts,
                         "age_sec": round(age),
                         "status": "ACTIVE" if age <= active_window_sec else "ENDED",
@@ -443,12 +449,108 @@ class SqliteTelemetryReader:
 
                     if age <= 3600:
                         result["windows"]["1H"] += tok_sum
+                    if age <= 14400:
+                        result["windows"]["4H"] += tok_sum
                     if age <= 86400:
                         result["windows"]["24H"] += tok_sum
                     if age <= 7 * 86400:
                         result["windows"]["7J"] += tok_sum
                     result["windows"]["TOTAL"] += tok_sum
+
+                    if age <= 86400 and tok_sum > 0:
+                        added_lw = {"1H": False, "4H": False, "24H": False}
+                        msg_loc_24h = 0
+                        try:
+                            m_rows_loc = cur.execute(
+                                """
+                                SELECT time_created,
+                                       COALESCE(json_extract(data, '$.tokens.input'), 0) +
+                                       COALESCE(json_extract(data, '$.tokens.output'), 0) +
+                                       COALESCE(json_extract(data, '$.tokens.reasoning'), 0) +
+                                       COALESCE(json_extract(data, '$.tokens.cache.read'), 0) +
+                                       COALESCE(json_extract(data, '$.tokens.cache.write'), 0)
+                                FROM message
+                                WHERE session_id = ?
+                                """,
+                                (sid,),
+                            ).fetchall()
+                            for mts_raw, m_tok in m_rows_loc:
+                                mts = self._norm_ts(mts_raw)
+                                m_age = max(0.0, now - mts)
+                                mt = int(m_tok or 0)
+                                if mt <= 0 or m_age > 86400:
+                                    continue
+                                msg_loc_24h += mt
+                                if m_age <= 3600:
+                                    result["local_cumul_windows"]["1H"] += mt
+                                    added_lw["1H"] = True
+                                if m_age <= 14400:
+                                    result["local_cumul_windows"]["4H"] += mt
+                                    added_lw["4H"] = True
+                                result["local_cumul_windows"]["24H"] += mt
+                                added_lw["24H"] = True
+                        except sqlite3.Error:
+                            msg_loc_24h = 0
+                        if msg_loc_24h == 0:
+                            if age <= 3600:
+                                result["local_cumul_windows"]["1H"] += tok_sum
+                                added_lw["1H"] = True
+                            if age <= 14400:
+                                result["local_cumul_windows"]["4H"] += tok_sum
+                                added_lw["4H"] = True
+                            result["local_cumul_windows"]["24H"] += tok_sum
+                            added_lw["24H"] = True
+                        for wk, flag in added_lw.items():
+                            if flag:
+                                result["local_window_sessions"][wk] += 1
                 else:
+                    if age <= 86400 and tok_sum > 0:
+                        added_w = {"1H": False, "4H": False, "24H": False}
+                        msg_sum_24h = 0
+                        try:
+                            m_rows_oc = cur.execute(
+                                """
+                                SELECT time_created,
+                                       COALESCE(json_extract(data, '$.tokens.input'), 0) +
+                                       COALESCE(json_extract(data, '$.tokens.output'), 0) +
+                                       COALESCE(json_extract(data, '$.tokens.reasoning'), 0) +
+                                       COALESCE(json_extract(data, '$.tokens.cache.read'), 0) +
+                                       COALESCE(json_extract(data, '$.tokens.cache.write'), 0)
+                                FROM message
+                                WHERE session_id = ?
+                                """,
+                                (sid,),
+                            ).fetchall()
+                            for mts_raw, m_tok in m_rows_oc:
+                                mts = self._norm_ts(mts_raw)
+                                m_age = max(0.0, now - mts)
+                                mt = int(m_tok or 0)
+                                if mt <= 0 or m_age > 86400:
+                                    continue
+                                msg_sum_24h += mt
+                                if m_age <= 3600:
+                                    result["cloud_windows"]["1H"] += mt
+                                    added_w["1H"] = True
+                                if m_age <= 14400:
+                                    result["cloud_windows"]["4H"] += mt
+                                    added_w["4H"] = True
+                                result["cloud_windows"]["24H"] += mt
+                                added_w["24H"] = True
+                        except sqlite3.Error:
+                            msg_sum_24h = 0
+                        if msg_sum_24h == 0:
+                            if age <= 3600:
+                                result["cloud_windows"]["1H"] += tok_sum
+                                added_w["1H"] = True
+                            if age <= 14400:
+                                result["cloud_windows"]["4H"] += tok_sum
+                                added_w["4H"] = True
+                            result["cloud_windows"]["24H"] += tok_sum
+                            added_w["24H"] = True
+                        for wk, flag in added_w.items():
+                            if flag:
+                                result["cloud_window_sessions"][wk] += 1
+
                     q_meta = self._resolve_model_quota(model_clean)
                     if len(result["cloud_sessions"]) < max_sessions and (tok_sum > 0 or age <= 86400):
                         result["cloud_sessions"].append({
@@ -473,6 +575,7 @@ class SqliteTelemetryReader:
                             "tokens_cache_read": int(t_cr or 0),
                             "tokens_total": tok_sum,
                             "last_prompt": last_prompt_oc,
+                            "started_at": round(started_ts_oc, 1),
                             "updated_at": ts,
                             "age_sec": round(age),
                         })
@@ -563,8 +666,12 @@ class SqliteTelemetryReader:
             "latest_local_session": None,
             "cloud_sessions": [],
             "local_sessions": [],
-            "windows": {"SESSION": 0, "1H": 0, "24H": 0, "7J": 0, "TOTAL": 0},
-            "local_windows": {"SESSION": 0, "1H": 0, "24H": 0, "7J": 0, "TOTAL": 0},
+            "windows": {"SESSION": 0, "1H": 0, "4H": 0, "24H": 0, "7J": 0, "TOTAL": 0},
+            "local_windows": {"SESSION": 0, "1H": 0, "4H": 0, "24H": 0, "7J": 0, "TOTAL": 0},
+            "local_cumul_windows": {"1H": 0, "4H": 0, "24H": 0},
+            "local_window_sessions": {"1H": 0, "4H": 0, "24H": 0},
+            "cloud_windows": {"1H": 0, "4H": 0, "24H": 0},
+            "cloud_window_sessions": {"1H": 0, "4H": 0, "24H": 0},
             "cloud_tpm_60s": 0,
             "cloud_rpm_60s": 0,
             "cloud_rpd_24h": 0,
@@ -577,6 +684,8 @@ class SqliteTelemetryReader:
 
         cloud_sessions_all: List[Dict[str, Any]] = []
         local_sessions_all: List[Dict[str, Any]] = []
+        recent_cloud_for_win: List[Tuple[Path, str, float, float, int]] = []
+        recent_local_for_win: List[Tuple[Path, str, float, float, int]] = []
         model_stats: Dict[str, Dict[str, Any]] = {}
         db_by_sid: Dict[str, Path] = {}
 
@@ -708,6 +817,8 @@ class SqliteTelemetryReader:
 
                     if age <= 3600:
                         result["windows"]["1H"] += tok_sum
+                    if age <= 14400:
+                        result["windows"]["4H"] += tok_sum
                     if age <= 86400:
                         result["windows"]["24H"] += tok_sum
                     if age <= 7 * 86400:
@@ -716,6 +827,9 @@ class SqliteTelemetryReader:
 
                     if not is_local:
                         db_by_sid[str(sid)] = db_path
+                        started_ts = self._norm_ts(started) or ts
+                        if age <= 86400 and tok_sum > 0:
+                            recent_cloud_for_win.append((db_path, str(sid), ts, started_ts, tok_sum))
                         q_meta = self._resolve_model_quota(model_str)
                         s_entry = {
                             "id": str(sid),
@@ -740,6 +854,7 @@ class SqliteTelemetryReader:
                             "tokens_cache_read": cr_v,
                             "tokens_total": tok_sum,
                             "last_prompt": "",
+                            "started_at": round(started_ts, 1),
                             "updated_at": ts,
                             "age_sec": round(age),
                         }
@@ -771,6 +886,9 @@ class SqliteTelemetryReader:
                                 result["cloud_cached_total"] += cr_v
                     else:
                         db_by_sid[str(sid)] = db_path
+                        started_ts_loc = self._norm_ts(started) or ts
+                        if age <= 86400 and tok_sum > 0:
+                            recent_local_for_win.append((db_path, str(sid), ts, started_ts_loc, tok_sum))
                         loc_entry = {
                             "id": str(sid),
                             "parent_id": str(parent_sid) if parent_sid else None,
@@ -790,6 +908,7 @@ class SqliteTelemetryReader:
                             "tokens_total": tok_sum,
                             "provider": provider or target_info or "local",
                             "last_prompt": "",
+                            "started_at": round(started_ts_loc, 1),
                             "updated_at": ts,
                             "age_sec": round(age),
                             "status": sess_status,
@@ -801,6 +920,8 @@ class SqliteTelemetryReader:
                             result["local_windows"]["SESSION"] = tok_sum
                         if age <= 3600:
                             result["local_windows"]["1H"] += tok_sum
+                        if age <= 14400:
+                            result["local_windows"]["4H"] += tok_sum
                         if age <= 86400:
                             result["local_windows"]["24H"] += tok_sum
                         if age <= 7 * 86400:
@@ -878,6 +999,83 @@ class SqliteTelemetryReader:
                 pass
             finally:
                 conn.close()
+
+        # Agrégation cumulée des tokens Cloud & Locaux par fenêtre glissante (1H / 4H / 24H)
+        cut_1h = now - 3600.0
+        cut_4h = now - 14400.0
+        cut_24h = now - 86400.0
+
+        def _accumulate_hermes_windows(
+            recent_items: List[Tuple[Path, str, float, float, int]],
+            win_target: Dict[str, int],
+            sess_target: Dict[str, int],
+        ) -> None:
+            win_by_db: Dict[Path, List[Tuple[str, float, float, int]]] = {}
+            for dbp, sid, ts, started_ts, tok_sum in recent_items:
+                if started_ts >= cut_1h:
+                    for wk in ("1H", "4H", "24H"):
+                        win_target[wk] += tok_sum
+                        sess_target[wk] += 1
+                else:
+                    win_by_db.setdefault(dbp, []).append((sid, ts, started_ts, tok_sum))
+
+            for dbp, w_items in win_by_db.items():
+                conn = self._connect_ro(dbp)
+                if conn is None:
+                    continue
+                try:
+                    cur_w = conn.cursor()
+                    for sid, ts, started_ts, tok_sum in w_items:
+                        row_w = cur_w.execute(
+                            """
+                            SELECT
+                              COUNT(*),
+                              SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END),
+                              SUM(CASE WHEN timestamp >= ? THEN COALESCE(token_count, 0) ELSE 0 END),
+                              SUM(CASE WHEN timestamp >= ? THEN COALESCE(token_count, 0) ELSE 0 END),
+                              SUM(CASE WHEN timestamp >= ? THEN COALESCE(token_count, 0) ELSE 0 END),
+                              SUM(CASE WHEN timestamp >= ? AND role = 'assistant' THEN 1 ELSE 0 END),
+                              SUM(CASE WHEN timestamp >= ? AND role = 'assistant' THEN 1 ELSE 0 END),
+                              SUM(CASE WHEN timestamp >= ? AND role = 'assistant' THEN 1 ELSE 0 END),
+                              SUM(CASE WHEN timestamp >= ? THEN 1 ELSE 0 END),
+                              SUM(CASE WHEN timestamp >= ? THEN 1 ELSE 0 END),
+                              SUM(CASE WHEN timestamp >= ? THEN 1 ELSE 0 END)
+                            FROM messages
+                            WHERE session_id = ?
+                            """,
+                            (cut_1h, cut_4h, cut_24h, cut_1h, cut_4h, cut_24h, cut_1h, cut_4h, cut_24h, sid),
+                        ).fetchone()
+                        if not row_w:
+                            continue
+                        tot_all, tot_asst, tc_1h, tc_4h, tc_24h, asst_1h, asst_4h, asst_24h, all_1h, all_4h, all_24h = [
+                            int(v or 0) for v in row_w
+                        ]
+                        win_specs = (
+                            ("1H", cut_1h, tc_1h, asst_1h, all_1h),
+                            ("4H", cut_4h, tc_4h, asst_4h, all_4h),
+                            ("24H", cut_24h, tc_24h, asst_24h, all_24h),
+                        )
+                        for wk, cutoff, tc_w, asst_w, all_w in win_specs:
+                            if started_ts >= cutoff:
+                                w_tok = tok_sum
+                            elif tc_w > 0:
+                                w_tok = tc_w
+                            elif tot_asst > 0:
+                                w_tok = round(tok_sum * (asst_w / tot_asst))
+                            elif tot_all > 0:
+                                w_tok = round(tok_sum * (all_w / tot_all))
+                            else:
+                                w_tok = tok_sum if ts >= cutoff else 0
+                            if w_tok > 0:
+                                win_target[wk] += w_tok
+                                sess_target[wk] += 1
+                except sqlite3.Error:
+                    pass
+                finally:
+                    conn.close()
+
+        _accumulate_hermes_windows(recent_cloud_for_win, result["cloud_windows"], result["cloud_window_sessions"])
+        _accumulate_hermes_windows(recent_local_for_win, result["local_cumul_windows"], result["local_window_sessions"])
 
         result["cloud_sessions"] = top_cloud
         result["local_sessions"] = top_local
@@ -1067,11 +1265,19 @@ class SqliteTelemetryReader:
 
         combined_windows = {
             k: int(oc["windows"][k]) + int(hm["windows"][k])
-            for k in ("SESSION", "1H", "24H", "7J", "TOTAL")
+            for k in ("SESSION", "1H", "4H", "24H", "7J", "TOTAL")
         }
         local_windows = {
             k: int(oc["windows"][k]) + int(hm["local_windows"][k])
-            for k in ("SESSION", "1H", "24H", "7J", "TOTAL")
+            for k in ("SESSION", "1H", "4H", "24H", "7J", "TOTAL")
+        }
+        local_cumul_windows = {
+            "1H": int(hm["local_cumul_windows"]["1H"]) + int(oc["local_cumul_windows"]["1H"]),
+            "4H": int(hm["local_cumul_windows"]["4H"]) + int(oc["local_cumul_windows"]["4H"]),
+            "24H": int(hm["local_cumul_windows"]["24H"]) + int(oc["local_cumul_windows"]["24H"]),
+            "sessions_1H": int(hm["local_window_sessions"]["1H"]) + int(oc["local_window_sessions"]["1H"]),
+            "sessions_4H": int(hm["local_window_sessions"]["4H"]) + int(oc["local_window_sessions"]["4H"]),
+            "sessions_24H": int(hm["local_window_sessions"]["24H"]) + int(oc["local_window_sessions"]["24H"]),
         }
 
         cloud_sessions = list(hm.get("cloud_sessions") or []) + list(oc.get("cloud_sessions") or [])
@@ -1088,6 +1294,7 @@ class SqliteTelemetryReader:
             "openwebui": ow,
             "time_windows": combined_windows,
             "local_time_windows": local_windows,
+            "local_cumul_windows": local_cumul_windows,
             "local_sessions": local_sessions[:max_sessions],
             "cloud_quotas": {
                 "status": q_status,
@@ -1108,6 +1315,14 @@ class SqliteTelemetryReader:
                 "global_tpm_60s": hm["cloud_tpm_60s"],
                 "global_rpm_60s": hm["cloud_rpm_60s"],
                 "global_rpd_24h": hm["cloud_rpd_24h"],
+                "cumul_windows": {
+                    "1H": int(hm["cloud_windows"]["1H"]) + int(oc["cloud_windows"]["1H"]),
+                    "4H": int(hm["cloud_windows"]["4H"]) + int(oc["cloud_windows"]["4H"]),
+                    "24H": int(hm["cloud_windows"]["24H"]) + int(oc["cloud_windows"]["24H"]),
+                    "sessions_1H": int(hm["cloud_window_sessions"]["1H"]) + int(oc["cloud_window_sessions"]["1H"]),
+                    "sessions_4H": int(hm["cloud_window_sessions"]["4H"]) + int(oc["cloud_window_sessions"]["4H"]),
+                    "sessions_24H": int(hm["cloud_window_sessions"]["24H"]) + int(oc["cloud_window_sessions"]["24H"]),
+                },
                 "cache_hit_pct": cache_hit_pct,
                 "cached_tokens": cached_tot,
                 "total_in_tokens": in_tot,

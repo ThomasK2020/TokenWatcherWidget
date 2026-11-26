@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Démon Principal TokenWatcher V4.2.0.
+Démon Principal TokenWatcher V4.2.4.
 Orchestre les 3 sondes (AmdSysfsProbe, EnginesHttpProbe, SqliteTelemetryReader)
 à un intervalle de 1.0s et écrit atomiquement l'état dans /tmp/tokenwatcher_widget_state.json.
 """
@@ -12,7 +12,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -43,6 +43,19 @@ DEFAULT_PORTS_CONFIG: Dict[str, Any] = {
         "state_file": "/tmp/tokenwatcher_widget_state.json",
         "polling_interval_sec": 1.0,
     },
+    "efficiency": {
+        "electricity_eur_per_kwh": 0.20,
+        "discrete_ref_tok_per_j": 0.28,
+        "discrete_ref_label": "GPU discret 300W (~0.28 tok/J)",
+    },
+    "power": {
+        "idle_baseline_watts": "auto",
+        "fallback_idle_watts": 12.0,
+        "idle_max_gpu_busy_pct": 5,
+        "idle_max_cpu_busy_pct": 15,
+        "idle_min_window_sec": 15,
+        "baseline_cache_file": "~/.cache/tokenwatcher/power_baseline.json",
+    },
 }
 
 
@@ -53,9 +66,17 @@ class TokenWatcherDaemon:
         self.sqlite_reader = SqliteTelemetryReader()
         self.engines_probe: EnginesHttpProbe | None = None
         self._full_config: Dict[str, Any] = {}
+        self._config_file_name: str = "tokenwatcher.yaml"
+        self._last_active_efficiency: float = 0.0
+        self._last_active_tg_speed: float = 0.0
+        self._last_active_watts: float = 0.0
+        self._last_active_model: str = ""
+        self._eff_ema: Optional[float] = None
+        self._peak_efficiency: float = 0.0
+        self._history_efficiency: List[float] = []
 
     def load_ports_config(self) -> Dict[str, Any]:
-        """Charger config/ports.yaml avec fallback mémoire sécurisé."""
+        """Charger config/tokenwatcher.yaml (avec repli rétrocompatible sur config/ports.yaml)."""
         merged = {
             "services": {k: dict(v) for k, v in DEFAULT_PORTS_CONFIG["services"].items()},
             "hermes": dict(DEFAULT_PORTS_CONFIG["hermes"]),
@@ -64,11 +85,16 @@ class TokenWatcherDaemon:
                 "models": dict(DEFAULT_PORTS_CONFIG["cloud_quotas"]["models"]),
             },
             "ipc": dict(DEFAULT_PORTS_CONFIG["ipc"]),
+            "efficiency": dict(DEFAULT_PORTS_CONFIG["efficiency"]),
+            "power": dict(DEFAULT_PORTS_CONFIG["power"]),
         }
-        ports_file = self.config_dir / "ports.yaml"
-        if ports_file.is_file():
+        primary_file = self.config_dir / "tokenwatcher.yaml"
+        legacy_file = self.config_dir / "ports.yaml"
+        cfg_file = primary_file if primary_file.is_file() else (legacy_file if legacy_file.is_file() else primary_file)
+        self._config_file_name = cfg_file.name
+        if cfg_file.is_file():
             try:
-                loaded = yaml.safe_load(ports_file.read_text(encoding="utf-8")) or {}
+                loaded = yaml.safe_load(cfg_file.read_text(encoding="utf-8")) or {}
                 if isinstance(loaded.get("services"), dict):
                     for k, v in loaded["services"].items():
                         if isinstance(v, dict):
@@ -83,12 +109,17 @@ class TokenWatcherDaemon:
                         merged["cloud_quotas"]["models"].update(cq["models"])
                 if isinstance(loaded.get("ipc"), dict):
                     merged["ipc"].update(loaded["ipc"])
+                if isinstance(loaded.get("efficiency"), dict):
+                    merged["efficiency"].update(loaded["efficiency"])
+                if isinstance(loaded.get("power"), dict):
+                    merged["power"].update(loaded["power"])
                 if isinstance(loaded.get("inference_routing"), dict):
                     merged["inference_routing"] = dict(loaded["inference_routing"])
             except Exception as exc:
-                print(f"Avertissement lecture ports.yaml: {exc}")
+                print(f"Avertissement lecture {cfg_file.name}: {exc}")
 
         self._full_config = merged
+        self.sysfs_probe.configure_power(merged.get("power"))
         self.sqlite_reader.configure(
             hermes_cfg=merged["hermes"],
             quotas_cfg=merged["cloud_quotas"],
@@ -98,7 +129,7 @@ class TokenWatcherDaemon:
         return merged
 
     async def collect_once(self) -> Dict[str, Any]:
-        """Fusionner les données des 3 sondes dans le schéma JSON V4.2.0."""
+        """Fusionner les données des 3 sondes dans le schéma JSON V4.2.4."""
         if not self._full_config or self.engines_probe is None:
             self.load_ports_config()
 
@@ -131,9 +162,101 @@ class TokenWatcherDaemon:
         pp_speed = int(vulkan_data.get("speed_pp_tps", 0))
         ttft_sec = float(vllm_data["avg_ttft_sec"] if is_rocm else vulkan_data.get("ttft_sec", 0.0))
 
-        # Efficacité énergétique réelle tok/J
+        # Efficacité énergétique réelle tok/J (latch en fenêtre active pour éviter le biais IDLE)
         gfx_w = float(sysfs_raw.get("gfx_power_w", 0.0))
-        sysfs_raw["efficiency_tok_per_j"] = round(tg_speed / gfx_w, 2) if (gfx_w > 0 and tg_speed > 0) else 0.0
+        eff_cfg = self._full_config.get("efficiency") or DEFAULT_PORTS_CONFIG["efficiency"]
+        eur_per_kwh = float(eff_cfg.get("electricity_eur_per_kwh", 0.20))
+        discrete_ref = float(eff_cfg.get("discrete_ref_tok_per_j", 0.28))
+
+        is_generating = bool(
+            (is_rocm and int(vllm_data.get("running_reqs", 0)) > 0)
+            or (
+                not is_rocm
+                and (
+                    int(vulkan_data.get("slots_active", 0)) > 0
+                    or "RUN" in str(vulkan_data.get("status_label", ""))
+                )
+            )
+        )
+        any_local_generating = bool(
+            is_generating
+            or int(vllm_data.get("running_reqs", 0)) > 0
+            or int(vulkan_data.get("slots_active", 0)) > 0
+            or "RUN" in str(vulkan_data.get("status_label", ""))
+        )
+        self.sysfs_probe.finalize_power_baseline(sysfs_raw, engines_active=any_local_generating)
+        eff_model_hint = str(
+            (vllm_data.get("model") if is_rocm else vulkan_data.get("model")) or ""
+        )
+
+        if is_generating and gfx_w > 0 and tg_speed > 0:
+            inst_eff = tg_speed / gfx_w
+            self._eff_ema = inst_eff if self._eff_ema is None else (0.45 * inst_eff + 0.55 * self._eff_ema)
+            eff_val = round(self._eff_ema, 2)
+            self._last_active_efficiency = eff_val
+            self._last_active_tg_speed = round(tg_speed, 1)
+            self._last_active_watts = round(gfx_w, 1)
+            self._last_active_model = eff_model_hint
+            eff_source = "live"
+            eff_tg = self._last_active_tg_speed
+            eff_watts = self._last_active_watts
+            eff_model = self._last_active_model
+            self._history_efficiency.append(eff_val)
+            self._history_efficiency = self._history_efficiency[-16:]
+        elif self._last_active_efficiency > 0:
+            eff_val = self._last_active_efficiency
+            eff_source = "last_run"
+            eff_tg = self._last_active_tg_speed
+            eff_watts = self._last_active_watts
+            eff_model = self._last_active_model
+        elif gfx_w > 0 and tg_speed > 0:
+            eff_val = round(tg_speed / gfx_w, 2)
+            eff_source = "session_avg"
+            eff_tg = round(tg_speed, 1)
+            eff_watts = round(gfx_w, 1)
+            eff_model = eff_model_hint
+            if not self._history_efficiency:
+                self._history_efficiency.append(eff_val)
+        else:
+            eff_val = 0.0
+            eff_source = "idle"
+            eff_tg = 0.0
+            eff_watts = round(gfx_w, 1)
+            eff_model = eff_model_hint
+
+        if eff_val > 0:
+            self._peak_efficiency = max(self._peak_efficiency, eff_val)
+
+        if eff_val >= 1.50:
+            eff_tier = "ULTRA"
+        elif eff_val >= 0.80:
+            eff_tier = "GOLD"
+        elif eff_val >= 0.35:
+            eff_tier = "EFFICIENT"
+        elif eff_val > 0:
+            eff_tier = "BASELINE"
+        else:
+            eff_tier = "IDLE"
+
+        joules_per_tok = round(1.0 / eff_val, 2) if eff_val > 0 else 0.0
+        kwh_per_1m = round((1_000_000.0 / eff_val) / 3_600_000.0, 3) if eff_val > 0 else 0.0
+        eur_per_1m = round(kwh_per_1m * eur_per_kwh, 3) if eff_val > 0 else 0.0
+        vs_discrete = round(eff_val / discrete_ref, 1) if (eff_val > 0 and discrete_ref > 0) else 0.0
+
+        sysfs_raw["efficiency_tok_per_j"] = eff_val
+        sysfs_raw["efficiency_source"] = eff_source
+        sysfs_raw["efficiency_tier"] = eff_tier
+        sysfs_raw["efficiency_tg_tps"] = eff_tg
+        sysfs_raw["efficiency_watts"] = eff_watts
+        sysfs_raw["efficiency_model"] = eff_model
+        sysfs_raw["efficiency_peak_tok_per_j"] = round(self._peak_efficiency, 2)
+        sysfs_raw["joules_per_token"] = joules_per_tok
+        sysfs_raw["kwh_per_1m_tokens"] = kwh_per_1m
+        sysfs_raw["eur_per_1m_tokens"] = eur_per_1m
+        sysfs_raw["electricity_eur_per_kwh"] = round(eur_per_kwh, 2)
+        sysfs_raw["discrete_ref_tok_per_j"] = round(discrete_ref, 2)
+        sysfs_raw["vs_discrete_ratio"] = vs_discrete
+        sysfs_raw["history_efficiency"] = list(self._history_efficiency)
 
         # Répartition mémoire APU unifiée (total réel RAM + VRAM carve-out)
         vram_used = float(sysfs_raw.get("vram_used_gb", 0.0))
@@ -302,7 +425,7 @@ class TokenWatcherDaemon:
         cloud_model_name = str(hm_cloud_sess.get("model") or "gemini-4-hydrogen")
 
         return {
-            "schema_version": "4.2.0",
+            "schema_version": "4.2.4",
             "timestamp": round(time.time(), 3),
             "active_topology": active_topology,
             "timeframe": "SESSION",
@@ -325,7 +448,11 @@ class TokenWatcherDaemon:
                 "provider_tier": "API",
                 "model_name": cloud_model_name,
                 "hermes_profile": sqlite_data["cloud_quotas"].get("active_profile", "default"),
-                "include_all_profiles": sqlite_data["cloud_quotas"].get("include_all_profiles", False),
+                "include_all_profiles": bool(sqlite_data["cloud_quotas"].get("include_all_profiles", False)),
+                "config_file": self._config_file_name,
+                "idle_baseline_watts": sysfs_raw.get("idle_baseline_watts", 12.0),
+                "idle_baseline_source": sysfs_raw.get("idle_baseline_source", "fallback"),
+                "platform_profile": sysfs_raw.get("platform_profile", "default"),
             },
             "session_hero": {
                 "local_backend": local_backend,
@@ -343,6 +470,7 @@ class TokenWatcherDaemon:
                 "ttft_source": ttft_source,
                 "ttft_sub": ttft_sub,
                 "tuning_flags": hero_flags,
+                "local_model_config": vllm_data.get("model_config") if is_rocm else vulkan_data.get("model_config"),
             },
             "context_dna": {
                 "ctx_used": ctx_used,
@@ -382,6 +510,8 @@ class TokenWatcherDaemon:
             "hardware_amd": sysfs_raw,
             "cloud_quotas": sqlite_data["cloud_quotas"],
             "local_sessions": sqlite_data.get("local_sessions") or [],
+            "local_cumul_windows": sqlite_data.get("local_cumul_windows")
+            or {"1H": 0, "4H": 0, "24H": 0, "sessions_1H": 0, "sessions_4H": 0, "sessions_24H": 0},
             "time_windows": sqlite_data["time_windows"],
             "local_time_windows": local_windows,
         }
@@ -424,7 +554,7 @@ async def _run_once(daemon: TokenWatcherDaemon) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.2.0")
+    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.2.4")
     parser.add_argument("--once", action="store_true", help="Exécute un cycle de collecte unique puis quitte.")
     args = parser.parse_args()
 

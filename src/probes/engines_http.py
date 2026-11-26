@@ -165,6 +165,78 @@ class EnginesHttpProbe:
 
         return flags, port_found, ctx_found
 
+    @staticmethod
+    def _sanitize_cmdline(args: List[str]) -> str:
+        if not args:
+            return ""
+        cleaned: List[str] = []
+        skip_next = False
+        secret_flags = {"--api-key", "--hf-token", "--token", "--password"}
+        for a in args:
+            if skip_next:
+                cleaned.append("[REDACTED]")
+                skip_next = False
+                continue
+            al = a.lower()
+            if al in secret_flags:
+                cleaned.append(a)
+                skip_next = True
+                continue
+            if any(al.startswith(sf + "=") for sf in secret_flags):
+                cleaned.append(a.split("=", 1)[0] + "=[REDACTED]")
+                continue
+            cleaned.append(a)
+        return " ".join(cleaned)
+
+    @classmethod
+    def _extract_cli_details(cls, args: List[str]) -> Dict[str, Any]:
+        arg_str = " ".join(args)
+        out: Dict[str, Any] = {
+            "model_path": "",
+            "ngl": None,
+            "kv_type_k": "",
+            "kv_type_v": "",
+            "flash_attn": False,
+            "cache_reuse": None,
+            "batch": None,
+            "ubatch": None,
+            "parallel": None,
+            "threads": None,
+            "mlock": "--mlock" in arg_str,
+            "no_mmap": "--no-mmap" in arg_str,
+            "cmdline": cls._sanitize_cmdline(args),
+        }
+        m_mod = re.search(r"(?:^|\s)(?:-m|--model)\s+(\S+)", arg_str)
+        if m_mod:
+            out["model_path"] = m_mod.group(1)
+        m_ngl = re.search(r"(?:-ngl|--n-gpu-layers)\s+(\d+)", arg_str)
+        if m_ngl:
+            out["ngl"] = int(m_ngl.group(1))
+        m_ctk = re.search(r"(?:-ctk|--cache-type-k)\s+(\S+)", arg_str)
+        if m_ctk:
+            out["kv_type_k"] = m_ctk.group(1)
+        m_ctv = re.search(r"(?:-ctv|--cache-type-v)\s+(\S+)", arg_str)
+        if m_ctv:
+            out["kv_type_v"] = m_ctv.group(1)
+        if "-fa on" in arg_str or "--flash-attn" in arg_str or re.search(r"(?:^|\s)-fa(?:\s|$)", arg_str):
+            out["flash_attn"] = True
+        m_reuse = re.search(r"--cache-reuse\s+(\d+)", arg_str)
+        if m_reuse:
+            out["cache_reuse"] = int(m_reuse.group(1))
+        m_b = re.search(r"(?:^|\s)(?:-b|--batch-size)\s+(\d+)", arg_str)
+        if m_b:
+            out["batch"] = int(m_b.group(1))
+        m_ub = re.search(r"(?:^|\s)(?:-ub|--ubatch-size)\s+(\d+)", arg_str)
+        if m_ub:
+            out["ubatch"] = int(m_ub.group(1))
+        m_par = re.search(r"(?:^|\s)(?:-np|--parallel)\s+(\d+)", arg_str)
+        if m_par:
+            out["parallel"] = int(m_par.group(1))
+        m_thr = re.search(r"(?:^|\s)(?:-t|--threads)\s+(\d+)", arg_str)
+        if m_thr:
+            out["threads"] = int(m_thr.group(1))
+        return out
+
     async def poll_vulkan_slots(self) -> Dict[str, Any]:
         """Interroger Lemonade /api/v1/health puis GET /slots & /metrics sur le port Vulkan."""
         services = self._services()
@@ -188,6 +260,8 @@ class EnginesHttpProbe:
         pid, cmd_args = await asyncio.to_thread(self._find_proc_info, ("llama-server",))
         model_name = "Aucun modèle chargé"
         quant_str = ""
+        ckpt_str = ""
+        recipe_opts: Dict[str, Any] = {}
         launch_args: List[str] = list(cmd_args)
         ctx_from_health: Optional[int] = None
 
@@ -207,25 +281,30 @@ class EnginesHttpProbe:
                         v_port = parsed_u.port
                     if parsed_u.hostname:
                         v_host = parsed_u.hostname
-                ckpt = str(m_info.get("checkpoint", ""))
-                m_q = re.search(r"(Q\d+_[A-Z0-9_]+|IQ\d+_[A-Z0-9_]+)", ckpt)
+                ckpt_str = str(m_info.get("checkpoint") or "")
+                m_q = re.search(r"(Q\d+_[A-Z0-9_]+|IQ\d+_[A-Z0-9_]+)", ckpt_str)
                 if m_q:
                     quant_str = m_q.group(1)
                 ro = m_info.get("recipe_options") or {}
-                if isinstance(ro, dict) and ro.get("ctx_size"):
-                    ctx_from_health = int(ro["ctx_size"])
+                if isinstance(ro, dict):
+                    recipe_opts = dict(ro)
+                    if ro.get("ctx_size"):
+                        ctx_from_health = int(ro["ctx_size"])
             elif health_data.get("model_loaded"):
                 model_name = str(health_data["model_loaded"])
 
         flags, cmd_port, cmd_ctx = self._extract_cli_flags(launch_args)
+        cli_det = self._extract_cli_details(launch_args)
         if cmd_port and not isinstance(health_data, dict):
             v_port = cmd_port
 
         slots_url = f"http://{v_host}:{v_port}{slots_ep}"
         metrics_url = f"http://{v_host}:{v_port}{metrics_ep}"
-        slots_data, metrics_raw, fdinfo_gb = await asyncio.gather(
+        props_url = f"http://{v_host}:{v_port}/props"
+        slots_data, metrics_raw, props_data, fdinfo_gb = await asyncio.gather(
             asyncio.to_thread(self._http_get_json, slots_url, 1.5),
             asyncio.to_thread(self._http_get_text, metrics_url, 1.5),
+            asyncio.to_thread(self._http_get_json, props_url, 1.0),
             asyncio.to_thread(self._read_fdinfo_drm_gb, pid),
         )
 
@@ -241,6 +320,16 @@ class EnginesHttpProbe:
         ttft_sec = 0.0
         temp_param: Optional[float] = None
         rep_pen: Optional[float] = None
+        sampling_cfg: Dict[str, Any] = {}
+        raw_props = props_data if isinstance(props_data, dict) else {}
+        raw_def_gen = raw_props.get("default_generation_settings")
+        raw_def_params = raw_def_gen.get("params") if isinstance(raw_def_gen, dict) else None
+        def_gen_params: Dict[str, Any] = raw_def_params if isinstance(raw_def_params, dict) else {}
+        for sp_key in ("temperature", "top_p", "top_k", "min_p", "repeat_penalty", "n_predict", "seed"):
+            if sp_key in def_gen_params and def_gen_params[sp_key] is not None:
+                sampling_cfg[sp_key] = def_gen_params[sp_key]
+        if raw_props.get("model_path") and not cli_det.get("model_path"):
+            cli_det["model_path"] = str(raw_props["model_path"])
 
         if isinstance(slots_data, list) and slots_data and isinstance(slots_data[0], dict):
             slot0 = slots_data[0]
@@ -265,10 +354,17 @@ class EnginesHttpProbe:
                     kv_cached = int(timings["cache_n"])
             params = active_slot.get("params")
             if isinstance(params, dict):
+                for sp_key in ("temperature", "top_p", "top_k", "min_p", "repeat_penalty", "n_predict", "seed"):
+                    if sp_key in params and params[sp_key] is not None:
+                        sampling_cfg[sp_key] = params[sp_key]
                 if isinstance(params.get("temperature"), (int, float)):
                     temp_param = round(float(params["temperature"]), 2)
                 if isinstance(params.get("repeat_penalty"), (int, float)):
                     rep_pen = round(float(params["repeat_penalty"]), 2)
+        if temp_param is None and isinstance(sampling_cfg.get("temperature"), (int, float)):
+            temp_param = round(float(sampling_cfg["temperature"]), 2)
+        if rep_pen is None and isinstance(sampling_cfg.get("repeat_penalty"), (int, float)):
+            rep_pen = round(float(sampling_cfg["repeat_penalty"]), 2)
 
         parsed_slots: List[Dict[str, Any]] = []
         if isinstance(slots_data, list):
@@ -433,6 +529,31 @@ class EnginesHttpProbe:
             "local_prompt_tokens": local_prompt_tok,
             "local_cached_tokens": local_cached_tok,
             "local_served_tokens": local_served_tok,
+            "model_config": {
+                "online": online,
+                "engine": "Vulkan (llama-server)",
+                "model": model_name,
+                "checkpoint": ckpt_str or cli_det.get("model_path") or "--",
+                "quant": quant_str or "GGUF",
+                "pid": pid,
+                "port": v_port,
+                "uma_gb": fdinfo_gb,
+                "ctx_size": n_ctx,
+                "parallel_slots": total_slots_cnt or cli_det.get("parallel") or 1,
+                "ngl": cli_det.get("ngl") if cli_det.get("ngl") is not None else "999",
+                "flash_attn": bool(cli_det.get("flash_attn", False)),
+                "kv_cache": (
+                    f"{cli_det['kv_type_k']}/{cli_det['kv_type_v'] or cli_det['kv_type_k']}"
+                    if cli_det.get("kv_type_k")
+                    else "default"
+                ),
+                "cache_reuse": cli_det.get("cache_reuse"),
+                "batch": f"{cli_det['batch']}/{cli_det['ubatch']}" if cli_det.get("batch") and cli_det.get("ubatch") else "--",
+                "threads": cli_det.get("threads"),
+                "recipe_options": recipe_opts,
+                "sampling": sampling_cfg,
+                "cmdline": cli_det.get("cmdline") or "",
+            },
         }
 
     async def poll_vllm_metrics(self) -> Dict[str, Any]:
@@ -484,6 +605,27 @@ class EnginesHttpProbe:
                 "client_name": "OpenWebUI",
                 "client_port": webui_port,
                 "vllm_requests": [],
+                "model_config": {
+                    "online": False,
+                    "engine": "ROCm 7.x (vLLM)",
+                    "model": model_name,
+                    "checkpoint": model_name,
+                    "quant": "AWQ/FP16",
+                    "pid": pid,
+                    "port": r_port,
+                    "uma_gb": fdinfo_gb,
+                    "ctx_size": 0,
+                    "parallel_slots": 0,
+                    "ngl": "ALL",
+                    "flash_attn": True,
+                    "kv_cache": "PagedAttention",
+                    "cache_reuse": "APC" if "--enable-prefix-caching" in " ".join(cmd_args) else None,
+                    "batch": "--",
+                    "threads": None,
+                    "recipe_options": {},
+                    "sampling": {},
+                    "cmdline": self._sanitize_cmdline(cmd_args),
+                },
             }
 
         prom = self._parse_prometheus(metrics_raw)
@@ -529,6 +671,27 @@ class EnginesHttpProbe:
             "client_name": "OpenWebUI",
             "client_port": webui_port,
             "vllm_requests": [],
+            "model_config": {
+                "online": True,
+                "engine": "ROCm 7.x (vLLM)",
+                "model": model_name,
+                "checkpoint": model_name,
+                "quant": "AWQ/FP16",
+                "pid": pid,
+                "port": r_port,
+                "uma_gb": round(pool_gb, 1),
+                "ctx_size": 0,
+                "parallel_slots": running,
+                "ngl": "ALL",
+                "flash_attn": True,
+                "kv_cache": "PagedAttention",
+                "cache_reuse": "APC" if "--enable-prefix-caching" in " ".join(cmd_args) else None,
+                "batch": "Continuous",
+                "threads": None,
+                "recipe_options": {},
+                "sampling": {},
+                "cmdline": self._sanitize_cmdline(cmd_args),
+            },
         }
 
     async def poll_ollama_models(self) -> List[Dict[str, Any]]:

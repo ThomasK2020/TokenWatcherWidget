@@ -7,12 +7,14 @@ fallback sécurisé sensors -j / amdgpu_top --dump -J (shell=False, timeout=2.0)
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -40,6 +42,163 @@ class AmdSysfsProbe:
         self._cpu_model: str = "AMD Ryzen AI"
         self._gpu_model: str = "AMD Radeon GPU"
         self._gfx_arch: str = "gfx115x"
+
+        # Variabilisation & auto-calibration du talon repos batterie (power.idle_baseline_watts)
+        self._idle_baseline_cfg: Any = "auto"
+        self._fallback_idle_w: float = 12.0
+        self._idle_max_gpu_busy: int = 5
+        self._idle_max_cpu_busy: int = 15
+        self._idle_min_window_sec: int = 15
+        self._baseline_cache_path: Path = Path("~/.cache/tokenwatcher/power_baseline.json").expanduser()
+        self._cached_baselines: Dict[str, float] = {}
+        self._calm_samples: Dict[str, List[float]] = {}
+        self._last_cache_save_ts: float = 0.0
+        self._last_bat_wh_now: Optional[float] = None
+        self._last_bat_w_dis: Optional[float] = None
+        self._last_bat_discharging: bool = False
+        self._load_baseline_cache()
+
+    def configure_power(self, power_cfg: Optional[Dict[str, Any]]) -> None:
+        """Configurer la calibration d'autonomie au repos depuis config/tokenwatcher.yaml."""
+        if not isinstance(power_cfg, dict):
+            return
+        self._idle_baseline_cfg = power_cfg.get("idle_baseline_watts", "auto")
+        try:
+            fb = float(power_cfg.get("fallback_idle_watts", 12.0))
+            if fb > 0:
+                self._fallback_idle_w = fb
+        except (TypeError, ValueError):
+            pass
+        try:
+            self._idle_max_gpu_busy = max(0, int(power_cfg.get("idle_max_gpu_busy_pct", 5)))
+        except (TypeError, ValueError):
+            pass
+        try:
+            self._idle_max_cpu_busy = max(0, int(power_cfg.get("idle_max_cpu_busy_pct", 15)))
+        except (TypeError, ValueError):
+            pass
+        try:
+            self._idle_min_window_sec = max(5, int(power_cfg.get("idle_min_window_sec", 15)))
+        except (TypeError, ValueError):
+            pass
+        cache_str = str(power_cfg.get("baseline_cache_file") or "~/.cache/tokenwatcher/power_baseline.json").strip()
+        if cache_str:
+            new_path = Path(cache_str).expanduser()
+            if new_path != self._baseline_cache_path:
+                self._baseline_cache_path = new_path
+                self._load_baseline_cache()
+
+    def _load_baseline_cache(self) -> None:
+        if not self._baseline_cache_path.is_file():
+            return
+        try:
+            raw = json.loads(self._baseline_cache_path.read_text(encoding="utf-8"))
+            profs = raw.get("profiles") if isinstance(raw, dict) else None
+            if isinstance(profs, dict):
+                loaded: Dict[str, float] = {}
+                for k, v in profs.items():
+                    try:
+                        fv = float(v)
+                        if 1.0 <= fv <= 150.0:
+                            loaded[str(k)] = round(fv, 2)
+                    except (TypeError, ValueError):
+                        continue
+                self._cached_baselines = loaded
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    def _save_baseline_cache(self) -> None:
+        now = time.time()
+        if (now - self._last_cache_save_ts) < 10.0:
+            return
+        try:
+            self._baseline_cache_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = self._baseline_cache_path.with_suffix(".tmp")
+            payload = {
+                "updated_at": round(now, 1),
+                "profiles": self._cached_baselines,
+            }
+            tmp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            os.replace(tmp_path, self._baseline_cache_path)
+            self._last_cache_save_ts = now
+        except OSError:
+            pass
+
+    def _read_platform_profile(self) -> str:
+        prof = self._read_text(Path("/sys/firmware/acpi/platform_profile"))
+        return prof.lower() if prof else "default"
+
+    def resolve_idle_baseline(
+        self,
+        *,
+        is_discharging: bool,
+        w_dis: Optional[float],
+        gpu_busy_pct: int,
+        cpu_busy_pct: int,
+        engines_active: bool,
+    ) -> tuple[float, str, str]:
+        """Résoudre le talon repos en Watts (config fixe, auto-calibré par profil ACPI ou fallback)."""
+        platform_profile = self._read_platform_profile()
+        cfg_val = self._idle_baseline_cfg
+
+        if not (isinstance(cfg_val, str) and cfg_val.strip().lower() == "auto"):
+            try:
+                fixed_w = float(cfg_val)
+                if fixed_w > 0:
+                    return round(fixed_w, 2), "config", platform_profile
+            except (TypeError, ValueError):
+                pass
+
+        is_calm = (
+            is_discharging
+            and w_dis is not None
+            and 2.0 <= w_dis <= 120.0
+            and not engines_active
+            and gpu_busy_pct <= self._idle_max_gpu_busy
+            and cpu_busy_pct <= self._idle_max_cpu_busy
+        )
+        if is_calm and w_dis is not None:
+            buf = self._calm_samples.setdefault(platform_profile, [])
+            buf.append(float(w_dis))
+            if len(buf) > 60:
+                buf[:] = buf[-60:]
+            if len(buf) >= self._idle_min_window_sec:
+                sorted_vals = sorted(buf)
+                idx = max(0, min(len(sorted_vals) - 1, int(len(sorted_vals) * 0.25)))
+                calibrated = round(sorted_vals[idx], 2)
+                prev = self._cached_baselines.get(platform_profile)
+                self._cached_baselines[platform_profile] = calibrated
+                if prev is None or abs(calibrated - prev) >= 0.2:
+                    self._save_baseline_cache()
+        elif engines_active or gpu_busy_pct > (self._idle_max_gpu_busy * 2 + 5):
+            # Éviter de mélanger les transitoires post-charge dans la fenêtre calme en cours
+            self._calm_samples.pop(platform_profile, None)
+
+        if platform_profile in self._cached_baselines:
+            return self._cached_baselines[platform_profile], "calibrated", platform_profile
+        return round(self._fallback_idle_w, 2), "fallback", platform_profile
+
+    def finalize_power_baseline(self, metrics: Dict[str, Any], engines_active: bool) -> None:
+        """Mettre à jour la calibration idle batterie avec l'état réel des moteurs locaux."""
+        gpu_busy = int(metrics.get("gpu_busy_pct", 0) or 0)
+        cpu_busy = int(metrics.get("cpu_busy_pct", 0) or 0)
+        baseline_w, baseline_src, plat_prof = self.resolve_idle_baseline(
+            is_discharging=self._last_bat_discharging,
+            w_dis=self._last_bat_w_dis,
+            gpu_busy_pct=gpu_busy,
+            cpu_busy_pct=cpu_busy,
+            engines_active=engines_active,
+        )
+        metrics["idle_baseline_watts"] = round(baseline_w, 1)
+        metrics["idle_baseline_source"] = baseline_src
+        metrics["platform_profile"] = plat_prof
+        if (
+            metrics.get("has_battery")
+            and self._last_bat_discharging
+            and self._last_bat_wh_now is not None
+            and baseline_w > 0
+        ):
+            metrics["idle_runtime_remaining"] = self._format_duration_hours(self._last_bat_wh_now / baseline_w)
 
     @staticmethod
     def _read_text(path: Optional[Path]) -> Optional[str]:
@@ -374,12 +533,19 @@ class AmdSysfsProbe:
         else:
             gpu_temp_status = "OK"
 
-        # Batterie
+        # Batterie / Workstation sans batterie
+        has_battery = c.battery_dir is not None
         battery_pct = 100
         battery_wh = 0
         battery_discharge_w = 0
-        ai_runtime_remaining = "AC"
+        ai_runtime_remaining = "AC" if has_battery else "Workstation AC"
         idle_runtime_remaining = "AC"
+        self._last_bat_wh_now = None
+        self._last_bat_w_dis = None
+        self._last_bat_discharging = False
+        platform_profile = self._read_platform_profile()
+        baseline_w = self._cached_baselines.get(platform_profile, self._fallback_idle_w)
+        baseline_src = "calibrated" if platform_profile in self._cached_baselines else "fallback"
 
         if c.battery_dir is not None:
             cap = self._read_int(c.battery_dir / "capacity")
@@ -392,16 +558,19 @@ class AmdSysfsProbe:
 
             if en_now_uw is not None:
                 battery_wh = round(en_now_uw / 1_000_000)
+                self._last_bat_wh_now = en_now_uw / 1_000_000.0
             elif en_full_uw is not None:
                 battery_wh = round((en_full_uw / 1_000_000) * (battery_pct / 100.0))
+                self._last_bat_wh_now = (en_full_uw / 1_000_000.0) * (battery_pct / 100.0)
 
             if p_now_uw is not None and p_now_uw > 0 and "discharging" in status_str:
                 w_dis = p_now_uw / 1_000_000.0
+                self._last_bat_w_dis = w_dis
+                self._last_bat_discharging = True
                 battery_discharge_w = -round(w_dis)
-                if en_now_uw is not None:
-                    wh_now = en_now_uw / 1_000_000.0
-                    ai_runtime_remaining = self._format_duration_hours(wh_now / w_dis)
-                    idle_runtime_remaining = self._format_duration_hours(wh_now / 12.0)
+                if self._last_bat_wh_now is not None:
+                    ai_runtime_remaining = self._format_duration_hours(self._last_bat_wh_now / w_dis)
+                    idle_runtime_remaining = self._format_duration_hours(self._last_bat_wh_now / max(1.0, baseline_w))
             else:
                 battery_discharge_w = 0
                 ai_runtime_remaining = "AC"
@@ -429,11 +598,15 @@ class AmdSysfsProbe:
             "power_vector_3pt": power_vector_3pt,
             "history_watts": list(self._history_watts),
             "efficiency_tok_per_j": 0.0,  # Calculé par TokenWatcherDaemon avec tg_speed réel
+            "has_battery": has_battery,
             "battery_pct": battery_pct,
             "battery_wh": battery_wh,
             "battery_discharge_w": battery_discharge_w,
             "ai_runtime_remaining": ai_runtime_remaining,
             "idle_runtime_remaining": idle_runtime_remaining,
+            "idle_baseline_watts": round(baseline_w, 1),
+            "idle_baseline_source": baseline_src,
+            "platform_profile": platform_profile,
             "_meta": {
                 "cpu_model": self._cpu_model,
                 "gpu_model": self._gpu_model,
