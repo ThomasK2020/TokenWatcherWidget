@@ -58,7 +58,7 @@ class TokenWatcherApp(Gtk.Application):
         settings.set_allow_universal_access_from_file_urls(True)
 
         ui_path = Path(__file__).resolve().parent.parent / "ui" / "index.html"
-        uri = f"file://{ui_path}?mode=preprod" if self.preprod else f"file://{ui_path}"
+        uri = f"file://{ui_path}?mode=preprod" if self.preprod else f"file://{ui_path}?mode=prod"
         webview.load_uri(uri)
 
         win.set_child(webview)

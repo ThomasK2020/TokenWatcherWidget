@@ -537,6 +537,10 @@ class AmdSysfsProbe:
         has_battery = c.battery_dir is not None
         battery_pct = 100
         battery_wh = 0
+        battery_wh_exact = 0.0
+        battery_full_wh = 69.6
+        battery_status = "ac_workstation" if not has_battery else "unknown"
+        ac_online = True
         battery_discharge_w = 0
         ai_runtime_remaining = "AC" if has_battery else "Workstation AC"
         idle_runtime_remaining = "AC"
@@ -554,14 +558,21 @@ class AmdSysfsProbe:
             en_now_uw = self._read_int(c.battery_dir / "energy_now")
             en_full_uw = self._read_int(c.battery_dir / "energy_full")
             p_now_uw = self._read_int(c.battery_dir / "power_now")
-            status_str = (self._read_text(c.battery_dir / "status") or "").lower()
+            status_str = (self._read_text(c.battery_dir / "status") or "").strip().lower()
+            battery_status = status_str or "unknown"
+            ac_online = "discharging" not in battery_status
+
+            if en_full_uw is not None and en_full_uw > 0:
+                battery_full_wh = round(en_full_uw / 1_000_000.0, 1)
 
             if en_now_uw is not None:
                 battery_wh = round(en_now_uw / 1_000_000)
                 self._last_bat_wh_now = en_now_uw / 1_000_000.0
+                battery_wh_exact = round(self._last_bat_wh_now, 1)
             elif en_full_uw is not None:
                 battery_wh = round((en_full_uw / 1_000_000) * (battery_pct / 100.0))
                 self._last_bat_wh_now = (en_full_uw / 1_000_000.0) * (battery_pct / 100.0)
+                battery_wh_exact = round(self._last_bat_wh_now, 1)
 
             if p_now_uw is not None and p_now_uw > 0 and "discharging" in status_str:
                 w_dis = p_now_uw / 1_000_000.0
@@ -599,8 +610,12 @@ class AmdSysfsProbe:
             "history_watts": list(self._history_watts),
             "efficiency_tok_per_j": 0.0,  # Calculé par TokenWatcherDaemon avec tg_speed réel
             "has_battery": has_battery,
+            "ac_online": ac_online,
+            "battery_status": battery_status,
             "battery_pct": battery_pct,
             "battery_wh": battery_wh,
+            "battery_wh_exact": battery_wh_exact,
+            "battery_full_wh": battery_full_wh,
             "battery_discharge_w": battery_discharge_w,
             "ai_runtime_remaining": ai_runtime_remaining,
             "idle_runtime_remaining": idle_runtime_remaining,

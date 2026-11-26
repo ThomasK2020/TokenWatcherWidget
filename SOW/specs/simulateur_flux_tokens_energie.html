@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulateur Flux : Débit Tokens, Puissance & Batterie → tok/J</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    if (typeof tailwind !== 'undefined') {
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      };
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #080B10;
+      color: #F1F5F9;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-variant-numeric: tabular-nums;
+      overflow-x: hidden;
+    }
+
+    .mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Sliders sobres haute lisibilité */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #1B2333;
+      height: 6px;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid #080B10;
+      transition: transform 0.14s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.16);
+    }
+    #slider-speed::-webkit-slider-thumb  { background: #38BDF8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.45); }
+    #slider-power::-webkit-slider-thumb  { background: #F59E0B; box-shadow: 0 0 8px rgba(245, 158, 11, 0.45); }
+    #slider-energy::-webkit-slider-thumb { background: #10B981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.45); }
+
+    /* Animations fluides des flux horizontaux & jet de tokens */
+    @keyframes dashStream {
+      to { stroke-dashoffset: -40; }
+    }
+    .stream-flow {
+      stroke-dasharray: 10 10;
+      animation: dashStream var(--stream-dur, 1s) linear infinite;
+    }
+
+    @keyframes verticalStream {
+      to { stroke-dashoffset: 32; }
+    }
+    .tap-stream-flow {
+      stroke-dasharray: 8 8;
+      animation: verticalStream var(--tap-dur, 0.8s) linear infinite;
+    }
+
+    details > summary { list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+  </style>
+</head>
+<body class="min-h-screen p-3 sm:p-6 md:p-8 flex justify-center items-start">
+
+  <main class="w-full max-w-5xl space-y-5">
+
+    <!-- =======================================================================
+         EN-TÊTE SOBRE
+         ======================================================================= -->
+    <header class="bg-[#111622] border border-[#1E2638] rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="mono-num text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/25">
+            Schéma Interactif
+          </span>
+          <span class="mono-num text-[11px] text-slate-400">Débit ➔ Puissance & Batterie ➔ Rendement</span>
+        </div>
+        <h1 class="text-lg sm:text-xl font-extrabold text-white tracking-tight mt-1">
+          De la Vitesse (tok/s) et de la Conso (W) vers l’Efficacité (tok/J)
+        </h1>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btn-sim-toggle" onclick="toggleSimulation()"
+          class="px-3.5 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2 transition cursor-pointer">
+          <i id="sim-icon" class="fa-solid fa-play"></i>
+          <span id="sim-btn-label">Vider la batterie (600×)</span>
+        </button>
+        <button onclick="resetSimulation()"
+          class="px-3 py-2 rounded-lg bg-[#0A0E16] hover:bg-[#171E2E] border border-[#1E2638] text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span>Reset</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- =======================================================================
+         SCHÉMA HYDRAULIQUE PRINCIPAL (GAUCHE ➔ CENTRE ➔ DROITE)
+         ======================================================================= -->
+    <section class="bg-[#111622] border border-[#1E2638] rounded-xl p-3 sm:p-5 space-y-5 shadow-2xl">
+
+      <!-- Canevas Vectoriel SVG -->
+      <div class="bg-[#080B10] border border-[#1E2638] rounded-xl p-2 sm:p-4 overflow-hidden">
+        <svg viewBox="0 0 960 390" class="w-full h-auto select-none">
+          <defs>
+            <!-- Dégradé niveau de batterie (Énergie Wh / J) -->
+            <linearGradient id="tankLiquidGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop id="tank-stop-1" offset="0%" stop-color="#10B981" stop-opacity="0.90" />
+              <stop id="tank-stop-2" offset="100%" stop-color="#059669" stop-opacity="0.95" />
+            </linearGradient>
+
+            <!-- Dégradé liquide du robinet de tokens -->
+            <linearGradient id="tokenLiquidGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.85" />
+              <stop offset="100%" stop-color="#0284C7" stop-opacity="0.95" />
+            </linearGradient>
+
+            <!-- ClipPath jauge batterie classique (Centre bas) -->
+            <clipPath id="batteryGaugeClip">
+              <rect x="372" y="236" width="198" height="36" rx="5" />
+            </clipPath>
+
+            <!-- ClipPath vasque réception tokens (Gauche bas) -->
+            <clipPath id="tokenBasinClip">
+              <rect x="46" y="242" width="218" height="102" rx="10" />
+            </clipPath>
+          </defs>
+
+          <!-- =================================================================
+               1. COLONNE GAUCHE : DÉBIT EN TOKENS (ROBINET + LIQUIDE)
+               ================================================================= -->
+          <g id="col-left-tokens">
+            <text x="155" y="22" text-anchor="middle" fill="#38BDF8" font-family="JetBrains Mono, monospace" font-size="11.5" font-weight="800">
+              1. DÉBIT EN TOKENS
+            </text>
+            <text x="155" y="38" text-anchor="middle" fill="#64748B" font-family="Inter, sans-serif" font-size="11">
+              Vitesse de sortie des mots (tok/s)
+            </text>
+
+            <!-- Cadre englobant gauche -->
+            <rect x="32" y="48" width="246" height="314" rx="14" fill="#0C1018" stroke="#1E2638" stroke-width="1.5" />
+
+            <!-- DESSIN DU ROBINET (EN HAUT À GAUCHE) -->
+            <g id="faucet-assembly">
+              <!-- Tuyau d'arrivée mural -->
+              <rect x="46" y="84" width="66" height="18" rx="3" fill="#1E293B" stroke="#334155" stroke-width="1.5" />
+              <!-- Corps du robinet -->
+              <path d="M 110 80 L 146 80 Q 166 80 166 100 L 166 116 L 144 116 L 144 102 Q 144 98 138 98 L 110 98 Z"
+                fill="#334155" stroke="#475569" stroke-width="1.5" />
+              <!-- Bec verseur -->
+              <rect x="142" y="114" width="26" height="6" rx="2" fill="#475569" />
+              <!-- Tige et croisillon (volant qui pivote selon le débit) -->
+              <rect x="125" y="66" width="6" height="14" fill="#64748B" />
+              <g id="tap-handle" transform="translate(128, 66)">
+                <rect x="-18" y="-3" width="36" height="6" rx="3" fill="#38BDF8" />
+                <circle cx="0" cy="0" r="4.5" fill="#0F172A" stroke="#38BDF8" stroke-width="2" />
+              </g>
+            </g>
+
+            <!-- JET DE LIQUIDE SORTANT DU ROBINET -->
+            <g>
+              <line id="tap-water-core" x1="155" y1="120" x2="155" y2="246"
+                stroke="#0284C7" stroke-width="10" stroke-linecap="round" opacity="0.55" />
+              <line id="tap-water-stream" class="tap-stream-flow" x1="155" y1="120" x2="155" y2="246"
+                stroke="#38BDF8" stroke-width="7" stroke-linecap="round" />
+            </g>
+
+            <!-- VASQUE DE LIQUIDE EN BAS À GAUCHE (SURFACE PLANE SANS VAGUE) -->
+            <rect x="44" y="240" width="222" height="106" rx="12" fill="#090C12" stroke="#243047" stroke-width="1.5" />
+            <g clip-path="url(#tokenBasinClip)">
+              <rect id="token-basin-fill" x="46" y="274" width="218" height="72" fill="url(#tokenLiquidGrad)" />
+              <line id="token-basin-surface" x1="46" y1="274" x2="264" y2="274" stroke="#7DD3FC" stroke-width="2" stroke-opacity="0.7" />
+            </g>
+
+            <!-- Cartouche valeur Débit (Blanc Pur haute lisibilité) -->
+            <rect x="64" y="162" width="182" height="58" rx="9" fill="#090C12" fill-opacity="0.92" stroke="#38BDF8" stroke-opacity="0.45" />
+            <text id="svg-speed-val" x="155" y="191" text-anchor="middle" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="23" font-weight="800">
+              42,0 tok/s
+            </text>
+            <text id="svg-speed-sub" x="155" y="210" text-anchor="middle" fill="#38BDF8" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600">
+              Ouverture robinet : 28%
+            </text>
+
+            <text x="155" y="334" text-anchor="middle" fill="#E2E8F0" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600">
+              Flux de tokens générés
+            </text>
+          </g>
+
+          <!-- =================================================================
+               LIAISON 1 (GAUCHE ➔ CENTRE) : SIGNE DIVISER (÷) ENTRE DÉBIT ET PUISSANCE
+               ================================================================= -->
+          <g>
+            <rect x="278" y="195" width="66" height="18" fill="#131926" stroke="#243047" stroke-width="1.2" />
+            <line id="link-left-center" class="stream-flow" x1="280" y1="204" x2="342" y2="204"
+              stroke="#38BDF8" stroke-width="6" stroke-linecap="round" />
+            <circle cx="311" cy="204" r="14" fill="#090C12" stroke="#38BDF8" stroke-width="1.8" />
+            <text x="311" y="209" text-anchor="middle" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800">
+              ÷
+            </text>
+          </g>
+
+          <!-- =================================================================
+               2. COLONNE CENTRE : CONSO PUISSANCE (HAUT) + BATTERIE / AC (BAS)
+               ================================================================= -->
+          <g id="col-center-power-energy">
+            <text x="475" y="22" text-anchor="middle" fill="#F59E0B" font-family="JetBrains Mono, monospace" font-size="11.5" font-weight="800">
+              2. PUISSANCE &amp; BATTERIE / AC
+            </text>
+            <text x="475" y="38" text-anchor="middle" fill="#64748B" font-family="Inter, sans-serif" font-size="11">
+              Conso instantanée (W) tirée de la source (Wh)
+            </text>
+
+            <!-- Cadre englobant centre -->
+            <rect x="344" y="48" width="262" height="314" rx="14" fill="#0C1018" stroke="#1E2638" stroke-width="1.5" />
+
+            <!-- SOUS-BLOC HAUT : CONSOMMATION EN PUISSANCE INSTANTANÉE (WATTS) -->
+            <g id="center-top-power">
+              <rect x="358" y="60" width="234" height="110" rx="11" fill="#090C12" stroke="#263147" stroke-width="1.5" />
+              <text x="475" y="79" text-anchor="middle" fill="#F59E0B" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="700">
+                PUISSANCE INSTANTANÉE (Conso)
+              </text>
+
+              <text id="svg-power-val" x="475" y="111" text-anchor="middle" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="25" font-weight="800">
+                38,0 W
+              </text>
+
+              <text id="svg-power-jps" x="475" y="131" text-anchor="middle" fill="#FBBF24" font-family="JetBrains Mono, monospace" font-size="11.5" font-weight="700">
+                = 38,0 Joules / seconde
+              </text>
+
+              <rect x="380" y="144" width="190" height="8" rx="4" fill="#171E2E" />
+              <rect id="svg-power-bar" x="380" y="144" width="90" height="8" rx="4" fill="#F59E0B" />
+            </g>
+
+            <!-- LIAISON STATIQUE : ÉCLAIR À ÉPAISSEUR VARIABLE (SANS ANIMATION VERTICALE) -->
+            <g id="bolt-connector" transform="translate(475, 193)">
+              <polygon id="svg-bolt-glow" points="2,-19 -11,2 -1,2 -4,19 11,-2 1,-2"
+                fill="#F59E0B" fill-opacity="0.22" transform="scale(1.45, 1)" />
+              <polygon id="svg-bolt-shape" points="2,-18 -10,2 -1,2 -4,18 10,-2 1,-2"
+                fill="#F59E0B" stroke="#FDE68A" stroke-width="0.8" stroke-linejoin="round" />
+            </g>
+
+            <!-- SOUS-BLOC BAS : JAUGE DE BATTERIE CLASSIQUE OU SECTEUR (AC) -->
+            <g id="center-bottom-tank">
+              <rect x="358" y="216" width="234" height="132" rx="11" fill="#090C12" stroke="#263147" stroke-width="1.5" />
+
+              <!-- En-tête Source Énergie (Neutre et lisible en permanence) -->
+              <text id="svg-source-title" x="475" y="231" text-anchor="middle" fill="#CBD5E1" font-family="JetBrains Mono, monospace" font-size="9.5" font-weight="700">
+                BATTERIE (ÉNERGIE STOCKÉE)
+              </text>
+
+              <!-- DESSIN CLASSIQUE D'UNE JAUGE DE PILE / BATTERIE HORIZONTALE -->
+              <g id="classic-battery-graphic">
+                <rect x="369" y="234" width="204" height="40" rx="7" fill="#0D121C" stroke="#475569" stroke-width="2" />
+                <rect x="574" y="245" width="7" height="18" rx="2.5" fill="#475569" />
+
+                <g clip-path="url(#batteryGaugeClip)">
+                  <rect id="svg-bat-fill" x="372" y="236" width="141" height="36" fill="url(#tankLiquidGrad)" />
+                  <line x1="421.5" y1="236" x2="421.5" y2="272" stroke="#090C12" stroke-width="1.5" stroke-opacity="0.55" />
+                  <line x1="471.0" y1="236" x2="471.0" y2="272" stroke="#090C12" stroke-width="1.5" stroke-opacity="0.55" />
+                  <line x1="520.5" y1="236" x2="520.5" y2="272" stroke="#090C12" stroke-width="1.5" stroke-opacity="0.55" />
+                </g>
+
+                <text id="svg-bat-inside-label" x="471" y="259" text-anchor="middle" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800"
+                  style="text-shadow: 0 1px 3px rgba(0,0,0,0.85);">
+                  71%
+                </text>
+              </g>
+
+              <text id="svg-energy-wh" x="475" y="295" text-anchor="middle" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="17" font-weight="800">
+                49,4 Wh
+              </text>
+              <text id="svg-energy-joules" x="475" y="313" text-anchor="middle" fill="#E2E8F0" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700">
+                = 177 840 Joules
+              </text>
+              <text id="svg-energy-autonomy" x="475" y="332" text-anchor="middle" fill="#94A3B8" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600">
+                Autonomie IA : 1h 18m (Idle: 4h 07m)
+              </text>
+            </g>
+          </g>
+
+          <!-- =================================================================
+               LIAISON 2 (CENTRE ➔ DROITE) : SIGNE ÉGAL (=) AVANT LE BLOC RENDEMENT
+               ================================================================= -->
+          <g>
+            <rect x="606" y="195" width="76" height="18" fill="#131926" stroke="#243047" stroke-width="1.2" />
+            <line id="link-center-right" class="stream-flow" x1="608" y1="204" x2="680" y2="204"
+              stroke="#C084FC" stroke-width="6" stroke-linecap="round" />
+            <circle cx="644" cy="204" r="14" fill="#090C12" stroke="#C084FC" stroke-width="1.8" />
+            <text x="644" y="209" text-anchor="middle" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="15" font-weight="800">
+              =
+            </text>
+          </g>
+
+          <!-- =================================================================
+               3. COLONNE DROITE : RÉSULTAT EN TOKENS / JOULE (CADRE VIOLET / MAGENTA)
+               ================================================================= -->
+          <g id="col-right-result">
+            <text x="805" y="22" text-anchor="middle" fill="#D946EF" font-family="JetBrains Mono, monospace" font-size="11.5" font-weight="800">
+              3. RENDEMENT (tok / J)
+            </text>
+            <text x="805" y="38" text-anchor="middle" fill="#64748B" font-family="Inter, sans-serif" font-size="11">
+              Tokens obtenus par Joule dépensé
+            </text>
+
+            <!-- Cadre englobant droite en Violet / Magenta -->
+            <rect x="682" y="48" width="246" height="314" rx="14" fill="#0C1018" stroke="#C026D3" stroke-width="1.5" stroke-opacity="0.65" />
+
+            <!-- Rappel de la formule de liaison -->
+            <rect x="698" y="64" width="214" height="54" rx="9" fill="#090C12" stroke="#281D36" />
+            <text x="805" y="84" text-anchor="middle" fill="#94A3B8" font-family="JetBrains Mono, monospace" font-size="10.5">
+              Débit (tok/s) ÷ Conso (J/s)
+            </text>
+            <text id="svg-formula-live" x="805" y="105" text-anchor="middle" fill="#E2E8F0" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700">
+              42,0 ÷ 38,0
+            </text>
+
+            <!-- GROS COMPTEUR RÉSULTAT : TOK / J (COULEUR DYNAMIQUE SELON EFFICACITÉ) -->
+            <rect id="svg-eff-box" x="698" y="134" width="214" height="106" rx="11" fill="#090C12" stroke="#A855F7" stroke-width="1.5" stroke-opacity="0.45" />
+            <text id="svg-eff-val" x="805" y="180" text-anchor="middle" fill="#FBBF24" font-family="JetBrains Mono, monospace" font-size="30" font-weight="800">
+              1,11
+            </text>
+            <text id="svg-eff-unit" x="805" y="203" text-anchor="middle" fill="#D946EF" font-family="JetBrains Mono, monospace" font-size="12.5" font-weight="800">
+              tokens / Joule
+            </text>
+            <text id="svg-eff-badge" x="805" y="224" text-anchor="middle" fill="#FBBF24" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">
+              Efficacité Modérée
+            </text>
+
+            <!-- Projection sur tout le réservoir -->
+            <rect x="698" y="256" width="214" height="88" rx="9" fill="#090C12" stroke="#281D36" />
+            <text x="805" y="276" text-anchor="middle" fill="#94A3B8" font-family="JetBrains Mono, monospace" font-size="10">
+              CAPACITÉ TOTALE DU RÉSERVOIR
+            </text>
+            <text id="svg-total-tokens" x="805" y="302" text-anchor="middle" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="16" font-weight="800">
+              ~197 400 tokens
+            </text>
+            <text id="svg-total-calc" x="805" y="322" text-anchor="middle" fill="#64748B" font-family="JetBrains Mono, monospace" font-size="10">
+              177 840 J × 1,11 tok/J
+            </text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- =====================================================================
+           CONTRÔLES INTERACTIFS ALIGNÉS SOUS CHAQUE COLONNE (GAUCHE / CENTRE)
+           ===================================================================== -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- Contrôle 1 (Gauche) : Débit en tokens -->
+        <div class="bg-[#0A0E16] border border-[#1E2638] rounded-xl p-4 flex flex-col justify-between gap-3">
+          <div class="flex items-center justify-between">
+            <label for="slider-speed" class="text-xs font-bold text-sky-400 flex items-center gap-2">
+              <i class="fa-solid fa-faucet-drip"></i>
+              <span>1. Ouvrir le Robinet (Débit)</span>
+            </label>
+            <span id="ctrl-speed-badge" class="mono-num text-xs font-extrabold text-white">42,0 tok/s</span>
+          </div>
+          <input id="slider-speed" type="range" min="5" max="150" step="0.5" value="42.0" oninput="onControlChange()" />
+          <div class="flex justify-between mono-num text-[10px] text-slate-500">
+            <span>5 tok/s (Goutte-à-goutte)</span>
+            <span>150 tok/s (Grand ouvert)</span>
+          </div>
+        </div>
+
+        <!-- Contrôle 2 (Centre Haut) : Conso en puissance instantanée -->
+        <div class="bg-[#0A0E16] border border-[#1E2638] rounded-xl p-4 flex flex-col justify-between gap-2.5">
+          <div class="flex items-center justify-between">
+            <label for="slider-power" class="text-xs font-bold text-amber-400 flex items-center gap-2">
+              <i class="fa-solid fa-gauge-high"></i>
+              <span>2A. Régler la Conso (Watts)</span>
+            </label>
+            <span id="ctrl-power-badge" class="mono-num text-xs font-extrabold text-white">38,0 W</span>
+          </div>
+          <input id="slider-power" type="range" min="8" max="80" step="0.2" value="38.0" oninput="onControlChange()" />
+          <div class="grid grid-cols-3 gap-1.5 mono-num text-[10px]">
+            <button onclick="applyPreset('idle')" class="py-1 px-1.5 rounded bg-[#131926] hover:bg-[#1C2538] border border-[#243047] text-slate-300 hover:text-white transition cursor-pointer">
+              Repos · 12W
+            </button>
+            <button onclick="applyPreset('ia')" class="py-1 px-1.5 rounded bg-[#1A2436] border border-sky-500/40 text-sky-300 font-bold transition cursor-pointer">
+              IA · 38W
+            </button>
+            <button onclick="applyPreset('max')" class="py-1 px-1.5 rounded bg-[#131926] hover:bg-[#1C2538] border border-[#243047] text-slate-300 hover:text-white transition cursor-pointer">
+              Max · 65W
+            </button>
+          </div>
+        </div>
+
+        <!-- Contrôle 3 (Centre Bas) : Source Batterie ou Secteur AC -->
+        <div class="bg-[#0A0E16] border border-[#1E2638] rounded-xl p-4 flex flex-col justify-between gap-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <label for="slider-energy" class="text-xs font-bold text-slate-200 flex items-center gap-2">
+              <i id="ctrl-source-icon" class="fa-solid fa-battery-three-quarters text-emerald-400"></i>
+              <span>2B. Source Énergie</span>
+            </label>
+            <div class="flex items-center bg-[#131926] border border-[#243047] rounded-md p-0.5 mono-num text-[10px]">
+              <button id="btn-mode-bat" onclick="setPowerSource('battery')"
+                class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold transition cursor-pointer">
+                <i class="fa-solid fa-battery-three-quarters mr-1"></i>Batterie
+              </button>
+              <button id="btn-mode-ac" onclick="setPowerSource('ac')"
+                class="px-2 py-0.5 rounded text-slate-400 hover:text-white font-semibold transition cursor-pointer">
+                <i class="fa-solid fa-plug mr-1"></i>Secteur AC
+              </button>
+            </div>
+          </div>
+          <input id="slider-energy" type="range" min="2" max="69.6" step="0.2" value="49.4" oninput="onControlChange()" />
+          <div class="flex justify-between mono-num text-[10px] text-slate-500">
+            <span id="ctrl-energy-badge" class="text-white font-bold">49,4 Wh (71%)</span>
+            <span id="ctrl-joules-hint" class="text-slate-300">177 840 J</span>
+            <span>69,6 Wh max</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mémo pédagogique en 3 cartes sobres -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-1">
+        <div class="bg-[#0A0E16] border border-[#1E2638] rounded-lg p-3 flex items-start gap-2.5">
+          <i class="fa-solid fa-faucet text-sky-400 mt-0.5"></i>
+          <div>
+            <div class="font-bold text-white">Gauche : Le Débit (tok/s)</div>
+            <p class="text-slate-400 mt-0.5">Plus le robinet est ouvert, plus le jet de tokens générés chaque seconde est épais.</p>
+          </div>
+        </div>
+        <div class="bg-[#0A0E16] border border-[#1E2638] rounded-lg p-3 flex items-start gap-2.5">
+          <i class="fa-solid fa-bolt text-amber-400 mt-0.5"></i>
+          <div>
+            <div class="font-bold text-white">Centre : Conso (W) & Stock (Wh)</div>
+            <p class="text-slate-400 mt-0.5">La puissance (<span class="mono-num text-slate-200">1 W = 1 J/s</span>) aspire l'énergie stockée (<span class="mono-num text-slate-200">1 Wh = 3 600 J</span>).</p>
+          </div>
+        </div>
+        <div class="bg-[#0A0E16] border border-[#1E2638] rounded-lg p-3 flex items-start gap-2.5">
+          <i class="fa-solid fa-award text-fuchsia-400 mt-0.5"></i>
+          <div>
+            <div class="font-bold text-white">Droite : Rendement (tok/J)</div>
+            <p class="text-slate-400 mt-0.5">Code couleur : <span class="mono-num text-rose-400">&lt;0,6</span> · <span class="mono-num text-amber-400">0,6-1,2</span> · <span class="mono-num text-emerald-400">1,2-2,0</span> · <span class="mono-num text-cyan-300">&gt;2,0</span>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         TIROIR OPTIONNEL (FERMÉ PAR DÉFAUT) : PRIX D'UN TOKEN & COÛT RÉEL
+         ======================================================================= -->
+    <details class="bg-[#111622] border border-[#1E2638] rounded-xl overflow-hidden group">
+      <summary class="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-[#161D2C] transition select-none">
+        <span class="text-xs font-semibold text-slate-300 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-slate-400"></i>
+          <span>Détails complémentaires : « Prix d'un token » (J/tok) & « Coût réel » (€/1M tok)</span>
+        </span>
+        <span class="mono-num text-xs text-slate-400 group-open:rotate-180 transition-transform">
+          <i class="fa-solid fa-chevron-down"></i>
+        </span>
+      </summary>
+
+      <div class="p-4 border-t border-[#1E2638] bg-[#0A0E16] grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="bg-[#111622] border border-[#1E2638] rounded-lg p-3 space-y-1">
+          <div class="flex justify-between font-bold text-slate-200">
+            <span><i class="fa-solid fa-droplet text-sky-400 mr-1.5"></i>Prix d'un token (Inverse)</span>
+            <span id="adv-jtok" class="mono-num text-white">0,90 J / token</span>
+          </div>
+          <p class="text-slate-400">Inverse du rendement (<span class="mono-num text-slate-300">Conso ÷ Débit</span>) : quantité d'énergie pour produire 1 token.</p>
+        </div>
+
+        <div class="bg-[#111622] border border-[#1E2638] rounded-lg p-3 space-y-1">
+          <div class="flex justify-between font-bold text-slate-200">
+            <span><i class="fa-solid fa-plug text-emerald-400 mr-1.5"></i>Coût réel sur la facture</span>
+            <span id="adv-eur1m" class="mono-num text-emerald-400">0,063 € / 1M tok</span>
+          </div>
+          <p class="text-slate-400">Soit <span id="adv-kwh1m" class="mono-num text-slate-200">0,251 kWh</span> pour 1 million de tokens (base 0,25 € / kWh).</p>
+        </div>
+      </div>
+    </details>
+
+  </main>
+
+  <script>
+    const MAX_TANK_WH = 69.6; // 49.4 Wh = 71%
+    const ELEC_PRICE  = 0.25;
+
+    let state = {
+      speedTps: 42.0,
+      powerW: 38.0,
+      energyWh: 49.4,
+      powerSource: 'battery', // 'battery' | 'ac'
+      isSimulating: false,
+      lastFrame: null
+    };
+
+    function fmtInt(n) {
+      return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    function fmtDec(n, digits = 1) {
+      return n.toFixed(digits).replace('.', ',');
+    }
+
+    function fmtHours(hours) {
+      if (!isFinite(hours) || hours <= 0) return '0h 00m';
+      const mins = Math.round(hours * 60);
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${h}h ${m.toString().padStart(2, '0')}m`;
+    }
+
+    function renderSimulator() {
+      const { speedTps, powerW, energyWh, powerSource } = state;
+      const isAC = powerSource === 'ac';
+
+      // Calculs physiques
+      const effTokPerJ     = speedTps / powerW;
+      const joulesPerToken = powerW / speedTps;
+      const effectiveWh    = isAC ? MAX_TANK_WH : energyWh;
+      const energyJoules   = effectiveWh * 3600;
+      const tankPct        = isAC ? 100 : Math.min(100, Math.max(0, Math.round((energyWh / MAX_TANK_WH) * 100)));
+      const autonomyHours  = energyWh / powerW;
+      const idleHours      = energyWh / 12.0;
+      const totalTokens    = energyJoules * effTokPerJ;
+
+      const kwhPer1MTok    = (joulesPerToken * 1e6) / 3600000;
+      const eurPer1MTok    = kwhPer1MTok * ELEC_PRICE;
+
+      // 1. Badges de contrôle
+      document.getElementById('ctrl-speed-badge').textContent  = `${fmtDec(speedTps, 1)} tok/s`;
+      document.getElementById('ctrl-power-badge').textContent  = `${fmtDec(powerW, 1)} W`;
+      document.getElementById('ctrl-energy-badge').textContent = isAC
+        ? `Secteur AC (100%)`
+        : `${fmtDec(energyWh, 1)} Wh (${tankPct}%)`;
+      document.getElementById('ctrl-joules-hint').textContent  = isAC
+        ? `Alimentation continue`
+        : `${fmtInt(energyJoules)} J`;
+
+      // 2. Colonne Gauche : Robinet & Jet de tokens
+      const speedRatio = Math.min(1, Math.max(0.03, (speedTps - 5) / 145));
+      const tapPct     = Math.round(5 + speedRatio * 95);
+      const handleDeg  = speedRatio * 90;
+      document.getElementById('tap-handle').setAttribute('transform', `translate(128, 66) rotate(${handleDeg.toFixed(1)})`);
+
+      const jetCoreW   = 3 + speedRatio * 16;
+      const jetStreamW = 2 + speedRatio * 11;
+      const tapDur     = Math.max(0.22, 1.8 - speedRatio * 1.55);
+
+      const coreEl   = document.getElementById('tap-water-core');
+      const streamEl = document.getElementById('tap-water-stream');
+      coreEl.setAttribute('stroke-width', jetCoreW.toFixed(1));
+      streamEl.setAttribute('stroke-width', jetStreamW.toFixed(1));
+      streamEl.style.setProperty('--tap-dur', `${tapDur.toFixed(2)}s`);
+
+      // Niveau liquide dans la vasque de réception (surface plane sans vague)
+      const basinH = Math.round(22 + speedRatio * 74);
+      const basinY = 344 - basinH;
+      document.getElementById('token-basin-fill').setAttribute('y', basinY);
+      document.getElementById('token-basin-fill').setAttribute('height', basinH);
+      const basinSurface = document.getElementById('token-basin-surface');
+      basinSurface.setAttribute('y1', basinY);
+      basinSurface.setAttribute('y2', basinY);
+
+      document.getElementById('svg-speed-val').textContent = `${fmtDec(speedTps, 1)} tok/s`;
+      document.getElementById('svg-speed-sub').textContent = `Ouverture robinet : ${tapPct}%`;
+
+      // 3. Colonne Centre Haut : Puissance instantanée (W)
+      const powerRatio = Math.min(1, Math.max(0.05, powerW / 80));
+      document.getElementById('svg-power-val').textContent = `${fmtDec(powerW, 1)} W`;
+      document.getElementById('svg-power-jps').textContent = `= ${fmtDec(powerW, 1)} Joules / seconde`;
+
+      const pBarW = Math.round(190 * powerRatio);
+      const pBarEl = document.getElementById('svg-power-bar');
+      pBarEl.setAttribute('width', pBarW);
+      let pColor = '#F59E0B';
+      if (powerW <= 15) pColor = '#10B981';
+      else if (powerW >= 55) pColor = '#EF4444';
+      pBarEl.setAttribute('fill', pColor);
+
+      // Éclair statique entre la batterie et le bloc puissance (épaisseur variable selon Watts)
+      const boltThickness = 0.65 + powerRatio * 1.45;
+      const boltShape = document.getElementById('svg-bolt-shape');
+      const boltGlow  = document.getElementById('svg-bolt-glow');
+      boltShape.setAttribute('transform', `scale(${boltThickness.toFixed(2)}, 1)`);
+      boltShape.setAttribute('fill', pColor);
+      boltShape.setAttribute('stroke', powerW >= 55 ? '#FCA5A5' : (powerW <= 15 ? '#6EE7B7' : '#FDE68A'));
+      boltGlow.setAttribute('transform', `scale(${(boltThickness * 1.35).toFixed(2)}, 1)`);
+      boltGlow.setAttribute('fill', pColor);
+
+      // 4. Colonne Centre Bas : Jauge de Batterie Classique ou Secteur AC
+      const fillRatio = isAC ? 1.0 : Math.min(1, Math.max(0, energyWh / MAX_TANK_WH));
+      const batFillW  = Math.round(198 * fillRatio);
+
+      const batFillEl     = document.getElementById('svg-bat-fill');
+      const batInsideLbl  = document.getElementById('svg-bat-inside-label');
+      const sourceTitleEl = document.getElementById('svg-source-title');
+      batFillEl.setAttribute('width', batFillW);
+
+      const stop1 = document.getElementById('tank-stop-1');
+      const stop2 = document.getElementById('tank-stop-2');
+      if (isAC) {
+        stop1.setAttribute('stop-color', '#38BDF8');
+        stop2.setAttribute('stop-color', '#0284C7');
+        sourceTitleEl.textContent = 'ALIMENTATION SECTEUR (AC)';
+        batInsideLbl.textContent  = '⚡ SECTEUR AC (100%)';
+        document.getElementById('svg-energy-wh').textContent       = 'Secteur AC · Branché';
+        document.getElementById('svg-energy-joules').textContent   = 'Réserve illimitée (Batterie 100%)';
+        document.getElementById('svg-energy-autonomy').textContent = 'Autonomie : Illimitée sur secteur';
+      } else {
+        sourceTitleEl.textContent = 'BATTERIE (ÉNERGIE STOCKÉE)';
+        batInsideLbl.textContent  = `${tankPct}%`;
+        if (fillRatio < 0.2) {
+          stop1.setAttribute('stop-color', '#EF4444');
+          stop2.setAttribute('stop-color', '#B91C1C');
+        } else if (fillRatio < 0.4) {
+          stop1.setAttribute('stop-color', '#F59E0B');
+          stop2.setAttribute('stop-color', '#B45309');
+        } else {
+          stop1.setAttribute('stop-color', '#10B981');
+          stop2.setAttribute('stop-color', '#059669');
+        }
+        document.getElementById('svg-energy-wh').textContent       = `${fmtDec(energyWh, 1)} Wh`;
+        document.getElementById('svg-energy-joules').textContent   = `= ${fmtInt(energyJoules)} Joules`;
+        document.getElementById('svg-energy-autonomy').textContent = `Autonomie IA : ${fmtHours(autonomyHours)} (Idle: ${fmtHours(idleHours)})`;
+      }
+
+      // 5. Liaisons horizontales & Colonne Droite : Rendement tok/J
+      const linkLC = document.getElementById('link-left-center');
+      linkLC.setAttribute('stroke-width', (3 + speedRatio * 7).toFixed(1));
+      linkLC.style.setProperty('--stream-dur', `${tapDur.toFixed(2)}s`);
+
+      const effRatio = Math.min(1, Math.max(0.1, effTokPerJ / 3.0));
+      const linkCR = document.getElementById('link-center-right');
+      linkCR.setAttribute('stroke-width', (3 + effRatio * 7).toFixed(1));
+      linkCR.style.setProperty('--stream-dur', `${Math.max(0.25, 1.8 - effRatio * 1.4).toFixed(2)}s`);
+
+      // Code couleur dynamique selon la valeur d'efficacité (tok/J)
+      let effColor = '#F87171'; // Rouge (< 0,60 tok/J)
+      let effLabel = 'Faible Efficacité';
+      if (effTokPerJ >= 2.0) {
+        effColor = '#38BDF8'; // Cyan vif (>= 2,00 tok/J)
+        effLabel = 'Excellente Efficacité';
+      } else if (effTokPerJ >= 1.2) {
+        effColor = '#34D399'; // Vert Émeraude (1,20 - 1,99 tok/J)
+        effLabel = 'Bonne Efficacité';
+      } else if (effTokPerJ >= 0.6) {
+        effColor = '#FBBF24'; // Ambre (0,60 - 1,19 tok/J)
+        effLabel = 'Efficacité Modérée';
+      }
+
+      document.getElementById('svg-formula-live').textContent = `${fmtDec(speedTps, 1)} ÷ ${fmtDec(powerW, 1)}`;
+      const effValEl   = document.getElementById('svg-eff-val');
+      const effBadgeEl = document.getElementById('svg-eff-badge');
+      effValEl.textContent   = fmtDec(effTokPerJ, 2);
+      effValEl.setAttribute('fill', effColor);
+      effBadgeEl.textContent = effLabel;
+      effBadgeEl.setAttribute('fill', effColor);
+
+      document.getElementById('svg-total-tokens').textContent = isAC ? '∞ (Sur secteur AC)' : `~${fmtInt(totalTokens)} tokens`;
+      document.getElementById('svg-total-calc').textContent   = isAC
+        ? `${fmtDec(speedTps, 1)} tok/s en continu`
+        : `${fmtInt(energyJoules)} J × ${fmtDec(effTokPerJ, 2)} tok/J`;
+
+      // 6. Tiroir optionnel
+      document.getElementById('adv-jtok').textContent  = `${fmtDec(joulesPerToken, 2)} J / token`;
+      document.getElementById('adv-kwh1m').textContent = `${fmtDec(kwhPer1MTok, 3)} kWh`;
+      document.getElementById('adv-eur1m').textContent = `${fmtDec(eurPer1MTok, 3)} € / 1M tok`;
+    }
+
+    function setPowerSource(source) {
+      state.powerSource = source;
+      const btnBat = document.getElementById('btn-mode-bat');
+      const btnAc  = document.getElementById('btn-mode-ac');
+      const slider = document.getElementById('slider-energy');
+      const icon   = document.getElementById('ctrl-source-icon');
+
+      if (source === 'ac') {
+        if (state.isSimulating) toggleSimulation();
+        btnAc.className  = 'px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold transition cursor-pointer';
+        btnBat.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white font-semibold transition cursor-pointer';
+        slider.disabled  = true;
+        slider.classList.add('opacity-40', 'cursor-not-allowed');
+        icon.className   = 'fa-solid fa-plug text-sky-400';
+      } else {
+        btnBat.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold transition cursor-pointer';
+        btnAc.className  = 'px-2 py-0.5 rounded text-slate-400 hover:text-white font-semibold transition cursor-pointer';
+        slider.disabled  = false;
+        slider.classList.remove('opacity-40', 'cursor-not-allowed');
+        icon.className   = 'fa-solid fa-battery-three-quarters text-emerald-400';
+      }
+      renderSimulator();
+    }
+
+    function onControlChange() {
+      if (state.powerSource === 'ac') setPowerSource('battery');
+      state.speedTps = parseFloat(document.getElementById('slider-speed').value);
+      state.powerW   = parseFloat(document.getElementById('slider-power').value);
+      state.energyWh = parseFloat(document.getElementById('slider-energy').value);
+      renderSimulator();
+    }
+
+    function applyPreset(mode) {
+      if (mode === 'idle') {
+        state.powerW = 12.0;
+        state.speedTps = 6.0;
+      } else if (mode === 'ia') {
+        state.powerW = 38.0;
+        state.speedTps = 42.0;
+      } else if (mode === 'max') {
+        state.powerW = 65.0;
+        state.speedTps = 78.0;
+      }
+      document.getElementById('slider-power').value = state.powerW;
+      document.getElementById('slider-speed').value = state.speedTps;
+      renderSimulator();
+    }
+
+    function simStep(now) {
+      if (!state.isSimulating) return;
+      if (state.lastFrame !== null) {
+        const dtSec = (now - state.lastFrame) / 1000;
+        const simHours = (dtSec * 600) / 3600;
+        state.energyWh = Math.max(0, state.energyWh - state.powerW * simHours);
+        document.getElementById('slider-energy').value = state.energyWh.toFixed(1);
+        renderSimulator();
+
+        if (state.energyWh <= 0.1) {
+          toggleSimulation();
+        }
+      }
+      state.lastFrame = now;
+      requestAnimationFrame(simStep);
+    }
+
+    function toggleSimulation() {
+      if (state.powerSource === 'ac') setPowerSource('battery');
+      state.isSimulating = !state.isSimulating;
+      const icon  = document.getElementById('sim-icon');
+      const label = document.getElementById('sim-btn-label');
+
+      if (state.isSimulating) {
+        if (state.energyWh <= 0.5) {
+          state.energyWh = 49.4;
+          document.getElementById('slider-energy').value = 49.4;
+        }
+        state.lastFrame = null;
+        icon.className = 'fa-solid fa-pause';
+        label.textContent = 'Pause';
+        requestAnimationFrame(simStep);
+      } else {
+        icon.className = 'fa-solid fa-play';
+        label.textContent = 'Vider la batterie (600×)';
+      }
+    }
+
+    function resetSimulation() {
+      if (state.isSimulating) toggleSimulation();
+      state.speedTps = 42.0;
+      state.powerW   = 38.0;
+      state.energyWh = 49.4;
+      setPowerSource('battery');
+
+      document.getElementById('slider-speed').value  = 42.0;
+      document.getElementById('slider-power').value  = 38.0;
+      document.getElementById('slider-energy').value = 49.4;
+      renderSimulator();
+    }
+
+    window.addEventListener('DOMContentLoaded', renderSimulator);
+  </script>
+</body>
+</html>
