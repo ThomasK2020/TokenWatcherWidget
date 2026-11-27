@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Démon Principal TokenWatcher V4.2.5.
+Démon Principal TokenWatcher V2.5.5.
 Orchestre les 3 sondes (AmdSysfsProbe, EnginesHttpProbe, SqliteTelemetryReader)
 à un intervalle de 1.0s et écrit atomiquement l'état dans /tmp/tokenwatcher_widget_state.json.
 """
@@ -129,7 +129,7 @@ class TokenWatcherDaemon:
         return merged
 
     async def collect_once(self) -> Dict[str, Any]:
-        """Fusionner les données des 3 sondes dans le schéma JSON V4.2.5."""
+        """Fusionner les données des 3 sondes dans le schéma JSON V2.5.5."""
         if not self._full_config or self.engines_probe is None:
             self.load_ports_config()
 
@@ -471,7 +471,7 @@ class TokenWatcherDaemon:
             active_topology = int(active_chains[0].get("topo_num") or active_topology)
 
         return {
-            "schema_version": "4.2.5",
+            "schema_version": "2.5.5",
             "timestamp": round(time.time(), 3),
             "active_topology": active_topology,
             "active_chains": active_chains,
@@ -931,7 +931,7 @@ async def _run_once(daemon: TokenWatcherDaemon) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V4.2.5")
+    parser = argparse.ArgumentParser(description="TokenWatcher Telemetry Daemon V2.5.5")
     parser.add_argument("--once", action="store_true", help="Exécute un cycle de collecte unique puis quitte.")
     args = parser.parse_args()
 

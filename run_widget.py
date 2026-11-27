@@ -47,7 +47,7 @@ class TokenWatcherRunnerApp(Gtk.Application):
         self.preprod = preprod
 
     def do_activate(self) -> None:
-        title = "TokenWatcher Cockpit V4.2.5 [PREPROD]" if self.preprod else "TokenWatcher Cockpit V4.2.5"
+        title = "TokenWatcher Cockpit V2.5.5 [PREPROD]" if self.preprod else "TokenWatcher Cockpit V2.5.5"
         win = Gtk.ApplicationWindow(application=self, title=title)
         win.set_default_size(980, 960)
 
@@ -65,7 +65,7 @@ class TokenWatcherRunnerApp(Gtk.Application):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="TokenWatcher GTK4 Cockpit Runner V4.2.5")
+    parser = argparse.ArgumentParser(description="TokenWatcher GTK4 Cockpit Runner V2.5.5")
     parser.add_argument(
         "--preprod",
         action="store_true",

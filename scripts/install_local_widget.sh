@@ -15,7 +15,7 @@ mkdir -p "${USER_SYSTEMD_DIR}" "${DESKTOP_DIR}"
 
 cat > "${USER_SYSTEMD_DIR}/tokenwatcher-daemon.service" <<EOF
 [Unit]
-Description=TokenWatcher Telemetry Daemon V4.2.5 MULTI-ENGINE
+Description=TokenWatcher Telemetry Daemon V2.5.5 MULTI-ENGINE
 After=network.target
 
 [Service]
@@ -32,7 +32,7 @@ EOF
 
 cat > "${USER_SYSTEMD_DIR}/tokenwatcher-widget.service" <<EOF
 [Unit]
-Description=TokenWatcher GTK4 Cockpit Widget V4.2.5
+Description=TokenWatcher GTK4 Cockpit Widget V2.5.5
 After=graphical-session.target tokenwatcher-daemon.service
 Wants=tokenwatcher-daemon.service
 PartOf=graphical-session.target
@@ -53,7 +53,7 @@ EOF
 cat > "${DESKTOP_DIR}/tokenwatcher-widget.desktop" <<EOF
 [Desktop Entry]
 Type=Application
-Name=TokenWatcher Cockpit V4.2.5
+Name=TokenWatcher Cockpit V2.5.5
 Comment=Monitoring Multi-Engine LLM & AMD Radeon APU
 Exec=${WIDGET_DIR}/scripts/start_widget.sh
 Terminal=false

@@ -1,6 +1,6 @@
 # Template systemd utilisateur (install_local_widget.sh génère le chemin exact du poste)
 [Unit]
-Description=TokenWatcher Telemetry Daemon V4.2.5 MULTI-ENGINE
+Description=TokenWatcher Telemetry Daemon V2.5.5 MULTI-ENGINE
 After=network.target
 
 [Service]

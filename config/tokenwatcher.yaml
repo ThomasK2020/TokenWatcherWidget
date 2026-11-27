@@ -1,4 +1,4 @@
-# Configuration dynamique des ports, profils Hermes, efficacité énergétique et quotas — TokenWatcher V4.2.5
+# Configuration dynamique des ports, profils Hermes, efficacité énergétique et quotas — TokenWatcher V2.5.5
 services:
   proxy:
     host: "127.0.0.1"
